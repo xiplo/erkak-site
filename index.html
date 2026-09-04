@@ -17,7 +17,6 @@
 </script>
 </head>
 <body>
-<div class="topbar">Бесплатная доставка по Узбекистану от <b class="num">500 000 сум</b> · По миру от <b>$10</b> · Нейтральная упаковка</div>
 <header class="top"><div class="wrap"></div></header>
 
 <main>
@@ -31,14 +30,9 @@
         <a class="btn btn-primary btn-lg" href="catalog.html">Открыть каталог</a>
         <a class="btn btn-secondary btn-lg" href="product.html?sku=stack90">Протокол 90 дней</a>
       </div>
-      <div class="proof">
-        <div><b>100%</b><span>партий с сертификатом анализа</span></div>
-        <div><b>GMP</b><span>контрактное производство, Узбекистан</span></div>
-        <div><b>40+</b><span>стран доставки, DHL и EMS</span></div>
-        <div><b>30 дней</b><span>возврат без вопросов</span></div>
-      </div>
+      <div class="trust" id="trust"></div>
     </div>
-    <div class="hero-photo"><img src="img/lineup.webp" alt="Линейка добавок ERKAK: семь банок в ряд" width="1600" height="900" fetchpriority="high"></div>
+    <div class="hero-photo"><img src="img/lineup.webp" alt="Линейка добавок ERKAK: семь банок в ряд" width="1600" height="900" fetchpriority="high"><span class="chip"><i aria-hidden="true"></i>Сертификат анализа на каждой банке</span></div>
   </div>
 </section>
 
@@ -161,6 +155,7 @@
 <script src="assets/site.js"></script>
 <script>
 shell('index.html');
+document.getElementById('trust').innerHTML = [[ICONS.shield,'GMP-производство','площадка в Узбекистане'],[ICONS.doc,'Сертификат на партию','QR-код на каждой банке'],[ICONS.globe,'40+ стран доставки','DHL Express и EMS'],[ICONS.undo,'Возврат 30 дней','без объяснения причин']].map(([i,b,s]) => `<div>${i}<span><b>${b}</b><span>${s}</span></span></div>`).join('');
 function paint(){
   document.getElementById('homeGrid').innerHTML = PRODUCTS.map(productCard).join('');
   document.querySelectorAll('[data-price]').forEach(el => { const p = bySku(el.dataset.price); el.textContent = money(p.priceUZS, p.priceUSD); });

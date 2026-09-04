@@ -159,25 +159,49 @@ let sb = null;
 function supa(){ if (!sb && window.supabase) sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey); return sb; }
 
 // ── Общая шапка/подвал ─────────────────────────────────────────
+const ICONS = {
+  cart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 8.5H7.5L6 6z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>',
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>',
+  doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>',
+  globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
+  undo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h11a5 5 0 010 10H9"/><path d="M8 6l-4 4 4 4"/></svg>',
+};
+const LOGO = (tag = true) => `<a class="logo" href="index.html" aria-label="${BRAND}"><img class="mark" src="img/logo.svg" alt="" width="40" height="40"><span><span class="word">${BRAND}</span>${tag ? '<span class="tag">Показатели под контролем</span>' : ''}</span></a>`;
+
 function shell(active){
-  const nav = [['index.html','Главная'],['catalog.html','Каталог'],['delivery.html','Доставка по миру'],['index.html#quality','Качество'],['account.html','Кабинет']];
-  document.querySelector('header.top .wrap').innerHTML = `
-    <a class="logo" href="index.html"><i aria-hidden="true"></i><span>${BRAND}</span></a>
-    <nav aria-label="Разделы">${nav.map(([h,t]) => `<a href="${h}" ${active === h ? 'aria-current="page"' : ''}>${t}</a>`).join('')}</nav>
+  const nav = [['index.html','Главная'],['catalog.html','Каталог'],['product.html?sku=stack90','Протокол 90 дней'],['delivery.html','Доставка по миру'],['index.html#quality','Качество']];
+  const head = document.querySelector('head');
+  if (!head.querySelector('link[rel="icon"]')) head.insertAdjacentHTML('beforeend', '<link rel="icon" type="image/svg+xml" href="favicon.svg">');
+  const header = document.querySelector('header.top');
+  if (!document.querySelector('.topbar')) header.insertAdjacentHTML('beforebegin', `<div class="topbar"><div class="wrap">
+    <span class="long">Бесплатная доставка по Узбекистану от <b class="num">500 000 сум</b> · по миру от <b>$10</b> · нейтральная упаковка</span><span class="short">Доставка по миру из Узбекистана · нейтральная упаковка</span>
+    <span class="links"><a href="delivery.html">Доставка и возврат</a><a href="${CONFIG.telegram}" rel="noopener">Telegram</a><a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a></span></div></div>`);
+  document.querySelectorAll('.topbar').forEach((t, i) => { if (i > 0) t.remove(); });
+  header.querySelector('.wrap').innerHTML = `
+    ${LOGO()}
+    <nav aria-label="Разделы">${nav.map(([h,t]) => `<a href="${h}" ${active === h.split('?')[0] && !h.includes('#') && !h.includes('?') ? 'aria-current="page"' : ''}>${t}</a>`).join('')}</nav>
     <div class="top-actions">
       <div class="cur" role="group" aria-label="Валюта"><button type="button" data-cur="UZS">сум</button><button type="button" data-cur="USD">USD</button></div>
-      <a class="acc-btn" href="account.html">Кабинет</a>
-      <a class="cart-btn" href="checkout.html">Корзина <span class="count"></span></a>
+      <a class="icon-btn" href="account.html" aria-label="Кабинет">${ICONS.user}<span class="lbl">Кабинет</span></a>
+      <a class="icon-btn cart cart-btn" href="checkout.html" aria-label="Корзина">${ICONS.cart}<span class="lbl">Корзина</span><span class="count"></span></a>
+      <button class="icon-btn burger" type="button" aria-label="Меню" aria-expanded="false">${ICONS.menu}</button>
     </div>`;
+  header.insertAdjacentHTML('beforeend', `<div class="mobile-nav" id="mnav"><div class="wrap">${nav.map(([h,t]) => `<a href="${h}" ${active === h ? 'aria-current="page"' : ''}>${t}</a>`).join('')}<a href="account.html">Кабинет</a><a href="checkout.html">Корзина</a><div class="cur" role="group" aria-label="Валюта"><button type="button" data-cur="UZS">сум</button><button type="button" data-cur="USD">USD</button></div></div></div>`);
+  const burger = header.querySelector('.burger'), mnav = header.querySelector('#mnav');
+  burger.onclick = () => { const open = mnav.classList.toggle('open'); burger.setAttribute('aria-expanded', String(open)); burger.innerHTML = open ? ICONS.close : ICONS.menu; };
+  addEventListener('scroll', () => header.classList.toggle('scrolled', scrollY > 8), { passive:true });
   document.querySelector('footer .wrap').innerHTML = `
-    <div style="display:grid;gap:var(--s4)">
-      <a class="logo" href="index.html"><i aria-hidden="true"></i><span>${BRAND}</span></a>
-      <p class="disclaimer">Биологически активные добавки не являются лекарственным средством. Сервис не ставит диагнозы, не назначает и не подбирает лекарственные препараты и не заменяет очную консультацию врача. Перед приёмом проконсультируйтесь со специалистом. Результат зависит от индивидуальных особенностей и подтверждается только контрольным анализом.</p>
-      <span>© <span class="num">${new Date().getFullYear()}</span> ${BRAND}. Ташкент, Узбекистан. Производство на площадке с сертификатом GMP.</span>
+    <div style="display:grid;gap:var(--s5)">
+      ${LOGO()}
+      <p class="disclaimer">Биологически активные добавки не являются лекарственным средством. Сервис не ставит диагнозы, не назначает и не подбирает лекарственные препараты и не заменяет очную консультацию врача. Перед приёмом проконсультируйтесь со специалистом. Результат подтверждается только контрольным анализом.</p>
+      <span class="copy-line">© <span class="num">${new Date().getFullYear()}</span> ${BRAND} · Ташкент, Узбекистан · производство на площадке с сертификатом GMP</span>
     </div>
-    <ul><li><b>Магазин</b></li><li><a href="catalog.html">Каталог</a></li><li><a href="product.html?sku=stack90">Протокол 90 дней</a></li><li><a href="delivery.html">Доставка и возврат</a></li><li><a href="checkout.html">Корзина</a></li></ul>
-    <ul><li><b>Сервис</b></li><li><a href="account.html">Кабинет и заказы</a></li><li><a href="${CONFIG.telegram}" rel="noopener">Telegram</a></li><li><a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a></li><li><a href="index.html#faq">Вопросы</a></li></ul>
-    <ul><li><b>Документы</b></li><li><a href="offer.html">Публичная оферта</a></li><li><a href="privacy.html">Обработка данных</a></li><li><a href="index.html#quality">Сертификаты партий</a></li></ul>`;
+    <ul><li><b>Магазин</b></li><li><a href="catalog.html">Каталог</a></li><li><a href="product.html?sku=stack90">Протокол 90 дней</a></li><li><a href="product.html?sku=shilajit">Shilajit</a></li><li><a href="checkout.html">Корзина</a></li></ul>
+    <ul><li><b>Сервис</b></li><li><a href="account.html">Кабинет и заказы</a></li><li><a href="delivery.html">Доставка и возврат</a></li><li><a href="${CONFIG.telegram}" rel="noopener">Telegram</a></li><li><a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a></li></ul>
+    <ul><li><b>Документы</b></li><li><a href="offer.html">Публичная оферта</a></li><li><a href="privacy.html">Обработка данных</a></li><li><a href="index.html#quality">Сертификаты партий</a></li><li><a href="https://erkak.com/#test">Опросник и анализы</a></li></ul>`;
   renderCurToggle(); renderCartCount();
   document.addEventListener('erkak:cart', renderCartCount);
 }
