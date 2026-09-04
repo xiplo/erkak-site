@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Каталог — ERKAK</title>
+<meta name="description" content="Все добавки ERKAK с составами, дозировками, противопоказаниями и показателем для контроля. Цены в сумах и долларах, доставка по миру.">
+<link rel="canonical" href="https://erkak.com/catalog.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="top"><div class="wrap"></div></header>
+<main>
+<div class="wrap page-head">
+  <span class="eyebrow">Каталог</span>
+  <h1>Все позиции линейки</h1>
+  <p class="muted">Каждая привязана к показателю, который можно перемерить. Составы и противопоказания на странице товара.</p>
+  <div class="hero-cta" role="group" aria-label="Фильтр по показателю" id="filters">
+    <button class="btn btn-secondary" data-f="all" aria-pressed="true">Все</button>
+    <button class="btn btn-secondary" data-f="deficit">Дефициты</button>
+    <button class="btn btn-secondary" data-f="metabolic">Метаболизм и давление</button>
+    <button class="btn btn-secondary" data-f="sleep">Сон и стресс</button>
+    <button class="btn btn-secondary" data-f="bundle">Наборы</button>
+  </div>
+</div>
+<section class="tight"><div class="wrap"><div class="grid" id="grid"></div></div></section>
+<section class="tight"><div class="wrap">
+  <div class="alert">Перед курсом рекомендуем сдать анализ: цинк и витамин D в избытке вредят, мумиё противопоказано при подагре. Опросник и запись на анализ — на <a href="https://erkak.com/#test">erkak.com</a>.</div>
+</div></section>
+</main>
+<footer><div class="wrap"></div></footer>
+<script src="assets/site.js"></script>
+<script>
+shell('catalog.html');
+const GROUPS = { deficit:['d3k2','zinc','shilajit'], metabolic:['arginine','omega3'], sleep:['magnesium','ashwagandha'], bundle:['stack90'] };
+let f = 'all';
+function paint(){
+  const list = f === 'all' ? PRODUCTS : PRODUCTS.filter(p => GROUPS[f].includes(p.sku));
+  document.getElementById('grid').innerHTML = list.map(productCard).join('');
+  bindAddButtons();
+}
+document.querySelectorAll('#filters button').forEach(b => b.onclick = () => { f = b.dataset.f; document.querySelectorAll('#filters button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); paint(); });
+paint(); document.addEventListener('erkak:cur', paint);
+</script>
+<style>#filters .btn[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}</style>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Доставка по миру и возврат — ERKAK</title>
+<meta name="description" content="Доставка добавок ERKAK из Узбекистана: по стране 1–3 дня, СНГ 5–10, Европа и ОАЭ 7–14, США 10–18 дней. DHL Express и EMS, нейтральная упаковка, возврат 30 дней.">
+<link rel="canonical" href="https://erkak.com/delivery.html">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="top"><div class="wrap"></div></header>
+<main>
+<div class="wrap page-head"><span class="eyebrow">Доставка</span><h1>Из Ташкента в любую страну</h1><p class="muted">Отправляем в день оплаты. Трек-номер приходит на почту и в Telegram. Таможенные документы готовим сами.</p></div>
+<section class="tight"><div class="wrap">
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Зона</th><th>Страны</th><th>Срок</th><th>Служба</th><th>Стоимость</th></tr></thead>
+    <tbody id="zones"></tbody>
+  </table></div>
+  <p class="small muted" style="margin-top:var(--s4)">Стоимость указана за посылку до 2 кг, это до 8 банок. Пошлины и НДС при ввозе, если страна их взимает, оплачивает получатель. Для России и стран, не указанных в таблице, возможность отправки уточняем до оплаты.</p>
+</div></section>
+<section class="tight"><div class="wrap split">
+  <div class="photo r43"><img src="img/box.webp" alt="Нейтральная крафтовая коробка ERKAK" loading="lazy"></div>
+  <div class="copy">
+    <span class="eyebrow">Упаковка</span>
+    <h2>Снаружи — только адрес</h2>
+    <p>Крафтовая коробка без названия категории и без описания содержимого. Внутри — банки в бумажной обёртке и карточка с QR на сертификат партии. В таможенной декларации указывается «пищевая добавка», как того требуют правила.</p>
+    <ul><li>Термоупаковка летом для отправок в Центральную Азию и Персидский залив.</li><li>Срок годности каждой банки не меньше 12 месяцев на момент отправки.</li><li>Повреждённая посылка заменяется бесплатно по фото.</li></ul>
+  </div>
+</div></section>
+<section class="tight"><div class="wrap" style="max-width:860px">
+  <div class="section-head"><span class="eyebrow">Возврат</span><h2>Правила без мелкого шрифта</h2></div>
+  <div class="prose">
+    <h3>Неоткрытая банка</h3><p>Возврат в течение 30 дней с момента получения без объяснения причин. Деньги возвращаются на тот же способ оплаты в течение 5 рабочих дней после получения посылки нами. Обратную доставку по Узбекистану оплачиваем мы, международную — покупатель.</p>
+    <h3>Открытая банка после курса</h3><p>Если контрольный анализ в той же лаборатории тем же методом не показал изменения показателя, к которому привязана позиция, мы возвращаем стоимость курса. Нужны два результата: до и после, с датами и методом. Это единственное условие.</p>
+    <h3>Подписка</h3><p>Останавливается в один шаг: кнопкой в кабинете, ответом «стоп» на письмо о следующей отправке или сообщением нам. Уже отправленная посылка не отменяется, следующая — не списывается.</p>
+    <h3>Замена</h3><p>Повреждение при доставке, пересорт или брак партии — замена без возврата товара, по фото, в течение 3 дней.</p>
+  </div>
+</div></section>
+</main>
+<footer><div class="wrap"></div></footer>
+<script src="assets/site.js"></script>
+<script>
+shell('delivery.html');
+function paint(){ document.getElementById('zones').innerHTML = ZONES.map(z => `<tr><td><b>${z.name}</b></td><td>${z.countries.join(', ')}</td><td class="num">${z.days}</td><td>${z.carrier}</td><td class="num">${money(z.uzs, z.usd)}${z.freeFrom ? `<br><span class="small muted">бесплатно от ${money(z.freeFrom)}</span>` : ''}</td></tr>`).join(''); }
+paint(); document.addEventListener('erkak:cur', paint);
+</script>
+</body>
+</html>

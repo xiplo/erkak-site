@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Товар — ERKAK</title>
+<meta name="description" content="Состав, дозировка, противопоказания и показатель для контроля.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="top"><div class="wrap"></div></header>
+<main>
+<section style="padding-top:var(--s8)"><div class="wrap product" id="product"></div></section>
+<section class="tight"><div class="wrap">
+  <div class="section-head"><span class="eyebrow">Часто берут вместе</span><h2>Ещё из линейки</h2></div>
+  <div class="grid" id="more"></div>
+</div></section>
+</main>
+<footer><div class="wrap"></div></footer>
+<script src="assets/site.js"></script>
+<script>
+shell('catalog.html');
+const sku = new URLSearchParams(location.search).get('sku') || 'shilajit';
+const p = bySku(sku) || bySku('shilajit');
+document.title = `${BRAND} ${p.name} — ${p.ru}`;
+document.querySelector('meta[name="description"]').content = `${p.ru}. ${p.sub}. ${p.form}. Показатель для контроля: ${p.metric}.`;
+function paint(){
+  const old = p.oldUZS ? `<s>${money(p.oldUZS, p.oldUSD)}</s>` : '';
+  const sub = Math.round(p.priceUZS * (1 - CONFIG.subscriptionDiscount) / 1000) * 1000, subUSD = Math.round(p.priceUSD * (1 - CONFIG.subscriptionDiscount));
+  document.getElementById('product').innerHTML = `
+    <div class="gallery"><div class="main"><img src="${p.img}" alt="${BRAND} ${p.name}, ${p.ru}" width="1000" height="1333" fetchpriority="high"></div></div>
+    <div class="pinfo">
+      <div><span class="eyebrow">${p.tag || 'Линейка ' + BRAND}</span><h1 style="margin-top:var(--s2)">${BRAND} ${p.name}</h1><p class="muted" style="font-size:var(--text-md);margin-top:var(--s2)">${p.ru}. ${p.sub}.</p></div>
+      <div class="buy">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);flex-wrap:wrap"><span class="price">${old}<span id="price"></span></span><span class="small muted">${p.form}</span></div>
+        <div class="sub-choice" role="radiogroup" aria-label="Способ покупки">
+          <label><input type="radio" name="mode" value="once" checked><span><span class="t">Разовая покупка</span><br><span class="d">Одна отправка, без продления</span></span><span class="num small" id="pOnce"></span></label>
+          <label><input type="radio" name="mode" value="sub"><span><span class="t">Подписка, −15%</span><br><span class="d">Отправка раз в ${p.form.includes('120') ? '60' : p.sku === 'stack90' ? '90' : p.form.includes('60') ? '60' : '90'} дней, отмена в один шаг</span></span><span class="num small" id="pSub"></span></label>
+        </div>
+        <button class="btn btn-primary btn-lg btn-block" id="buy">В корзину</button>
+        <p class="small muted">Отправка в день оплаты. Узбекистан 1–3 дня, по миру 5–18 дней. Нейтральная упаковка. Возврат 30 дней.</p>
+      </div>
+      <dl class="spec">
+        <div><dt>Форма и объём</dt><dd>${p.form}</dd></div>
+        <div><dt>Приём</dt><dd>${p.dose}</dd></div>
+        <div><dt>Состав</dt><dd>${p.composition}</dd></div>
+        <div><dt>Показатель для контроля</dt><dd>${p.metric}</dd></div>
+        <div><dt>Происхождение</dt><dd>${p.origin}</dd></div>
+        <div><dt>Кому подходит</dt><dd>${p.who}</dd></div>
+        <div><dt>Противопоказания</dt><dd>${p.notes}</dd></div>
+        <div><dt>Контроль качества</dt><dd>Сертификат анализа партии по QR на банке. Тяжёлые металлы и микробиология проверены. Производство GMP, Узбекистан.</dd></div>
+      </dl>
+    </div>`;
+  document.getElementById('price').textContent = money(p.priceUZS, p.priceUSD);
+  document.getElementById('pOnce').textContent = money(p.priceUZS, p.priceUSD);
+  document.getElementById('pSub').textContent = money(sub, subUSD);
+  document.getElementById('buy').onclick = () => cart.add(p.sku, 1, document.querySelector('input[name="mode"]:checked').value === 'sub');
+  document.getElementById('more').innerHTML = PRODUCTS.filter(x => x.sku !== p.sku).slice(0, 4).map(productCard).join('');
+  bindAddButtons();
+}
+paint(); document.addEventListener('erkak:cur', paint);
+</script>
+</body>
+</html>

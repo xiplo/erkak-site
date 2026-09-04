@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кабинет — ERKAK</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<header class="top"><div class="wrap"></div></header>
+<main>
+<div class="wrap page-head"><span class="eyebrow">Кабинет</span><h1>Заказы и подписки</h1><p class="muted">Вход по почте без пароля. Показываем заказы, оформленные на эту почту.</p></div>
+
+<section class="tight" id="login"><div class="wrap" style="max-width:560px">
+  <form class="panel" id="loginForm" novalidate>
+    <h3>Войти</h3>
+    <div class="field"><label for="lemail">Почта, на которую оформляли заказ</label><input id="lemail" type="email" required autocomplete="email" placeholder="you@example.com"></div>
+    <button class="btn btn-primary btn-lg btn-block" type="submit" id="loginBtn">Получить ссылку для входа</button>
+    <div class="alert" id="loginMsg" hidden></div>
+    <details><summary class="small muted" style="cursor:pointer">Пришёл код вместо ссылки</summary>
+      <div class="form-grid" style="margin-top:var(--s3)"><div class="field"><label for="code">Код из письма</label><input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="6 цифр"></div><button class="btn btn-secondary" type="button" id="codeBtn">Войти по коду</button></div></details>
+  </form>
+</div></section>
+
+<section class="tight" id="cab" hidden><div class="wrap">
+  <div class="panel" style="margin-bottom:var(--s6)">
+    <div style="display:flex;justify-content:space-between;gap:var(--s3);flex-wrap:wrap;align-items:center">
+      <div><b id="who"></b><br><span class="small muted">Заказы обновляются автоматически: оплата, сборка, трек-номер, доставка.</span></div>
+      <button class="btn btn-secondary" id="logout" type="button">Выйти</button>
+    </div>
+  </div>
+  <div class="orders" id="orders"></div>
+</div></section>
+</main>
+<footer><div class="wrap"></div></footer>
+<script src="assets/site.js"></script>
+<script>
+shell('account.html');
+const $ = id => document.getElementById(id);
+const client = supa();
+const STATUS = { new:'Новый', awaiting_payment:'Ожидает оплаты', paid:'Оплачен', packed:'Собран', shipped:'Отправлен', delivered:'Доставлен', cancelled:'Отменён', refunded:'Возврат' };
+const PAY = { payme:'Payme', click:'Click', card:'Карта', cod:'При получении' };
+
+async function show(session){
+  if (!session) { $('login').hidden = false; $('cab').hidden = true; return; }
+  $('login').hidden = true; $('cab').hidden = false; $('who').textContent = session.user.email;
+  const { data, error } = await client.from('shop_orders').select('number,status,items,total_uzs,total_usd,pay_method,country,city,tracking,created_at').order('created_at', { ascending:false });
+  if (error) { $('orders').innerHTML = `<div class="alert bad">Не удалось загрузить заказы: ${error.message}</div>`; return; }
+  if (!data.length) { $('orders').innerHTML = `<div class="empty"><p>Заказов на эту почту пока нет.</p><a class="btn btn-primary" href="catalog.html">В каталог</a></div>`; return; }
+  $('orders').innerHTML = data.map(o => `<article class="order">
+    <div class="h"><b class="num">${o.number}</b><span class="status ${o.status}">${STATUS[o.status] || o.status}</span><span class="small muted">${new Date(o.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' })}</span></div>
+    <ul>${o.items.map(i => `<li><span>${i.name}${i.subscription ? ' · подписка' : ''} × ${i.qty}</span><span class="num">${money(i.price_uzs * i.qty, i.price_usd * i.qty)}</span></li>`).join('')}</ul>
+    <div class="h small"><span>${PAY[o.pay_method] || o.pay_method} · ${o.country}${o.city ? ', ' + o.city : ''}</span><span>Итого <b class="num">${money(o.total_uzs, o.total_usd)}</b></span></div>
+    ${o.tracking ? `<div class="small">Трек-номер: <b class="num">${o.tracking}</b></div>` : ''}
+    ${o.status === 'awaiting_payment' ? `<div class="alert">Ссылка на оплату отправлена на почту. Если письма нет, напишите на <a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a> с номером заказа.</div>` : ''}
+    ${o.items.some(i => i.subscription) && !['cancelled','refunded'].includes(o.status) ? `<div class="small muted">Подписка: чтобы остановить, ответьте «стоп» на письмо о следующей отправке или напишите нам. Отмена в один шаг.</div>` : ''}
+  </article>`).join('');
+}
+
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault(); const email = $('lemail').value.trim().toLowerCase(); const msg = $('loginMsg');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'Введите почту.'; msg.className = 'alert bad'; msg.hidden = false; return; }
+  $('loginBtn').disabled = true;
+  const { error } = await client.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.origin + '/account.html', shouldCreateUser:true } });
+  $('loginBtn').disabled = false;
+  msg.className = error ? 'alert bad' : 'alert ok';
+  msg.textContent = error ? 'Не удалось отправить письмо: ' + error.message : 'Письмо отправлено. Откройте ссылку из него на этом устройстве.';
+  msg.hidden = false;
+});
+$('codeBtn').onclick = async () => {
+  const email = $('lemail').value.trim().toLowerCase(), token = $('code').value.trim(); const msg = $('loginMsg');
+  const { data, error } = await client.auth.verifyOtp({ email, token, type:'email' });
+  if (error) { msg.textContent = 'Код не подошёл: ' + error.message; msg.className = 'alert bad'; msg.hidden = false; return; }
+  show(data.session);
+};
+$('logout').onclick = async () => { await client.auth.signOut(); show(null); };
+
+client.auth.getSession().then(({ data }) => show(data.session));
+client.auth.onAuthStateChange((_e, session) => show(session));
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Корзина и оплата — ERKAK</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+<header class="top"><div class="wrap"></div></header>
+<main>
+<div class="wrap page-head"><span class="eyebrow">Оформление</span><h1>Корзина и оплата</h1><p class="muted">Без регистрации. Заказ появится в кабинете после входа по этой же почте.</p></div>
+<section class="tight"><div class="wrap checkout">
+  <form class="panel" id="form" novalidate>
+    <h3>Куда доставить</h3>
+    <div class="form-grid two">
+      <div class="field"><label for="name">Имя и фамилия</label><input id="name" name="name" required autocomplete="name" placeholder="Как в паспорте для международной отправки"></div>
+      <div class="field"><label for="phone">Телефон</label><input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+998 90 000 00 00"><span class="hint">Для курьера и таможни</span></div>
+      <div class="field"><label for="email">Почта</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><span class="hint">Сюда придут подтверждение, трек-номер и вход в кабинет</span></div>
+      <div class="field"><label for="country">Страна</label><select id="country" name="country" required></select></div>
+      <div class="field"><label for="city">Город</label><input id="city" name="city" required autocomplete="address-level2"></div>
+      <div class="field"><label for="postcode">Индекс</label><input id="postcode" name="postcode" autocomplete="postal-code"></div>
+    </div>
+    <div class="field"><label for="address">Адрес</label><input id="address" name="address" required autocomplete="street-address" placeholder="Улица, дом, квартира"></div>
+    <div class="alert" id="zoneInfo"></div>
+
+    <h3>Как оплатить</h3>
+    <div class="choice" id="pay">
+      <label data-zone="uz"><input type="radio" name="pay" value="payme" checked><span><span class="t">Payme</span><br><span class="d">Карты Uzcard и Humo, оплата в приложении</span></span><span class="tag">UZ</span></label>
+      <label data-zone="uz"><input type="radio" name="pay" value="click"><span><span class="t">Click</span><br><span class="d">Uzcard, Humo, Visa через Click</span></span><span class="tag">UZ</span></label>
+      <label><input type="radio" name="pay" value="card"><span><span class="t">Visa / Mastercard</span><br><span class="d">Любая страна, защищённая ссылка на оплату</span></span><span class="tag">USD</span></label>
+      <label data-zone="uz"><input type="radio" name="pay" value="cod"><span><span class="t">При получении</span><br><span class="d">Наличными или картой курьеру, только Узбекистан</span></span><span class="tag">UZ</span></label>
+    </div>
+    <div class="field"><label for="note">Комментарий к заказу</label><textarea id="note" name="note" rows="2" placeholder="Например: звонить за час, оставить у консьержа"></textarea></div>
+    <label class="small" style="display:grid;grid-template-columns:auto 1fr;gap:var(--s3);align-items:start"><input type="checkbox" id="agree" required style="width:20px;height:20px;accent-color:var(--brand);margin-top:3px"><span>Я ознакомлен с <a href="offer.html">офертой</a> и <a href="privacy.html">условиями обработки данных</a>. Добавки не являются лекарством, перед приёмом я проконсультируюсь с врачом.</span></label>
+    <div class="alert bad" id="formErr" hidden></div>
+    <button class="btn btn-primary btn-lg btn-block" id="submit" type="submit">Подтвердить заказ</button>
+    <p class="small muted">Нажимая кнопку, вы оформляете заказ. Списание происходит на странице платёжной системы, данные карты мы не видим и не храним.</p>
+  </form>
+
+  <aside class="panel sticky" id="summary">
+    <h3>Ваш заказ</h3>
+    <div id="lines"></div>
+    <div class="totals">
+      <div><span>Товары</span><span class="num" id="tSub"></span></div>
+      <div><span>Доставка <span class="faint" id="tZone"></span></span><span class="num" id="tShip"></span></div>
+      <div class="grand"><span>Итого</span><span class="num" id="tGrand"></span></div>
+    </div>
+    <p class="small muted">Нейтральная упаковка. Отправка в день оплаты. Возврат неоткрытой банки 30 дней.</p>
+  </aside>
+</div></section>
+
+<section class="tight" id="done" hidden><div class="wrap" style="max-width:720px">
+  <div class="panel">
+    <span class="eyebrow" style="color:var(--ok)">Заказ оформлен</span>
+    <h2 id="doneTitle"></h2>
+    <div id="doneBody" class="prose"></div>
+    <div class="hero-cta"><a class="btn btn-primary" href="account.html">Открыть кабинет</a><a class="btn btn-secondary" href="catalog.html">Вернуться в каталог</a></div>
+  </div>
+</div></section>
+</main>
+<footer><div class="wrap"></div></footer>
+<script src="assets/site.js"></script>
+<script>
+shell('checkout.html');
+const $ = id => document.getElementById(id);
+const countrySel = $('country');
+countrySel.innerHTML = ZONES.map(z => `<optgroup label="${z.name}">${z.countries.map(c => `<option ${c === 'Узбекистан' ? 'selected' : ''}>${c}</option>`).join('')}</optgroup>`).join('');
+try { const c = localStorage.getItem('erkak.country'); if (c) countrySel.value = c; } catch {}
+
+function zone(){ return zoneFor(countrySel.value); }
+function shipping(sub){ const z = zone(); if (z.freeFrom && sub.uzs >= z.freeFrom) return { uzs:0, usd:0, free:true }; return { uzs:z.uzs, usd:z.usd }; }
+
+function paint(){
+  const lines = cart.lines();
+  if (!lines.length) {
+    $('lines').innerHTML = `<div class="empty"><p>Корзина пуста.</p><a class="btn btn-primary" href="catalog.html">В каталог</a></div>`;
+    $('form').hidden = true; return;
+  }
+  $('form').hidden = false;
+  $('lines').innerHTML = lines.map(l => `<div class="cart-line">
+    <img src="${l.p.img}" alt=""><div><b>${BRAND} ${l.p.name}${l.sub ? ' · подписка −15%' : ''}</b><span class="small muted">${l.p.form}</span><br><span class="num small">${money(l.uzs, l.usd)}</span></div>
+    <div class="qty"><button type="button" aria-label="Меньше" data-q="${l.key}" data-d="-1">−</button><span>${l.qty}</span><button type="button" aria-label="Больше" data-q="${l.key}" data-d="1">+</button></div></div>`).join('');
+  $('lines').querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const l = cart.read().find(i => i.key === b.dataset.q); cart.setQty(b.dataset.q, l.qty + +b.dataset.d); });
+  const sub = cart.subtotal(), z = zone(), sh = shipping(sub);
+  $('tSub').textContent = money(sub.uzs, sub.usd);
+  $('tZone').textContent = z.name;
+  $('tShip').textContent = sh.free ? 'бесплатно' : money(sh.uzs, sh.usd);
+  $('tGrand').textContent = money(sub.uzs + sh.uzs, sub.usd + sh.usd);
+  $('zoneInfo').innerHTML = `<b>${z.name}</b>: ${z.carrier}, ${z.days}. Доставка ${sh.free ? 'бесплатно' : money(z.uzs, z.usd)}${z.freeFrom ? `, бесплатно от ${money(z.freeFrom)}` : ''}.${z.id !== 'uz' ? ' Таможенные документы и инвойс готовим мы. Пошлины, если страна их взимает, оплачивает получатель.' : ''}`;
+  document.querySelectorAll('#pay label[data-zone="uz"]').forEach(l => l.hidden = z.id !== 'uz');
+  if (z.id !== 'uz') document.querySelector('input[name="pay"][value="card"]').checked = true;
+  else if (!document.querySelector('input[name="pay"]:checked') || document.querySelector('input[name="pay"]:checked').closest('label').hidden) document.querySelector('input[name="pay"][value="payme"]').checked = true;
+}
+countrySel.onchange = () => { try { localStorage.setItem('erkak.country', countrySel.value); } catch {} paint(); };
+document.addEventListener('erkak:cart', paint); document.addEventListener('erkak:cur', paint);
+paint();
+
+function b64url(s){ return btoa(unescape(encodeURIComponent(s))); }
+function payLink(method, order){
+  const P = CONFIG.pay, amountTiyin = order.total_uzs * 100;
+  if (method === 'payme' && P.paymeMerchant) return `https://checkout.paycom.uz/${b64url(`m=${P.paymeMerchant};ac.order_id=${order.number};a=${amountTiyin};c=${location.origin}/account.html`)}`;
+  if (method === 'click' && P.clickService) return `https://my.click.uz/services/pay?service_id=${P.clickService}&merchant_id=${P.clickMerchant}&amount=${order.total_uzs}&transaction_param=${order.number}&return_url=${encodeURIComponent(location.origin + '/account.html')}`;
+  if (method === 'card' && P.stripeLink) return `${P.stripeLink}?client_reference_id=${order.number}&prefilled_email=${encodeURIComponent(order.email)}`;
+  return null;
+}
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, err = $('formErr'); err.hidden = true;
+  const req = ['name','email','country','city','address'];
+  for (const id of req) { const el = $(id); el.closest('.field').classList.toggle('err', !el.value.trim()); }
+  if (req.some(id => !$(id).value.trim()) || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($('email').value)) { err.textContent = 'Заполните имя, почту, страну, город и адрес.'; err.hidden = false; return; }
+  if (!$('agree').checked) { err.textContent = 'Нужно согласие с офертой и условиями обработки данных.'; err.hidden = false; return; }
+  const lines = cart.lines(); if (!lines.length) return;
+  const sub = cart.subtotal(), sh = shipping(sub), z = zone();
+  const method = document.querySelector('input[name="pay"]:checked').value;
+  const order = {
+    email: $('email').value.trim().toLowerCase(), name: $('name').value.trim(), phone: $('phone').value.trim() || null,
+    country: countrySel.value, city: $('city').value.trim(), address: $('address').value.trim(), postcode: $('postcode').value.trim() || null,
+    items: lines.map(l => ({ sku:l.sku, name:`${BRAND} ${l.p.name}`, qty:l.qty, subscription:l.sub, price_uzs:l.uzs, price_usd:l.usd })),
+    subtotal_uzs: sub.uzs, shipping_uzs: sh.uzs, total_uzs: sub.uzs + sh.uzs, total_usd: sub.usd + sh.usd,
+    pay_method: method, status: method === 'cod' ? 'new' : 'awaiting_payment', note: [$('note').value.trim(), `zone:${z.id}`, `cur:${cur.get()}`].filter(Boolean).join(' | '),
+  };
+  const btn = $('submit'); btn.disabled = true; btn.textContent = 'Оформляем…';
+  try {
+    const { data, error } = await supa().from('shop_orders').insert(order).select('number,total_uzs,email').single();
+    if (error) throw error;
+    cart.clear();
+    const link = payLink(method, data);
+    if (link) { location.href = link; return; }
+    document.querySelector('.checkout').hidden = true; document.querySelector('.page-head').hidden = true;
+    $('doneTitle').textContent = `Заказ ${data.number} принят`;
+    const how = { payme:'Ссылка на оплату Payme придёт на почту и в Telegram в течение 10 минут.', click:'Ссылка на оплату Click придёт на почту и в Telegram в течение 10 минут.', card:'Защищённая ссылка на оплату картой придёт на почту в течение 10 минут. Сумма в долларах по курсу на день заказа.', cod:'Курьер свяжется для согласования времени. Оплата наличными или картой при получении.' }[method];
+    $('doneBody').innerHTML = `<p>${how}</p><p>Сумма: <b class="num">${money(data.total_uzs)}</b>. Подтверждение отправлено на <b>${data.email}</b>. Отслеживать заказ можно в кабинете: вход по этой же почте, без пароля.</p>`;
+    $('done').hidden = false; window.scrollTo({ top:0 });
+  } catch (ex) {
+    err.textContent = 'Не удалось сохранить заказ. Проверьте соединение и попробуйте ещё раз. Если не помогает, напишите на ' + CONFIG.supportEmail + '.'; err.hidden = false;
+    btn.disabled = false; btn.textContent = 'Подтвердить заказ'; console.error(ex);
+  }
+});
+</script>
+</body>
+</html>
