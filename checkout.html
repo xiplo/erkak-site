@@ -127,7 +127,7 @@ $('form').addEventListener('submit', async e => {
   };
   const btn = $('submit'); btn.disabled = true; btn.textContent = 'Оформляем…';
   try {
-    const { data, error } = await supa().from('shop_orders').insert(order).select('number,total_uzs,email').single();
+    const { data, error } = await supa().rpc('shop_place_order', { payload: order });
     if (error) throw error;
     cart.clear();
     const link = payLink(method, data);
