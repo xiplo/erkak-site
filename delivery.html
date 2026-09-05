@@ -2,12 +2,13 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
 <title>Доставка по миру и возврат — ERKAK</title>
 <meta name="description" content="Доставка добавок ERKAK из Узбекистана: по стране 1–3 дня, СНГ 5–10, Европа и ОАЭ 7–14, США 10–18 дней. DHL Express и EMS, нейтральная упаковка, возврат 30 дней.">
 <link rel="canonical" href="https://erkak.com/delivery.html">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/site.css?v=202609051342">
 </head>
 <body>
 <header class="top"><div class="wrap"></div></header>
@@ -40,8 +41,8 @@
 </div></section>
 </main>
 <footer><div class="wrap"></div></footer>
-<script src="assets/catalog.js"></script>
-<script src="assets/site.js"></script>
+<script src="assets/catalog.js?v=202609051342"></script>
+<script src="assets/site.js?v=202609051342"></script>
 <script>
 shell('delivery.html');
 function paint(){ document.getElementById('zones').innerHTML = ZONES.map(z => `<tr><td><b>${z.name}</b></td><td>${z.countries.join(', ')}</td><td class="num">${z.days}</td><td>${z.carrier}</td><td class="num">${money(z.uzs, z.usd)}${z.freeFrom ? `<br><span class="small muted">бесплатно от ${money(z.freeFrom)}</span>` : ''}</td></tr>`).join(''); }

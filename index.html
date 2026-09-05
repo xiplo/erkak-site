@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
 <title>ERKAK — добавки из Узбекистана с сертификатом на каждую партию</title>
 <meta name="description" content="Линейка добавок ERKAK для мужчин 45+: мумиё Тянь-Шаня, аргинин, D3+K2, цинк, магний, омега-3. GMP-производство в Узбекистане, сертификат анализа на партию, доставка по миру, нейтральная упаковка.">
 <link rel="canonical" href="https://erkak.com/">
@@ -11,7 +12,7 @@
 <meta property="og:image" content="https://erkak.com/img/lineup.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/site.css?v=202609051342">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Organization","name":"ERKAK","url":"https://erkak.com","logo":"https://erkak.com/img/lineup.webp","address":{"@type":"PostalAddress","addressLocality":"Ташкент","addressCountry":"UZ"}}
 </script>
@@ -24,15 +25,15 @@
   <div class="wrap">
     <div class="hero-copy">
       <span class="eyebrow">Мужчинам 45+ · GMP Узбекистан · доставка по миру</span>
-      <h1>Добавки, у каждой из которых есть показатель в вашем анализе</h1>
-      <p class="lead">Мумиё Тянь-Шаня, аргинин, D3+K2, цинк, магний, омега-3. Ни одной позиции «для общего тонуса»: только то, что через 90 дней можно перемерить и увидеть разницу.</p>
+      <h1>Добавки, привязанные к вашим анализам</h1>
+      <p class="lead">Мумиё Тянь-Шаня, аргинин, D3+K2, цинк, магний, омега-3. Только то, что через 90 дней можно перемерить и увидеть разницу в цифрах.</p>
       <div class="hero-cta">
         <a class="btn btn-primary btn-lg" href="catalog.html">Открыть каталог</a>
         <a class="btn btn-secondary btn-lg" href="product.html?sku=stack90">Протокол 90 дней</a>
       </div>
-      <div class="trust" id="trust"></div>
     </div>
     <div class="hero-photo"><img src="img/lineup.webp" alt="Линейка добавок ERKAK: семь банок в ряд" width="1600" height="900" fetchpriority="high"><span class="chip"><i aria-hidden="true"></i>Сертификат анализа на каждой банке</span></div>
+    <div class="trust" id="trust"></div>
   </div>
 </section>
 
@@ -68,7 +69,7 @@
 
 <section aria-labelledby="h-shil" style="background:var(--surface-sunken);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
   <div class="wrap split">
-    <div class="photo r169"><img src="img/resin.webp" alt="Смола мумиё на горном камне" loading="lazy"></div>
+    <div class="photo r43"><img src="img/resin.webp" alt="Смола мумиё на горном камне" loading="lazy"></div>
     <div class="copy">
       <span class="eyebrow">Флагман</span>
       <h2 id="h-shil">Мумиё Тянь-Шаня, стандартизированное по фульвовым кислотам</h2>
@@ -152,8 +153,8 @@
 
 <footer><div class="wrap"></div></footer>
 
-<script src="assets/catalog.js"></script>
-<script src="assets/site.js"></script>
+<script src="assets/catalog.js?v=202609051342"></script>
+<script src="assets/site.js?v=202609051342"></script>
 <script>
 shell('index.html');
 document.getElementById('trust').innerHTML = [[ICONS.shield,'GMP-производство','площадка в Узбекистане'],[ICONS.doc,'Сертификат на партию','QR-код на каждой банке'],[ICONS.globe,'40+ стран доставки','DHL Express и EMS'],[ICONS.undo,'Возврат 30 дней','без объяснения причин']].map(([i,b,s]) => `<div>${i}<span><b>${b}</b><span>${s}</span></span></div>`).join('');

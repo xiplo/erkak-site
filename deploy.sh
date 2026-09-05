@@ -7,6 +7,8 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 DOMAIN="${DOMAIN:-erkak.com}"
 MODE="${1:-pages}"
 cd "$DIR"
+ASSET_VERSION="$(date +%Y%m%d%H%M)"
+sed -i "" -E "s#(assets/(site\.css|catalog\.js|site\.js))(\?v=[0-9]+)?#\1?v=${ASSET_VERSION}#g" *.html 2>/dev/null || sed -i -E "s#(assets/(site\.css|catalog\.js|site\.js))(\?v=[0-9]+)?#\1?v=${ASSET_VERSION}#g" *.html
 
 if [ "$MODE" = "pages" ]; then
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || git init -q -b main

@@ -95,7 +95,7 @@ const ICONS = {
 const LOGO = (tag = true) => `<a class="logo" href="index.html" aria-label="${BRAND}"><img class="mark" src="img/logo.svg" alt="" width="40" height="40"><span><span class="word">${BRAND}</span>${tag ? '<span class="tag">Показатели под контролем</span>' : ''}</span></a>`;
 
 function shell(active){
-  const nav = [['index.html','Главная'],['catalog.html','Каталог'],['product.html?sku=stack90','Протокол 90 дней'],['delivery.html','Доставка по миру'],['index.html#quality','Качество']];
+  const nav = [['catalog.html','Каталог'],['product.html?sku=stack90','Протокол 90 дней'],['delivery.html','Доставка'],['index.html#quality','Качество']];
   const head = document.querySelector('head');
   if (!head.querySelector('link[rel="icon"]')) head.insertAdjacentHTML('beforeend', '<link rel="icon" type="image/svg+xml" href="favicon.svg">');
   const header = document.querySelector('header.top');
