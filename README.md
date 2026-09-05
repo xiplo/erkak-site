@@ -1,63 +1,45 @@
-# apps/shop — магазин ERKAK
+# apps/shop · магазин ERKAK
 
-Статический магазин без сборки: каталог, страница товара, корзина с оплатой,
-кабинет с заказами, доставка по миру. Данные заказов и вход по почте —
-Supabase, проект `erkak` (`lefeztravjsusefhjozd`, Франкфурт).
+Статический фронт + API без зависимостей на том же VPS. Supabase не используется.
 
-## Страницы
+## Прод
+- Сервер `root@62.238.59.42` (Hetzner, nginx на хосте, Node 22).
+- Статика: `/var/www/erkak.com`. API: `/opt/erkak/server.mjs`, systemd `erkak-api`, порт 8795, база SQLite `/opt/erkak/data/erkak.db`.
+- nginx: `/etc/nginx/sites-available/erkak.com.conf`, `/api/` проксируется на API.
+- Деплой: `./deploy.sh vps` (rsync статики и сервера, перезапуск, nginx, certbot).
+- Зеркало статики без API: `./deploy.sh pages` → GitHub Pages `xiplo/erkak-site`.
 
-| Файл | Что |
-|---|---|
-| `index.html` | продающая главная: линейка, набор «Протокол 90 дней», качество, FAQ |
-| `catalog.html` | каталог с фильтром по показателю |
-| `product.html?sku=` | товар: состав, дозировка, противопоказания, подписка −15% |
-| `checkout.html` | корзина, адрес, зона доставки, способ оплаты, создание заказа |
-| `account.html` | кабинет: вход по ссылке из письма, список заказов, статусы, трек |
-| `delivery.html` | зоны доставки, упаковка, возврат |
-| `offer.html`, `privacy.html` | документы, проект |
+## Настройка на сервере (`/opt/erkak/.env`)
+```
+SMTP_HOST=          # письма: подтверждение заказа, код входа, статусы
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=          # адрес отправителя на домене SMTP-аккаунта
+SMTP_SECURE=false   # true для порта 465
+SUPPORT_EMAIL=care@erkak.com
+ERKAK_TG_CHAT=      # чат для уведомлений о заказах; токен бота берётся из pactum
+PAYME_MERCHANT=     # появятся ссылки на оплату в письме и кабинете
+CLICK_SERVICE_ID=
+CLICK_MERCHANT_ID=
+STRIPE_LINK=        # Stripe Payment Link для карт вне Узбекистана
+```
+После правок: `systemctl restart erkak-api`. Без SMTP заказы принимаются, а вход в кабинет работает по номеру заказа.
 
-Все тексты, цены и каталог — в `assets/site.js` (`PRODUCTS`, `ZONES`, `CONFIG`).
-
-## Локально
-
+## Операции
 ```bash
-python3 -m http.server 8765 --directory apps/shop
+cd /opt/erkak
+node server.mjs orders 20                       # последние заказы
+node server.mjs status EK-260905-1234 paid      # статусы: paid, packed, shipped, delivered, cancelled, refunded
+node server.mjs status EK-260905-1234 shipped 1234567890   # с трек-номером, клиенту уйдёт письмо
 ```
 
-## Деплой
+## API
+`POST /api/orders` · `POST /api/auth/code` · `POST /api/auth/verify` · `POST /api/auth/order` · `GET /api/me/orders` · `POST /api/auth/logout` · `GET /api/health`.
+Цены пересчитываются на сервере из `assets/catalog.js`, клиентские суммы не принимаются. Все действия пишутся в таблицу `audit`.
 
-```bash
-./apps/shop/deploy.sh pages
-```
-Создаёт публичный репозиторий `xiplo/erkak-site`, включает GitHub Pages с
-доменом erkak.com. Затем DNS: четыре A-записи GitHub Pages и CNAME для www
-(скрипт печатает значения). Альтернатива — `./deploy.sh vps` на сервер orche.
-
-## Что настроить до первых продаж
-
-1. **Supabase Auth → URL Configuration**: Site URL `https://erkak.com`,
-   Redirect URLs `https://erkak.com/account.html`. Без этого ссылка входа
-   ведёт на localhost.
-2. **Письма**: в Auth → Email Templates для Magic Link добавить `{{ .Token }}`,
-   если нужен вход по коду. Для продакшена подключить свой SMTP: встроенный
-   ограничен несколькими письмами в час.
-3. **Оплата** в `CONFIG.pay`: `paymeMerchant`, `clickService` + `clickMerchant`,
-   `stripeLink` (Stripe Payment Link для карт из-за рубежа). Пока пусто —
-   заказ сохраняется со статусом «ожидает оплаты», ссылку отправляет оператор.
-4. **Курс** `CONFIG.usdRate` и **почта поддержки** `CONFIG.supportEmail`.
-5. **Статусы заказов** меняются в Supabase (Table Editor или service role):
-   `paid → packed → shipped` (+ `tracking`) `→ delivered`. Клиент видит их в кабинете.
-6. **Оферта и реквизиты** — после регистрации юрлица.
-7. **Цены и составы** — заглушки до договора с производством. Проверить
-   регистрацию каждой позиции в стране продажи (`docs/08-compliance-matrix.md`).
-
-## Красные линии, которые соблюдены
-
-Нет обещаний результата, нет диагнозов, нет рецептурных препаратов и их
-упоминаний, противопоказания на каждой странице товара, нейтральная упаковка,
-медицинские данные в магазине не собираются.
-
-## Картинки
-
-Сгенерированы через kie.ai, модель `flux-2/pro-text-to-image` 2K.
-Исходники `img/*.png` не коммитятся, в вебе `img/*.webp`.
+## Что заменить до запуска
+- Цены и составы в `assets/catalog.js` — черновик до договора с производством.
+- Фото товаров сгенерированы, заменить на съёмку реальных упаковок.
+- `https://t.me/erkak_bot` — бот не создан.
+- Оферта и политика в `offer.html`, `privacy.html` — проверить юристом.

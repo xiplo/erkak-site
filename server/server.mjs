@@ -76,7 +76,7 @@ const audit = (actor, action, subject, detail) => q.audit.run(actor || null, act
 async function sendMail({ to, subject, text, html }){
   const host = ENV.SMTP_HOST, port = +(ENV.SMTP_PORT || 587), user = ENV.SMTP_USER, pass = ENV.SMTP_PASS;
   const from = ENV.MAIL_FROM || ENV.SMTP_FROM || user;
-  if (!host || !user) throw new Error('SMTP не настроен');
+  if (!host) throw new Error('SMTP не настроен');
   const secure = String(ENV.SMTP_SECURE) === 'true' || port === 465;
   let sock = secure ? tls.connect({ host, port, servername: host }) : net.connect({ host, port });
   await new Promise((res, rej) => { sock.once(secure ? 'secureConnect' : 'connect', res); sock.once('error', rej); });
@@ -94,7 +94,7 @@ async function sendMail({ to, subject, text, html }){
     sock = await new Promise((res, rej) => { const s = tls.connect({ socket: sock, servername: host }, () => res(s)); s.once('error', rej); });
     buf = ''; ehlo = await cmd('EHLO erkak.com');
   }
-  await cmd('AUTH LOGIN', /^334/); await cmd(Buffer.from(user).toString('base64'), /^334/); await cmd(Buffer.from(pass).toString('base64'), /^235/);
+  if (user && pass) { await cmd('AUTH LOGIN', /^334/); await cmd(Buffer.from(user).toString('base64'), /^334/); await cmd(Buffer.from(pass).toString('base64'), /^235/); }
   await cmd(`MAIL FROM:<${from.replace(/^.*<|>.*$/g, '')}>`); await cmd(`RCPT TO:<${to}>`); await cmd('DATA', /^354/);
   const boundary = 'b' + crypto.randomBytes(8).toString('hex');
   const b64 = s => Buffer.from(s, 'utf8').toString('base64').replace(/(.{76})/g, '$1\r\n');
@@ -224,6 +224,17 @@ const routes = {
     const token = crypto.randomBytes(32).toString('hex');
     q.insertSession.run(token, email, Date.now(), Date.now() + 30 * 86400e3);
     audit(email, 'auth.login', null, null);
+    json(res, 200, { token, email });
+  },
+
+  'POST /api/auth/order': async (req, res) => {
+    const b = await body(req); const email = String(b.email || '').trim().toLowerCase(), number = String(b.number || '').trim().toUpperCase();
+    if (limited('order-login:' + ipOf(req), 20, 3600e3)) return json(res, 429, { error:'Слишком много попыток. Подождите.' });
+    const o = q.orderByNumber.get(number);
+    if (!o || o.email !== email) return json(res, 400, { error:'Заказ с таким номером и почтой не найден.' });
+    const token = crypto.randomBytes(32).toString('hex');
+    q.insertSession.run(token, email, Date.now(), Date.now() + 30 * 86400e3);
+    audit(email, 'auth.login.order', number, null);
     json(res, 200, { token, email });
   },
 

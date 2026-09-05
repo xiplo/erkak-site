@@ -19,6 +19,8 @@
     <div class="field"><label for="lemail">Почта, на которую оформляли заказ</label><input id="lemail" type="email" required autocomplete="email" placeholder="you@example.com"></div>
     <button class="btn btn-primary btn-lg btn-block" type="submit" id="loginBtn">Получить код на почту</button>
     <div class="alert" id="loginMsg" hidden></div>
+    <details id="byOrder"><summary class="small muted" style="cursor:pointer;min-height:var(--tap);display:flex;align-items:center">Нет доступа к почте прямо сейчас: войти по номеру заказа</summary>
+      <div class="form-grid" style="margin-top:var(--s3)"><div class="field"><label for="onum">Номер заказа из подтверждения</label><input id="onum" placeholder="EK-260905-1234" autocomplete="off"></div><button class="btn btn-secondary btn-block" type="button" id="orderBtn">Войти по номеру заказа</button></div></details>
     <div class="form-grid" id="codeBox" hidden><div class="field"><label for="code">Код из письма</label><input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="6 цифр" maxlength="6"><span class="hint">Действует 15 минут. Письмо может попасть в «Промоакции» или «Спам».</span></div><button class="btn btn-secondary btn-lg btn-block" type="button" id="codeBtn">Войти</button></div>
   </form>
 </div></section>
@@ -74,6 +76,12 @@ $('codeBtn').onclick = async () => {
   catch (ex) { say(ex.message, false); }
 };
 $('code').addEventListener('input', () => { if ($('code').value.replace(/\D/g, '').length === 6) $('codeBtn').click(); });
+$('orderBtn').onclick = async () => {
+  const email = $('lemail').value.trim().toLowerCase(), number = $('onum').value.trim();
+  if (!email) return say('Сначала введите почту, на которую оформляли заказ.', false);
+  try { const r = await api('/auth/order', { email, number }); session.set(r.token); msg.hidden = true; show(); }
+  catch (ex) { say(ex.message, false); }
+};
 $('logout').onclick = async () => { try { await api('/auth/logout', {}); } catch {} session.set(''); show(); };
 show();
 </script>
