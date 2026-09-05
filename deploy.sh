@@ -1,7 +1,7 @@
 #!/bin/bash
 # ERKAK shop — деплой на прод. Два пути, любой из них достаточен.
 #   ./deploy.sh pages   → GitHub Pages: репозиторий xiplo/erkak-site + домен erkak.com
-#   ./deploy.sh vps     → VPS orche: /var/www/erkak.com за Caddy или nginx
+#   ./deploy.sh vps     → VPS 62.238.59.42: статика в /var/www/erkak.com, API в /opt/erkak (systemd), nginx + certbot
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 DOMAIN="${DOMAIN:-erkak.com}"
@@ -25,34 +25,27 @@ if [ "$MODE" = "pages" ]; then
   echo "DNS для ${DOMAIN}:  A 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153"
   echo "DNS для www:        CNAME xiplo.github.io"
 elif [ "$MODE" = "vps" ]; then
-  VPS="${VPS_USER:-root}@${VPS_HOST:-76.13.251.52}"
-  ssh -o StrictHostKeyChecking=no "$VPS" "mkdir -p /var/www/${DOMAIN}"
-  rsync -az --delete --exclude 'img/*.png' --exclude '.git' -e "ssh -o StrictHostKeyChecking=no" "$DIR/" "$VPS:/var/www/${DOMAIN}/"
-  ssh -o StrictHostKeyChecking=no "$VPS" "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
+  VPS="${VPS_USER:-root}@${VPS_HOST:-62.238.59.42}"
+  SSH="ssh -o StrictHostKeyChecking=no $VPS"
+  echo "[vps] статика → /var/www/${DOMAIN}, API → /opt/erkak, nginx, systemd, TLS"
+  $SSH "mkdir -p /var/www/${DOMAIN} /opt/erkak/data"
+  rsync -az --delete --exclude 'img/*.png' --exclude '.git' --exclude 'server' --exclude 'deploy.sh' -e "ssh -o StrictHostKeyChecking=no" "$DIR/" "$VPS:/var/www/${DOMAIN}/"
+  rsync -az -e "ssh -o StrictHostKeyChecking=no" "$DIR/server/" "$VPS:/opt/erkak/"
+  $SSH "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
 set -e
-if command -v caddy >/dev/null 2>&1; then
-  grep -q "^${DOMAIN}" /etc/caddy/Caddyfile 2>/dev/null || cat >> /etc/caddy/Caddyfile <<CADDY
-
-${DOMAIN}, www.${DOMAIN} {
-    root * /var/www/${DOMAIN}
-    encode zstd gzip
-    file_server
-    header /img/* Cache-Control "public, max-age=604800, immutable"
-    header /assets/* Cache-Control "public, max-age=86400"
-}
-CADDY
-  systemctl reload caddy && echo "Caddy: https://${DOMAIN}"
-else
-  cat > /etc/nginx/sites-available/${DOMAIN} <<NGX
-server { listen 80; server_name ${DOMAIN} www.${DOMAIN}; root /var/www/${DOMAIN}; index index.html;
-  gzip on; gzip_types text/html text/css application/javascript image/svg+xml;
-  location /img/ { expires 7d; } location / { try_files \$uri \$uri/ /404.html; } }
-NGX
-  ln -sf /etc/nginx/sites-available/${DOMAIN} /etc/nginx/sites-enabled/${DOMAIN}
-  nginx -t && systemctl reload nginx && echo "nginx: http://${DOMAIN}  → certbot --nginx -d ${DOMAIN} -d www.${DOMAIN}"
+[ -f /opt/erkak/.env ] || { printf 'SUPPORT_EMAIL=care@erkak.com\n# ERKAK_TG_CHAT=\n# PAYME_MERCHANT=\n# CLICK_SERVICE_ID=\n# CLICK_MERCHANT_ID=\n# STRIPE_LINK=\n' > /opt/erkak/.env; chmod 600 /opt/erkak/.env; }
+cp /opt/erkak/erkak-api.service /etc/systemd/system/erkak-api.service
+systemctl daemon-reload; systemctl enable erkak-api >/dev/null 2>&1 || true; systemctl restart erkak-api
+sleep 1; curl -sf http://127.0.0.1:8795/api/health >/dev/null || { journalctl -u erkak-api -n 20 --no-pager; exit 1; }
+[ -f /etc/nginx/sites-available/${DOMAIN}.conf ] || cp /opt/erkak/nginx.erkak.conf /etc/nginx/sites-available/${DOMAIN}.conf
+ln -sf /etc/nginx/sites-available/${DOMAIN}.conf /etc/nginx/sites-enabled/${DOMAIN}.conf
+nginx -t && systemctl reload nginx
+if [ ! -d /etc/letsencrypt/live/${DOMAIN} ]; then
+  certbot --nginx -n --agree-tos --register-unsafely-without-email -d ${DOMAIN} -d www.${DOMAIN} --redirect && echo "TLS выпущен" || echo "TLS не выпущен: DNS ещё не указывает на этот сервер. Повторить позже: certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} --redirect"
 fi
+echo "API: $(curl -s http://127.0.0.1:8795/api/health)"
 REMOTE
-  echo "DNS: A ${DOMAIN} → ${VPS_HOST:-76.13.251.52}"
+  echo "Готово: http(s)://${DOMAIN}   DNS: A ${DOMAIN} → ${VPS_HOST:-62.238.59.42}, CNAME www → ${DOMAIN}"
 else
   echo "Использование: ./deploy.sh pages | vps"; exit 1
 fi

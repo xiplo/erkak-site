@@ -1,0 +1,18 @@
+[Unit]
+Description=ERKAK shop API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/erkak
+# Почта и Telegram: общие настройки сервера (pactum), затем переопределения ERKAK.
+EnvironmentFile=-/opt/pactum/.env.production
+EnvironmentFile=-/opt/erkak/.env
+Environment=PORT=8795 DATA_DIR=/opt/erkak/data STATIC_DIR=/var/www/erkak.com PUBLIC_ORIGIN=https://erkak.com
+ExecStart=/usr/bin/node /opt/erkak/server.mjs
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

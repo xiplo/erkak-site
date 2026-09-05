@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="assets/site.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 <header class="top"><div class="wrap"></div></header>
@@ -63,6 +62,7 @@
 </div></section>
 </main>
 <footer><div class="wrap"></div></footer>
+<script src="assets/catalog.js"></script>
 <script src="assets/site.js"></script>
 <script>
 shell('checkout.html');
@@ -99,14 +99,6 @@ countrySel.onchange = () => { try { localStorage.setItem('erkak.country', countr
 document.addEventListener('erkak:cart', paint); document.addEventListener('erkak:cur', paint);
 paint();
 
-function b64url(s){ return btoa(unescape(encodeURIComponent(s))); }
-function payLink(method, order){
-  const P = CONFIG.pay, amountTiyin = order.total_uzs * 100;
-  if (method === 'payme' && P.paymeMerchant) return `https://checkout.paycom.uz/${b64url(`m=${P.paymeMerchant};ac.order_id=${order.number};a=${amountTiyin};c=${location.origin}/account.html`)}`;
-  if (method === 'click' && P.clickService) return `https://my.click.uz/services/pay?service_id=${P.clickService}&merchant_id=${P.clickMerchant}&amount=${order.total_uzs}&transaction_param=${order.number}&return_url=${encodeURIComponent(location.origin + '/account.html')}`;
-  if (method === 'card' && P.stripeLink) return `${P.stripeLink}?client_reference_id=${order.number}&prefilled_email=${encodeURIComponent(order.email)}`;
-  return null;
-}
 
 $('form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -123,22 +115,20 @@ $('form').addEventListener('submit', async e => {
     country: countrySel.value, city: $('city').value.trim(), address: $('address').value.trim(), postcode: $('postcode').value.trim() || null,
     items: lines.map(l => ({ sku:l.sku, name:`${BRAND} ${l.p.name}`, qty:l.qty, subscription:l.sub, price_uzs:l.uzs, price_usd:l.usd })),
     subtotal_uzs: sub.uzs, shipping_uzs: sh.uzs, total_uzs: sub.uzs + sh.uzs, total_usd: sub.usd + sh.usd,
-    pay_method: method, status: method === 'cod' ? 'new' : 'awaiting_payment', note: [$('note').value.trim(), `zone:${z.id}`, `cur:${cur.get()}`].filter(Boolean).join(' | '),
+    pay_method: method, currency: cur.get(), note: $('note').value.trim(),
   };
   const btn = $('submit'); btn.disabled = true; btn.textContent = 'Оформляем…';
   try {
-    const { data, error } = await supa().rpc('shop_place_order', { payload: order });
-    if (error) throw error;
+    const data = await api('/orders', order);
     cart.clear();
-    const link = payLink(method, data);
-    if (link) { location.href = link; return; }
+    if (data.pay_url) { location.href = data.pay_url; return; }
     document.querySelector('.checkout').hidden = true; document.querySelector('.page-head').hidden = true;
     $('doneTitle').textContent = `Заказ ${data.number} принят`;
-    const how = { payme:'Ссылка на оплату Payme придёт на почту и в Telegram в течение 10 минут.', click:'Ссылка на оплату Click придёт на почту и в Telegram в течение 10 минут.', card:'Защищённая ссылка на оплату картой придёт на почту в течение 10 минут. Сумма в долларах по курсу на день заказа.', cod:'Курьер свяжется для согласования времени. Оплата наличными или картой при получении.' }[method];
+    const how = { payme:'Ссылка на оплату Payme придёт на почту в течение рабочего дня.', click:'Ссылка на оплату Click придёт на почту в течение рабочего дня.', card:'Защищённая ссылка на оплату картой придёт на почту в течение рабочего дня. Сумма в долларах по курсу на день заказа.', cod:'Курьер свяжется для согласования времени. Оплата наличными или картой при получении.' }[method];
     $('doneBody').innerHTML = `<p>${how}</p><p>Сумма: <b class="num">${money(data.total_uzs)}</b>. Подтверждение отправлено на <b>${data.email}</b>. Отслеживать заказ можно в кабинете: вход по этой же почте, без пароля.</p>`;
     $('done').hidden = false; window.scrollTo({ top:0 });
   } catch (ex) {
-    err.textContent = 'Не удалось сохранить заказ. Проверьте соединение и попробуйте ещё раз. Если не помогает, напишите на ' + CONFIG.supportEmail + '.'; err.hidden = false;
+    err.textContent = (ex.message && !/^HTTP/.test(ex.message) && !/fetch/i.test(ex.message) ? ex.message + ' ' : 'Не удалось сохранить заказ. Проверьте соединение и попробуйте ещё раз. ') + 'Если не помогает, напишите на ' + CONFIG.supportEmail + '.'; err.hidden = false;
     btn.disabled = false; btn.textContent = 'Подтвердить заказ'; console.error(ex);
   }
 });

@@ -1,4 +1,4 @@
-/* ERKAK shop · общая логика: каталог, корзина, валюта, доставка, Supabase */
+/* ERKAK shop · общая логика: каталог, корзина, валюта, доставка, API на VPS */
 'use strict';
 
 // Название бренда — константа, не литерал (CLAUDE.md, п. 8).
@@ -6,98 +6,16 @@ const BRAND = 'ERKAK';
 
 // ── Конфигурация ───────────────────────────────────────────────
 const CONFIG = {
-  supabaseUrl: 'https://lefeztravjsusefhjozd.supabase.co',
-  supabaseKey: 'sb_publishable_At6FjlAkuZZkgECJi8TWgg_b9idFy43',
-  usdRate: 12500,                 // сум за 1 USD, обновлять раз в неделю
-  freeShippingUZS: 500000,        // бесплатная доставка по Узбекистану от
-  subscriptionDiscount: 0.15,     // скидка на подписку
+  api: '/api',
+  usdRate: CATALOG.usdRate, freeShippingUZS: CATALOG.freeShippingUZS, subscriptionDiscount: CATALOG.subscriptionDiscount,
   telegram: 'https://t.me/erkak_bot',
   supportEmail: 'care@erkak.com',
-  // Платёжные реквизиты. Пустые → заказ сохраняется, оплата по инструкции.
-  pay: {
-    paymeMerchant: '',            // ID мерчанта Payme
-    clickService: '', clickMerchant: '',
-    stripeLink: ''                // Stripe Payment Link для карт вне Узбекистана
-  }
 };
 
-// ── Каталог ────────────────────────────────────────────────────
-// Каждая позиция привязана к измеримому показателю (правило supplement-catalog.json).
-const PRODUCTS = [
-  { sku:'shilajit', name:'Shilajit', ru:'Мумиё очищенное', tag:'Флагман',
-    sub:'Смола горного мумиё Тянь-Шаня, стандартизирована по фульвовым кислотам',
-    form:'60 капсул × 500 мг', dose:'1 капсула утром, курс 60 дней', priceUZS:390000, priceUSD:32,
-    metric:'ферритин, гемоглобин', origin:'Чимган, Тянь-Шань, Узбекистан',
-    composition:'Мумиё очищенное 500 мг (фульвовые кислоты ≥ 60%). Оболочка: гипромеллоза. Без наполнителей.',
-    who:'Мужчинам 45+, кто хочет проверить в анализах, а не на словах, влияние традиционного средства на показатели железа.',
-    notes:'Не принимать при подагре и повышенном уровне мочевой кислоты. Не сочетать с препаратами железа без согласования с врачом.',
-    img:'img/p-shilajit.webp', hero:true },
-  { sku:'arginine', name:'Arginine', ru:'L-аргинин 1000 мг', tag:'',
-    sub:'Свободная форма L-аргинина фармацевтической чистоты',
-    form:'90 таблеток × 1000 мг', dose:'2 таблетки утром натощак или за 40 минут до нагрузки', priceUZS:290000, priceUSD:24,
-    metric:'артериальное давление, липиды', origin:'Субстанция ЕС, капсулирование Узбекистан',
-    composition:'L-аргинин 1000 мг. Вспомогательные: микрокристаллическая целлюлоза, стеарат магния.',
-    who:'Тем, кто отслеживает давление и хочет добавить аргинин в протокол под контролем цифр.',
-    notes:'Не принимать при герпетической инфекции в обострении и вместе с нитратами без согласования с врачом.',
-    img:'img/p-arginine.webp' },
-  { sku:'d3k2', name:'D3 + K2', ru:'Витамин D3 5000 МЕ + K2 100 мкг', tag:'Чаще всего первая',
-    sub:'Холекальциферол с менахиноном-7 в масле МСТ',
-    form:'90 капсул', dose:'1 капсула с едой, доза корректируется по анализу 25-OH D', priceUZS:240000, priceUSD:20,
-    metric:'25-OH витамин D', origin:'Субстанция ЕС, капсулирование Узбекистан',
-    composition:'Витамин D3 5000 МЕ (125 мкг), витамин K2 (MK-7) 100 мкг, масло МСТ. Капсула желатиновая.',
-    who:'При подтверждённом анализом дефиците витамина D. Самая частая находка в первом анализе.',
-    notes:'Не принимать при гиперкальциемии, саркоидозе, приёме варфарина без согласования с врачом.',
-    img:'img/p-d3k2.webp' },
-  { sku:'zinc', name:'Zinc + Se', ru:'Цинк пиколинат 25 мг + селен 100 мкг', tag:'',
-    sub:'Хелатная форма цинка и селенметионин',
-    form:'90 капсул', dose:'1 капсула после еды', priceUZS:220000, priceUSD:18,
-    metric:'цинк сыворотки', origin:'Субстанция ЕС, капсулирование Узбекистан',
-    composition:'Цинк (пиколинат) 25 мг, селен (селенметионин) 100 мкг. Оболочка: гипромеллоза.',
-    who:'При подтверждённом дефиците цинка. Не принимать «для профилактики»: избыток цинка мешает усвоению меди.',
-    notes:'Курс не дольше 90 дней без контрольного анализа.',
-    img:'img/p-zinc.webp' },
-  { sku:'magnesium', name:'Magnesium', ru:'Магния бисглицинат 400 мг', tag:'',
-    sub:'Хелат магния с глицином, мягкий для желудка',
-    form:'120 капсул', dose:'2 капсулы вечером', priceUZS:260000, priceUSD:22,
-    metric:'сон (самоизмерение), давление', origin:'Субстанция ЕС, капсулирование Узбекистан',
-    composition:'Магний (бисглицинат) 200 мг элементарного магния в 2 капсулах. Оболочка: гипромеллоза.',
-    who:'Тем, кто отмечает в еженедельных самоизмерениях плохой сон и ночные судороги.',
-    notes:'При почечной недостаточности только по согласованию с врачом.',
-    img:'img/p-magnesium.webp' },
-  { sku:'omega3', name:'Omega-3', ru:'Омега-3 ЭПК/ДГК 1000 мг', tag:'',
-    sub:'Триглицеридная форма, IFOS-сертифицированное сырьё',
-    form:'90 капсул', dose:'2 капсулы с едой', priceUZS:320000, priceUSD:26,
-    metric:'триглицериды, ЛПНП', origin:'Сырьё Норвегия, капсулирование Узбекистан',
-    composition:'Рыбий жир 1000 мг: ЭПК 500 мг, ДГК 250 мг. Витамин E как антиоксидант.',
-    who:'При липидах вне целевых значений в протоколе «Метаболизм».',
-    notes:'При приёме антикоагулянтов только по согласованию с врачом.',
-    img:'img/p-omega3.webp' },
-  { sku:'ashwagandha', name:'Ashwagandha', ru:'Ашваганда KSM-66 600 мг', tag:'',
-    sub:'Стандартизированный корневой экстракт, витанолиды ≥ 5%',
-    form:'60 капсул × 600 мг', dose:'1 капсула вечером, курс 60 дней', priceUZS:280000, priceUSD:23,
-    metric:'сон и стресс (самоизмерение), кортизол утром', origin:'Экстракт Индия, капсулирование Узбекистан',
-    composition:'Экстракт корня Withania somnifera KSM-66 600 мг. Оболочка: гипромеллоза.',
-    who:'Тем, кто фиксирует в еженедельных отметках тревожность и плохой сон и хочет увидеть сдвиг в цифрах.',
-    notes:'Не принимать при заболеваниях щитовидной железы и аутоиммунных состояниях без согласования с врачом.',
-    img:'img/p-ashwagandha.webp' },
-  { sku:'stack90', name:'Протокол 90 дней', ru:'Набор из четырёх позиций', tag:'Выгода 15%', bundle:['d3k2','zinc','magnesium','omega3'],
-    sub:'D3+K2, Zinc+Se, Magnesium, Omega-3 на полный цикл до контрольного анализа',
-    form:'4 банки, 90 дней', dose:'По протоколу после разбора анализов', priceUZS:890000, priceUSD:72, oldUZS:1040000, oldUSD:86,
-    metric:'25-OH D, цинк, липиды, сон', origin:'Узбекистан',
-    composition:'Витамин D3+K2 90 капс., Цинк+Se 90 капс., Магний 120 капс., Омега-3 90 капс.',
-    who:'Тем, кто идёт по протоколу «Дефициты + Метаболизм» и хочет одной покупкой закрыть 90 дней.',
-    notes:'Состав набора корректируется по результатам анализа: ненужные позиции заменяются.',
-    img:'img/lineup.webp' },
-];
+// ── Каталог (assets/catalog.js) ───────────────────────────────
+const PRODUCTS = CATALOG.products;
 const bySku = s => PRODUCTS.find(p => p.sku === s);
-
-// ── Доставка ───────────────────────────────────────────────────
-const ZONES = [
-  { id:'uz',  name:'Узбекистан', countries:['Узбекистан'], uzs:25000, usd:2, days:'1–3 дня', carrier:'BTS / курьер', freeFrom:CONFIG.freeShippingUZS, cod:true },
-  { id:'cis', name:'СНГ и Кавказ', countries:['Казахстан','Кыргызстан','Таджикистан','Азербайджан','Армения','Грузия','Беларусь','Молдова'], uzs:125000, usd:10, days:'5–10 дней', carrier:'EMS / CDEK' },
-  { id:'eu',  name:'Европа, Турция, Израиль, ОАЭ', countries:['Германия','Польша','Чехия','Латвия','Литва','Эстония','Турция','Израиль','ОАЭ','Италия','Испания','Франция','Нидерланды','Австрия','Швейцария','Великобритания'], uzs:225000, usd:18, days:'7–14 дней', carrier:'DHL Express / EMS' },
-  { id:'world', name:'США, Канада, Австралия и другие', countries:['США','Канада','Австралия','Южная Корея','Япония','Другая страна'], uzs:315000, usd:25, days:'10–18 дней', carrier:'DHL Express / EMS' },
-];
+const ZONES = CATALOG.zones;
 const zoneFor = country => ZONES.find(z => z.countries.includes(country)) || ZONES[3];
 
 // ── Валюта ─────────────────────────────────────────────────────
@@ -154,9 +72,14 @@ let toastTimer;
 function toast(msg){ let t = document.querySelector('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
   t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 1800); }
 
-// ── Supabase ───────────────────────────────────────────────────
-let sb = null;
-function supa(){ if (!sb && window.supabase) sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey); return sb; }
+// ── API ────────────────────────────────────────────────────────
+const session = { get(){ try{ return localStorage.getItem('erkak.session') || ''; }catch{ return ''; } }, set(v){ try{ v ? localStorage.setItem('erkak.session', v) : localStorage.removeItem('erkak.session'); }catch{} } };
+async function api(path, body, method){
+  const res = await fetch(CONFIG.api + path, { method: method || (body ? 'POST' : 'GET'), headers: { 'content-type':'application/json', ...(session.get() ? { authorization:'Bearer ' + session.get() } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return data;
+}
 
 // ── Общая шапка/подвал ─────────────────────────────────────────
 const ICONS = {
