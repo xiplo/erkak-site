@@ -7,7 +7,7 @@
 <meta name="description" content="Состав, дозировка, противопоказания и показатель для контроля.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=202609051342">
+<link rel="stylesheet" href="assets/site.css?v=202609051450">
 </head>
 <body>
 <header class="top"><div class="wrap"></div></header>
@@ -19,8 +19,8 @@
 </div></section>
 </main>
 <footer><div class="wrap"></div></footer>
-<script src="assets/catalog.js?v=202609051342"></script>
-<script src="assets/site.js?v=202609051342"></script>
+<script src="assets/catalog.js?v=202609051450"></script>
+<script src="assets/site.js?v=202609051450"></script>
 <script>
 shell('catalog.html');
 const sku = new URLSearchParams(location.search).get('sku') || 'shilajit';
@@ -33,7 +33,7 @@ function paint(){
   document.getElementById('product').innerHTML = `
     <div class="gallery"><div class="main"><img src="${p.img}" alt="${BRAND} ${p.name}, ${p.ru}" width="1000" height="1333" fetchpriority="high"></div></div>
     <div class="pinfo">
-      <div><span class="eyebrow">${p.tag || 'Линейка ' + BRAND}</span><h1 style="margin-top:var(--s2)">${BRAND} ${p.name}</h1><p class="muted" style="font-size:var(--text-md);margin-top:var(--s2)">${p.ru}. ${p.sub}.</p></div>
+      <div><span class="eyebrow">${p.tag || 'Линейка ' + BRAND}</span><h1 style="margin-top:var(--s2)">${BRAND} ${p.name}</h1><p class="muted" style="font-size:var(--t-md);margin-top:var(--s2)">${p.ru}. ${p.sub}.</p></div>
       <div class="buy">
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);flex-wrap:wrap"><span class="price">${old}<span id="price"></span></span><span class="small muted">${p.form}</span></div>
         <div class="sub-choice" role="radiogroup" aria-label="Способ покупки">

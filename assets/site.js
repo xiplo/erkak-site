@@ -100,7 +100,7 @@ function shell(active){
   if (!head.querySelector('link[rel="icon"]')) head.insertAdjacentHTML('beforeend', '<link rel="icon" type="image/svg+xml" href="favicon.svg">');
   const header = document.querySelector('header.top');
   if (!document.querySelector('.topbar')) header.insertAdjacentHTML('beforebegin', `<div class="topbar"><div class="wrap">
-    <span class="long">Бесплатная доставка по Узбекистану от <b class="num">500 000 сум</b> · по миру от <b>$10</b> · нейтральная упаковка</span><span class="short">Доставка по миру из Узбекистана · нейтральная упаковка</span>
+    <span class="long">Бесплатная доставка по Узбекистану от <b class="num">500 000 сум</b> · по миру от <b>$10</b> · нейтральная упаковка</span><span class="short">Доставка по миру · нейтральная упаковка</span>
     <span class="links"><a href="delivery.html">Доставка и возврат</a><a href="${CONFIG.telegram}" rel="noopener">Telegram</a><a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a></span></div></div>`);
   document.querySelectorAll('.topbar').forEach((t, i) => { if (i > 0) t.remove(); });
   header.querySelector('.wrap').innerHTML = `
