@@ -2,6 +2,7 @@
 # ERKAK shop — деплой на прод. Два пути, любой из них достаточен.
 #   ./deploy.sh pages   → GitHub Pages: репозиторий xiplo/erkak-site + домен erkak.com
 #   ./deploy.sh vps     → VPS 62.238.59.42: статика в /var/www/erkak.com, API в /opt/erkak (systemd), nginx + certbot
+#   ./deploy.sh teaser  → заглушка apps/teaser вместо магазина (магазин сохраняется в /var/www/erkak.com-shop)
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 DOMAIN="${DOMAIN:-erkak.com}"
@@ -48,6 +49,12 @@ fi
 echo "API: $(curl -s http://127.0.0.1:8795/api/health)"
 REMOTE
   echo "Готово: http(s)://${DOMAIN}   DNS: A ${DOMAIN} → ${VPS_HOST:-62.238.59.42}, CNAME www → ${DOMAIN}"
+elif [ "$MODE" = "teaser" ]; then
+  # Заглушка вместо магазина: магазин уезжает в /var/www/${DOMAIN}-shop, API и nginx не трогаем.
+  VPS="${VPS_USER:-root}@${VPS_HOST:-62.238.59.42}"
+  ssh -o StrictHostKeyChecking=no "$VPS" "set -e; [ -f /var/www/${DOMAIN}/catalog.html ] && { rm -rf /var/www/${DOMAIN}-shop; mv /var/www/${DOMAIN} /var/www/${DOMAIN}-shop; }; mkdir -p /var/www/${DOMAIN}"
+  rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" "$DIR/../teaser/" "$VPS:/var/www/${DOMAIN}/"
+  echo "Заглушка на https://${DOMAIN}. Вернуть магазин: ./deploy.sh vps"
 else
-  echo "Использование: ./deploy.sh pages | vps"; exit 1
+  echo "Использование: ./deploy.sh pages | vps | teaser"; exit 1
 fi
