@@ -24,7 +24,7 @@
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <span class="eyebrow">Мужчинам 45+ · Сделано в Узбекистане</span>
+      <p class="lexeme"><b>erkak</b> <i>[эрка́к]</i> <span>узб.</span> — мужчина</p>
       <h1>Добавки, привязанные к <em>вашим анализам</em></h1>
       <p class="lead">Мумиё Тянь-Шаня, аргинин, D3+K2, цинк, магний, омега-3. Только то, что через 90 дней можно перемерить и увидеть разницу в цифрах.</p>
       <div class="hero-cta">
@@ -32,12 +32,30 @@
         <a class="btn btn-quiet btn-arrow" href="product.html?sku=stack90">Протокол 90 дней</a>
       </div>
     </div>
-    <figure class="hero-photo"><img src="img/lineup.webp" alt="Линейка добавок ERKAK: банки в ряд" width="1600" height="907" fetchpriority="high"><figcaption class="chip"><i aria-hidden="true"></i>Сертификат анализа на каждой банке</figcaption></figure>
+    <div class="hero-visual">
+      <figure class="hero-photo"><img src="img/lineup.webp" alt="Линейка добавок ERKAK: банки в ряд" width="1600" height="907" fetchpriority="high"></figure>
+      <div class="report" id="report">
+        <div class="report-h"><span>Отчёт по протоколу</span><span class="tag">пример</span></div>
+        <div class="report-tabs" role="tablist" aria-label="Показатель">
+          <button type="button" role="tab" data-m="0" aria-selected="true">Витамин D</button><button type="button" role="tab" data-m="1" aria-selected="false">Цинк</button><button type="button" role="tab" data-m="2" aria-selected="false">Триглицериды</button>
+        </div>
+        <div class="report-name"><b id="rName">25-OH витамин D</b><span id="rUnit">нг/мл</span></div>
+        <div class="scale" aria-hidden="true"><div class="ref" id="rRef"></div><div class="span" id="rSpan"></div><i class="dot d0" id="rD0"></i><i class="dot d90" id="rD90"></i></div>
+        <div class="scale-l"><span id="rMin">0</span><span id="rRefL">норма 30–100</span><span id="rMax">120</span></div>
+        <div class="report-vals"><div><span>День 0</span><b id="rV0">18</b></div><div><span>День 90</span><b id="rV90">41</b></div></div>
+        <p class="report-note">Иллюстрация формата отчёта в кабинете, а не обещание результата.</p>
+      </div>
+    </div>
     <div class="trust" id="trust"></div>
   </div>
 </section>
 
-<section class="tight" aria-labelledby="h-cat">
+<div class="ticker" aria-hidden="true"><div class="ticker-track">
+  <span>25-OH витамин D</span><span>Ферритин</span><span>Цинк сыворотки</span><span>Гемоглобин</span><span>Триглицериды</span><span>ЛПНП</span><span>Давление</span><span>Сон</span><span>Кортизол утром</span>
+  <span>25-OH витамин D</span><span>Ферритин</span><span>Цинк сыворотки</span><span>Гемоглобин</span><span>Триглицериды</span><span>ЛПНП</span><span>Давление</span><span>Сон</span><span>Кортизол утром</span>
+</div></div>
+
+<section aria-labelledby="h-cat">
   <div class="wrap">
     <div class="section-head split-head">
       <span class="eyebrow"><span class="n">01</span>Линейка</span>
@@ -70,30 +88,9 @@
   </div>
 </section>
 
-<section aria-labelledby="h-shil" style="background:var(--surface-sunken)">
-  <div class="wrap split">
-    <div class="photo r45"><img src="img/resin.webp" alt="Смола мумиё на горном камне" loading="lazy"></div>
-    <div class="copy">
-      <span class="eyebrow"><span class="n">03</span>Флагман</span>
-      <h2 id="h-shil">Мумиё Тянь-Шаня, <em>стандартизированное</em> по фульвовым кислотам</h2>
-      <p>Сырьё собирается в Чимганских горах, очищается водной экстракцией без растворителей. Каждая партия проходит проверку на тяжёлые металлы в независимой лаборатории.</p>
-      <div class="stats">
-        <div><b>2 500 м</b><span>высота сбора сырья</span></div>
-        <div><b>≥ 60%</b><span>фульвовых кислот</span></div>
-        <div><b>500 мг</b><span>в капсуле, без наполнителей</span></div>
-      </div>
-      <ul>
-        <li>Сертификат анализа партии по QR-коду на банке.</li>
-        <li>Показатели для контроля: ферритин и гемоглобин через 60 дней.</li>
-      </ul>
-      <div class="hero-cta"><a class="btn btn-primary" href="product.html?sku=shilajit">Смотреть Shilajit</a><span class="price" data-price="shilajit"></span></div>
-    </div>
-  </div>
-</section>
-
-<section id="quality" class="section-dark" aria-labelledby="h-q">
+<section id="quality" class="tight" aria-labelledby="h-q">
   <div class="wrap">
-    <div class="section-head"><span class="eyebrow"><span class="n">04</span>Качество</span><h2 id="h-q">Что стоит <em>за каждой банкой</em></h2>
+    <div class="section-head"><span class="eyebrow"><span class="n">03</span>Качество</span><h2 id="h-q">Что стоит <em>за каждой банкой</em></h2>
       <p class="muted">Мы продаём не обещание, а состав, который можно проверить. Поэтому контроль устроен так, чтобы его можно было показать.</p></div>
     <div class="tiles">
       <div class="tile"><span class="k">GMP</span><h3>Производство</h3><p>Контрактная площадка в Узбекистане с сертификатом GMP. С 2026 года стандарт обязателен для всех производителей страны.</p></div>
@@ -104,14 +101,36 @@
   </div>
 </section>
 
+<section class="flagship section-dark" aria-labelledby="h-shil">
+  <img class="topo" src="img/topo.svg" alt="" aria-hidden="true" loading="lazy">
+  <div class="wrap split">
+    <div class="photo r45"><img src="img/resin.webp" alt="Смола мумиё на горном камне" loading="lazy"><span class="coord">41.53° N · 70.03° E<br>Чимган, Тянь-Шань</span></div>
+    <div class="copy">
+      <span class="eyebrow"><span class="n">04</span>Флагман</span>
+      <h2 id="h-shil">Мумиё Тянь-Шаня, <em>стандартизированное</em> по фульвовым кислотам</h2>
+      <p>Сырьё собирается в Чимганских горах, очищается водной экстракцией без растворителей. Каждая партия проходит проверку на тяжёлые металлы в независимой лаборатории.</p>
+      <div class="stats">
+        <div><b>2 500<small>м</small></b><span>высота сбора сырья</span></div>
+        <div><b>≥ 60%</b><span>фульвовых кислот</span></div>
+        <div><b>500<small>мг</small></b><span>в капсуле, без наполнителей</span></div>
+      </div>
+      <ul>
+        <li>Сертификат анализа партии по QR-коду на банке.</li>
+        <li>Показатели для контроля: ферритин и гемоглобин через 60 дней.</li>
+      </ul>
+      <div class="hero-cta"><a class="btn btn-light" href="product.html?sku=shilajit">Смотреть Shilajit</a><span class="price" data-price="shilajit"></span></div>
+    </div>
+  </div>
+</section>
+
 <section aria-labelledby="h-how">
   <div class="wrap">
     <div class="section-head"><span class="eyebrow"><span class="n">05</span>Как это работает</span><h2 id="h-how">От заказа до <em>контрольного анализа</em></h2></div>
-    <div class="steps">
-      <div class="step"><span class="k">01</span><h3>Заказ за две минуты</h3><p>Гостевой чекаут без регистрации. Оплата Payme, Click, картой Visa или Mastercard из любой страны, при получении в Узбекистане.</p></div>
-      <div class="step"><span class="k">02</span><h3>Сборка и отправка</h3><p>Собираем в день оплаты. Нейтральная крафтовая коробка без названия категории. Трек-номер приходит в Telegram или на почту.</p></div>
-      <div class="step"><span class="k">03</span><h3>Доставка по миру</h3><p>Узбекистан 1–3 дня, СНГ 5–10, Европа и ОАЭ 7–14, США 10–18. DHL Express и EMS, таможенные документы готовим сами.</p></div>
-      <div class="step"><span class="k">04</span><h3>Контроль через 90 дней</h3><p>Напомним о повторном анализе. Если показатель не сдвинулся, вернём деньги за курс по правилам возврата.</p></div>
+    <div class="steps timeline">
+      <div class="step"><span class="k"><small>день</small>0</span><h3>Заказ за две минуты</h3><p>Гостевой чекаут без регистрации. Оплата Payme, Click, картой Visa или Mastercard из любой страны, при получении в Узбекистане.</p></div>
+      <div class="step"><span class="k"><small>день</small>1</span><h3>Сборка и отправка</h3><p>Собираем в день оплаты. Нейтральная крафтовая коробка без названия категории. Трек-номер приходит в Telegram или на почту.</p></div>
+      <div class="step"><span class="k"><small>дни</small>3–18</span><h3>Доставка по миру</h3><p>Узбекистан 1–3 дня, СНГ 5–10, Европа и ОАЭ 7–14, США 10–18. DHL Express и EMS, таможенные документы готовим сами.</p></div>
+      <div class="step"><span class="k"><small>день</small>90</span><h3>Контрольный анализ</h3><p>Напомним о повторном анализе. Если показатель не сдвинулся, вернём деньги за курс по правилам возврата.</p></div>
     </div>
   </div>
 </section>
@@ -169,7 +188,35 @@ function paint(){
   document.querySelectorAll('[data-price]').forEach(el => { const p = bySku(el.dataset.price); el.textContent = money(p.priceUZS, p.priceUSD); });
   bindAddButtons();
 }
-paint(); document.addEventListener('erkak:cur', paint);
+paint(); reveal(); document.addEventListener('erkak:cur', paint);
+
+// Пример отчёта: значения иллюстративные, подписаны как пример.
+const MARKERS = [
+  { name:'25-OH витамин D', unit:'нг/мл', min:0, max:120, ref:[30,100], v0:18, v90:41 },
+  { name:'Цинк сыворотки', unit:'мкмоль/л', min:6, max:24, ref:[11,18], v0:9.4, v90:13.8 },
+  { name:'Триглицериды', unit:'ммоль/л', min:0, max:3, ref:[0,1.7], v0:2.3, v90:1.5 },
+];
+(function report(){
+  const $ = id => document.getElementById(id), tabs = document.querySelectorAll('#report [role=tab]');
+  const pct = (m, v) => ((v - m.min) / (m.max - m.min) * 100).toFixed(2) + '%';
+  const fmt = v => String(v).replace('.', ',');
+  let cur = 0, timer;
+  function show(i){
+    cur = i; const m = MARKERS[i];
+    tabs.forEach((t, j) => t.setAttribute('aria-selected', String(j === i)));
+    $('rName').textContent = m.name; $('rUnit').textContent = m.unit;
+    $('rMin').textContent = fmt(m.min); $('rMax').textContent = fmt(m.max);
+    $('rRefL').textContent = 'норма ' + (m.ref[0] === m.min ? '< ' + fmt(m.ref[1]) : fmt(m.ref[0]) + '–' + fmt(m.ref[1]));
+    $('rRef').style.left = pct(m, m.ref[0]); $('rRef').style.right = 'calc(100% - ' + pct(m, m.ref[1]) + ')';
+    const a = pct(m, Math.min(m.v0, m.v90)), b = pct(m, Math.max(m.v0, m.v90));
+    $('rSpan').style.left = a; $('rSpan').style.right = 'calc(100% - ' + b + ')';
+    $('rD0').style.left = pct(m, m.v0); $('rD90').style.left = pct(m, m.v90);
+    $('rV0').textContent = fmt(m.v0); $('rV90').textContent = fmt(m.v90);
+  }
+  const auto = () => { clearInterval(timer); if (!matchMedia('(prefers-reduced-motion: reduce)').matches) timer = setInterval(() => show((cur + 1) % MARKERS.length), 4200); };
+  tabs.forEach((t, i) => t.onclick = () => { show(i); auto(); });
+  show(0); auto();
+})();
 </script>
 </body>
 </html>

@@ -55,11 +55,11 @@ function productCard(p){
   const old = p.oldUZS ? `<s>${money(p.oldUZS, p.oldUSD)}</s>` : '';
   return `<article class="card">
     <div class="pic"><img src="${p.img}" alt="${BRAND} ${p.name}, ${p.ru}" loading="lazy" width="1000" height="1333">
-      ${p.tag ? `<span class="badge ${p.bundle ? 'amber' : ''}">${p.tag}</span>` : ''}<a href="product.html?sku=${p.sku}" aria-label="${p.name}"></a></div>
+      ${p.tag ? `<span class="badge ${p.bundle ? 'amber' : ''}">${p.tag}</span>` : ''}<span class="idx" aria-hidden="true">${String(PRODUCTS.indexOf(p) + 1).padStart(2, '0')} / ${String(PRODUCTS.length).padStart(2, '0')}</span><a href="product.html?sku=${p.sku}" aria-label="${p.name}"></a></div>
     <div class="body">
       <h3><a href="product.html?sku=${p.sku}">${BRAND} ${p.name}</a></h3>
       <p class="sub">${p.ru}. ${p.form}</p>
-      <span class="metric">Показатель: ${p.metric}</span>
+      <span class="metric"><span>Маркер</span>${p.metric}</span>
       <div class="row"><span class="price">${old}${money(p.priceUZS, p.priceUSD)}</span><button class="add" data-add="${p.sku}">В корзину</button></div>
     </div></article>`;
 }
@@ -127,4 +127,16 @@ function shell(active){
     <ul><li><b>Документы</b></li><li><a href="offer.html">Публичная оферта</a></li><li><a href="privacy.html">Обработка данных</a></li><li><a href="index.html#quality">Сертификаты партий</a></li><li><a href="https://erkak.com/#test">Опросник и анализы</a></li></ul>`;
   renderCurToggle(); renderCartCount();
   document.addEventListener('erkak:cart', renderCartCount);
+  reveal();
+}
+
+// ── Появление блоков при прокрутке ──────────────────────────────
+function reveal(root = document){
+  if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.documentElement.classList.add('rv-on');
+  const io = reveal.io ||= new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
+  root.querySelectorAll('.section-head, .card, .tile, .step, .split > *, .bundle, .faq details, .timeline, .final .inner').forEach((el, i) => {
+    if (el.classList.contains('rv')) return;
+    el.classList.add('rv'); el.style.setProperty('--d', (i % 4) * 70 + 'ms'); io.observe(el);
+  });
 }
