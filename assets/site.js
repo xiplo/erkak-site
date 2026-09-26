@@ -92,7 +92,7 @@ const ICONS = {
   globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
   undo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h11a5 5 0 010 10H9"/><path d="M8 6l-4 4 4 4"/></svg>',
 };
-const LOGO = (tag = true) => `<a class="logo" href="index.html" aria-label="${BRAND}"><img class="mark" src="img/logo.svg" alt="" width="40" height="40"><span><span class="word">${BRAND}</span>${tag ? '<span class="tag">Показатели под контролем</span>' : ''}</span></a>`;
+const LOGO = (tag = true) => `<a class="logo" href="index.html" aria-label="${BRAND}"><span><span class="word">${BRAND}</span>${tag ? '<span class="tag">Показатели под контролем</span>' : ''}</span></a>`;
 
 function shell(active){
   const nav = [['catalog.html','Каталог'],['product.html?sku=stack90','Протокол 90 дней'],['delivery.html','Доставка'],['index.html#quality','Качество']];
@@ -104,7 +104,7 @@ function shell(active){
     <span class="links"><a href="delivery.html">Доставка и возврат</a><a href="${CONFIG.telegram}" rel="noopener">Telegram</a><a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a></span></div></div>`);
   document.querySelectorAll('.topbar').forEach((t, i) => { if (i > 0) t.remove(); });
   header.querySelector('.wrap').innerHTML = `
-    ${LOGO()}
+    ${LOGO(false)}
     <nav aria-label="Разделы">${nav.map(([h,t]) => `<a href="${h}" ${active === h.split('?')[0] && !h.includes('#') && !h.includes('?') ? 'aria-current="page"' : ''}>${t}</a>`).join('')}</nav>
     <div class="top-actions">
       <div class="cur" role="group" aria-label="Валюта"><button type="button" data-cur="UZS">сум</button><button type="button" data-cur="USD">USD</button></div>
@@ -117,7 +117,7 @@ function shell(active){
   burger.onclick = () => { const open = mnav.classList.toggle('open'); burger.setAttribute('aria-expanded', String(open)); burger.innerHTML = open ? ICONS.close : ICONS.menu; };
   addEventListener('scroll', () => header.classList.toggle('scrolled', scrollY > 8), { passive:true });
   document.querySelector('footer .wrap').innerHTML = `
-    <div style="display:grid;gap:var(--s5)">
+    <div style="display:grid;gap:var(--s5);align-content:start">
       ${LOGO()}
       <p class="disclaimer">Биологически активные добавки не являются лекарственным средством. Сервис не ставит диагнозы, не назначает и не подбирает лекарственные препараты и не заменяет очную консультацию врача. Перед приёмом проконсультируйтесь со специалистом. Результат подтверждается только контрольным анализом.</p>
       <span class="copy-line">© <span class="num">${new Date().getFullYear()}</span> ${BRAND} · Ташкент, Узбекистан · производство на площадке с сертификатом GMP</span>

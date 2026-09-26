@@ -7,7 +7,7 @@
 <meta name="description" content="Все добавки ERKAK с составами, дозировками, противопоказаниями и показателем для контроля. Цены в сумах и долларах, доставка по миру.">
 <link rel="canonical" href="https://erkak.com/catalog.html">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@600;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wght@0,400;0,500;1,400&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap">
 <link rel="stylesheet" href="assets/site.css?v=202609052307">
 </head>
 <body>
@@ -45,6 +45,6 @@ function paint(){
 document.querySelectorAll('#filters button').forEach(b => b.onclick = () => { f = b.dataset.f; document.querySelectorAll('#filters button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); paint(); });
 paint(); document.addEventListener('erkak:cur', paint);
 </script>
-<style>#filters .btn[aria-pressed="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}</style>
+<style>#filters{gap:var(--s2)}#filters .btn{min-height:40px;padding:0 var(--s4);border-color:var(--line-strong);font-size:14px}#filters .btn:hover{border-color:var(--ink);background:transparent;color:var(--ink)}#filters .btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}</style>
 </body>
 </html>
