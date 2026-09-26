@@ -1,5 +1,5 @@
-/* ERKAK shop · дизайн-система магазина. Светлая тема, редакционная подача.
-   Ритм: 8px сетка · Noto Serif Display (заголовки) / Golos Text (текст) / JetBrains Mono (метки) · радиусы 4/6/8 */
+/* ERKAK shop · дизайн-система магазина. Светлая тема, редакционная подача. Правила: .claude/skills/erkak-design/SKILL.md
+   Ритм: 8px сетка · Forum (марка) / Cormorant Garamond (заголовки) / Jost (текст) / JetBrains Mono (метки) · радиусы 4/6/8 */
 :root{
   /* поверхности */
   --surface:#F4F1EA; --surface-raised:#FBFAF6; --surface-sunken:#EBE6DB; --surface-deep:#0F2A23; --surface-deep-2:#163A30;
@@ -12,8 +12,9 @@
   --gold:#A7844B; --gold-soft:#D2BC93; --gold-tint:#F1EADB; --amber:#B8702A;
   --ok:#2F7F62; --watch:#B8702A; --alert:#A9462F; --critical:#8C2F1E;
   /* шрифты */
-  --font-display:'Noto Serif Display',Georgia,'Times New Roman',serif;
-  --font-body:'Golos Text',system-ui,-apple-system,sans-serif;
+  --font-display:'Cormorant Garamond',Garamond,Georgia,'Times New Roman',serif;
+  --font-body:'Jost','Futura','Century Gothic',system-ui,-apple-system,sans-serif;
+  --font-mark:'Forum','Cormorant Garamond',Georgia,serif;
   --font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
   /* шкала: 13 / 15 / 17 / 19 / 22 / 28 / 36 / 48 / 64 */
   --t-xs:13px; --t-sm:15px; --t-base:17px; --t-md:19px; --t-lg:22px; --t-xl:28px; --t-2xl:36px; --t-3xl:48px; --t-4xl:64px;
@@ -38,9 +39,9 @@ body{margin:0;background:var(--surface);color:var(--ink);font:400 var(--t-base)/
 img{max-width:100%;display:block}
 a{color:var(--brand);text-underline-offset:3px;text-decoration-thickness:1px}
 h1,h2,h3,h4{margin:0;text-wrap:balance;color:var(--ink)}
-h1,h2{font-family:var(--font-display);font-weight:400}
-h1{font-size:clamp(40px,5.6vw,var(--t-4xl));line-height:1.04;letter-spacing:-.022em}
-h2{font-size:clamp(32px,3.6vw,var(--t-3xl));line-height:1.08;letter-spacing:-.018em}
+h1,h2{font-family:var(--font-display);font-weight:500;font-variant-numeric:lining-nums}
+h1{font-size:clamp(44px,6.2vw,72px);line-height:1;letter-spacing:-.015em}
+h2{font-size:clamp(36px,4vw,56px);line-height:1.04;letter-spacing:-.012em}
 h1 em,h2 em{font-style:italic;color:var(--brand)}
 h3,h4{font-family:var(--font-body);font-weight:500}
 h3{font-size:var(--t-md);line-height:1.3;letter-spacing:-.01em}
@@ -67,19 +68,19 @@ section.tight{padding-top:0}
 .hairline{height:1px;background:var(--line)}
 
 /* ── Кнопки ───────────────────────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s3);min-height:var(--tap);padding:0 var(--s6);border-radius:var(--r);
-  font:500 var(--t-sm)/1 var(--font-body);letter-spacing:.02em;text-decoration:none;cursor:pointer;border:1px solid transparent;white-space:nowrap;
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s3);min-height:var(--tap);padding:0 var(--s6);border-radius:2px;
+  font:500 13px/1 var(--font-body);letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;border:1px solid transparent;white-space:nowrap;
   transition:background .2s var(--ease),border-color .2s var(--ease),color .2s var(--ease)}
 .btn-primary{background:var(--surface-deep);color:var(--ink-on-deep);border-color:var(--surface-deep)}
 .btn-primary:hover{background:var(--brand);border-color:var(--brand);color:#fff}
 .btn-secondary{background:transparent;color:var(--ink);border-color:var(--ink)}
 .btn-secondary:hover{background:var(--ink);color:var(--surface)}
-.btn-quiet{background:transparent;color:var(--ink);padding:0 2px;border-radius:0;text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--line-strong)}
+.btn-quiet{background:transparent;color:var(--ink);padding:0 2px;border-radius:0;text-transform:none;letter-spacing:.02em;font-size:var(--t-sm);text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--line-strong)}
 .btn-quiet:hover{text-decoration-color:var(--ink)}
 .btn-arrow::after{content:"→";font-family:var(--font-body);transition:transform .2s var(--ease)}
 .btn-arrow:hover::after{transform:translateX(3px)}
 .btn-amber{background:var(--amber);color:#fff;border-color:var(--amber)}
-.btn-lg{min-height:56px;padding:0 var(--s8);font-size:var(--t-sm)}
+.btn-lg{min-height:58px;padding:0 var(--s10);font-size:13px}
 .btn-block{width:100%}
 .btn[disabled]{opacity:.5;cursor:default}
 .btn svg{width:18px;height:18px}
@@ -100,7 +101,7 @@ header.top.scrolled{background:rgba(244,241,234,.96)}
 .top .wrap{display:grid;grid-template-columns:auto 1fr auto;align-items:center;height:76px;gap:var(--s6)}
 .logo{display:inline-flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink)}
 .logo .mark{display:none}
-.logo .word{font-family:var(--font-display);font-weight:500;font-size:24px;letter-spacing:.3em;line-height:1;display:block;margin-right:-.3em}
+.logo .word{font-family:var(--font-mark);font-weight:400;font-size:25px;letter-spacing:.34em;line-height:1;display:block;margin-right:-.3em}
 .logo .tag{display:block;font-family:var(--font-body);font-weight:500;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);margin-top:8px;white-space:nowrap}
 @media(max-width:560px){.logo .tag{display:none}.logo .word{font-size:20px}}
 .top nav{display:none;justify-content:center;gap:var(--s6)}
@@ -140,7 +141,7 @@ header.top.scrolled{background:rgba(244,241,234,.96)}
 .hero .wrap{display:grid;gap:var(--s10);align-items:center}
 @media(min-width:960px){.hero .wrap{grid-template-columns:1fr 1.05fr;column-gap:clamp(48px,6vw,96px);row-gap:clamp(56px,6vw,80px)}}
 .hero-copy{display:grid;gap:var(--s6);align-content:center}
-.hero h1{max-width:13ch;font-size:clamp(44px,6.4vw,88px);line-height:1.0;letter-spacing:-.028em}
+.hero h1{max-width:13ch;font-size:clamp(50px,7vw,100px);line-height:.96;letter-spacing:-.02em}
 .hero-copy .lead{font-size:var(--t-md);color:var(--ink-muted);max-width:42ch;line-height:1.6}
 .hero-cta{display:flex;flex-wrap:wrap;gap:var(--s3) var(--s6);align-items:center;margin-top:var(--s2)}
 .hero-photo{margin:0;border-radius:var(--rp);overflow:hidden;background:var(--surface-sunken);aspect-ratio:4/3;position:relative}
@@ -521,3 +522,20 @@ footer::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--
 }
 
 @media(max-width:400px){.stats{gap:var(--s3)}.stats b{font-size:22px}}
+/* Cormorant: крупные цифры — только выровненные */
+.stats b,.report-vals b,.bundle .pricebox .price,.step .k,.pinfo .buy .price,.proof b{font-variant-numeric:lining-nums tabular-nums}
+.stats b,.report-vals b,.step .k{font-weight:500}
+.lexeme b{font-family:var(--font-mark);font-weight:400;letter-spacing:.06em}
+.add{text-transform:uppercase;letter-spacing:.1em;font-size:11.5px}
+.report-tabs button{font-size:12.5px}
+.faq summary{font-weight:400;font-size:20px}
+.card h3{font-weight:500;font-size:var(--t-md);letter-spacing:.005em}
+/* подвал: способы оплаты */
+footer .pay{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:var(--s4) var(--s8);border-top:1px solid var(--line-on-deep);padding-top:var(--s6)}
+.pay-l{display:inline-flex;align-items:center;gap:10px;font-size:var(--t-xs);letter-spacing:.06em;color:var(--ink-on-deep-muted)}
+.pay-l svg{width:16px;height:16px;color:var(--gold-soft)}
+.pay-m{display:flex;flex-wrap:wrap;gap:8px}
+.pay-m b{font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-on-deep);border:1px solid var(--line-on-deep);border-radius:2px;padding:7px 11px}
+
+@media(max-width:480px){.btn{white-space:normal;text-align:center;line-height:1.35;padding-top:12px;padding-bottom:12px;max-width:100%}}
+@media(max-width:599px){.card .idx{display:none}}

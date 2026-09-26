@@ -90,6 +90,7 @@ const ICONS = {
   shield:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>',
   doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>',
   globe:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>',
+  lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>',
   undo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h11a5 5 0 010 10H9"/><path d="M8 6l-4 4 4 4"/></svg>',
 };
 const LOGO = (tag = true) => `<a class="logo" href="index.html" aria-label="${BRAND}"><span><span class="word">${BRAND}</span>${tag ? '<span class="tag">Показатели под контролем</span>' : ''}</span></a>`;
@@ -124,7 +125,8 @@ function shell(active){
     </div>
     <ul><li><b>Магазин</b></li><li><a href="catalog.html">Каталог</a></li><li><a href="product.html?sku=stack90">Протокол 90 дней</a></li><li><a href="product.html?sku=shilajit">Shilajit</a></li><li><a href="checkout.html">Корзина</a></li></ul>
     <ul><li><b>Сервис</b></li><li><a href="account.html">Кабинет и заказы</a></li><li><a href="delivery.html">Доставка и возврат</a></li><li><a href="${CONFIG.telegram}" rel="noopener">Telegram</a></li><li><a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a></li></ul>
-    <ul><li><b>Документы</b></li><li><a href="offer.html">Публичная оферта</a></li><li><a href="privacy.html">Обработка данных</a></li><li><a href="index.html#quality">Сертификаты партий</a></li><li><a href="https://erkak.com/#test">Опросник и анализы</a></li></ul>`;
+    <ul><li><b>Документы</b></li><li><a href="offer.html">Публичная оферта</a></li><li><a href="privacy.html">Обработка данных</a></li><li><a href="index.html#quality">Сертификаты партий</a></li><li><a href="https://erkak.com/#test">Опросник и анализы</a></li></ul>
+    <div class="pay"><span class="pay-l">${ICONS.lock}Оплата по защищённой ссылке</span><span class="pay-m"><b>Visa</b><b>Mastercard</b><b>Payme</b><b>Click</b><b>При получении · UZ</b></span></div>`;
   renderCurToggle(); renderCartCount();
   document.addEventListener('erkak:cart', renderCartCount);
   reveal();
