@@ -8,6 +8,7 @@
 - nginx: `/etc/nginx/sites-available/erkak.com.conf`, `/api/` проксируется на API.
 - Деплой: `./deploy.sh vps` (rsync статики и сервера, перезапуск, nginx, certbot).
 - Зеркало статики без API: `./deploy.sh pages` → GitHub Pages `xiplo/erkak-site`.
+- Рыболовные туры (SIAM STRIKE): `fishing/`, выкладка на erkak.com — `./deploy.sh fishing`. Подробности в `fishing/README.md`, стратегия — `fishing/STRATEGY.md`.
 
 ## Настройка на сервере (`/opt/erkak/.env`)
 ```
