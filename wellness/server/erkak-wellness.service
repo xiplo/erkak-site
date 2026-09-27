@@ -1,0 +1,19 @@
+[Unit]
+Description=erkak.com wellness leads API
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/erkak-wellness
+EnvironmentFile=-/opt/erkak-wellness/.env
+Environment=DATA_DIR=/opt/erkak-wellness/data
+Environment=PORT=8796
+ExecStart=/usr/bin/node /opt/erkak-wellness/leads.mjs
+Restart=always
+RestartSec=3
+User=www-data
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/erkak-wellness/data
+
+[Install]
+WantedBy=multi-user.target

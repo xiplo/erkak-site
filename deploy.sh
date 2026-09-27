@@ -3,7 +3,7 @@
 #   ./deploy.sh pages   → GitHub Pages: репозиторий xiplo/erkak-site + домен erkak.com
 #   ./deploy.sh vps     → VPS 62.238.59.42: статика в /var/www/erkak.com, API в /opt/erkak (systemd), nginx + certbot
 #   ./deploy.sh teaser  → заглушка apps/teaser вместо магазина (магазин сохраняется в /var/www/erkak.com-shop)
-#   ./deploy.sh fishing → рыболовный сайт fishing/ на erkak.com + API заявок (магазин сохраняется в /var/www/erkak.com-shop)
+#   ./deploy.sh wellness → экосистема ERKAK (wellness/) на erkak.com + API заявок (магазин сохраняется в /var/www/erkak.com-shop)
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 DOMAIN="${DOMAIN:-erkak.com}"
@@ -56,29 +56,30 @@ elif [ "$MODE" = "teaser" ]; then
   ssh -o StrictHostKeyChecking=no "$VPS" "set -e; [ -f /var/www/${DOMAIN}/catalog.html ] && { rm -rf /var/www/${DOMAIN}-shop; mv /var/www/${DOMAIN} /var/www/${DOMAIN}-shop; }; mkdir -p /var/www/${DOMAIN}"
   rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" "$DIR/../teaser/" "$VPS:/var/www/${DOMAIN}/"
   echo "Заглушка на https://${DOMAIN}. Вернуть магазин: ./deploy.sh vps"
-elif [ "$MODE" = "fishing" ]; then
-  # Рыболовный сайт (fishing/) в корень домена. Магазин уезжает в /var/www/${DOMAIN}-shop, API магазина не трогаем.
-  # Заявки: fishing/server/leads.mjs → /opt/erkak-fishing (systemd erkak-fishing, порт 8796), nginx: location = /api/lead.
+elif [ "$MODE" = "wellness" ]; then
+  # Экосистема ERKAK (wellness/): хаб, направления, 100 программ, раздел /fishing/ — в корень домена.
+  # Магазин уезжает в /var/www/${DOMAIN}-shop, API магазина не трогаем.
+  # Заявки: wellness/server/leads.mjs → /opt/erkak-wellness (systemd erkak-wellness, порт 8796), nginx: location = /api/lead.
   VPS="${VPS_USER:-root}@${VPS_HOST:-62.238.59.42}"
   SSH="ssh -o StrictHostKeyChecking=no $VPS"
-  (cd "$DIR/fishing" && node build.mjs)
-  $SSH "set -e; [ -f /var/www/${DOMAIN}/catalog.html ] && { rm -rf /var/www/${DOMAIN}-shop; mv /var/www/${DOMAIN} /var/www/${DOMAIN}-shop; }; mkdir -p /var/www/${DOMAIN} /opt/erkak-fishing/data"
-  rsync -az --delete --exclude 'server' --exclude 'data' --exclude 'build.mjs' --exclude '*.md' --exclude '.gitignore' -e "ssh -o StrictHostKeyChecking=no" "$DIR/fishing/" "$VPS:/var/www/${DOMAIN}/"
-  rsync -az -e "ssh -o StrictHostKeyChecking=no" "$DIR/fishing/server/" "$VPS:/opt/erkak-fishing/"
+  (cd "$DIR/wellness" && node build.mjs)
+  $SSH "set -e; [ -f /var/www/${DOMAIN}/catalog.html ] && { rm -rf /var/www/${DOMAIN}-shop; mv /var/www/${DOMAIN} /var/www/${DOMAIN}-shop; }; mkdir -p /var/www/${DOMAIN} /opt/erkak-wellness/data"
+  rsync -az --delete --exclude 'server' --exclude 'data' --exclude 'build.mjs' --exclude '*.md' --exclude '.gitignore' -e "ssh -o StrictHostKeyChecking=no" "$DIR/wellness/" "$VPS:/var/www/${DOMAIN}/"
+  rsync -az -e "ssh -o StrictHostKeyChecking=no" "$DIR/wellness/server/" "$VPS:/opt/erkak-wellness/"
   $SSH "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
 set -e
-[ -f /opt/erkak-fishing/.env ] || { printf '# TELEGRAM_BOT_TOKEN=\n# LEADS_TG_CHAT=\n' > /opt/erkak-fishing/.env; chmod 600 /opt/erkak-fishing/.env; }
-chown -R www-data:www-data /opt/erkak-fishing/data
-cp /opt/erkak-fishing/erkak-fishing.service /etc/systemd/system/erkak-fishing.service
-systemctl daemon-reload; systemctl enable erkak-fishing >/dev/null 2>&1 || true; systemctl restart erkak-fishing
-sleep 1; curl -sf http://127.0.0.1:8796/api/health >/dev/null || { journalctl -u erkak-fishing -n 20 --no-pager; exit 1; }
-cp /opt/erkak-fishing/nginx.fishing-snippet.conf /etc/nginx/snippets/erkak-fishing.conf
+[ -f /opt/erkak-wellness/.env ] || { printf '# TELEGRAM_BOT_TOKEN=\n# LEADS_TG_CHAT=\n' > /opt/erkak-wellness/.env; chmod 600 /opt/erkak-wellness/.env; }
+chown -R www-data:www-data /opt/erkak-wellness/data
+cp /opt/erkak-wellness/erkak-wellness.service /etc/systemd/system/erkak-wellness.service
+systemctl daemon-reload; systemctl enable erkak-wellness >/dev/null 2>&1 || true; systemctl restart erkak-wellness
+sleep 1; curl -sf http://127.0.0.1:8796/api/health >/dev/null || { journalctl -u erkak-wellness -n 20 --no-pager; exit 1; }
+cp /opt/erkak-wellness/nginx.wellness-snippet.conf /etc/nginx/snippets/erkak-wellness.conf
 CONF=/etc/nginx/sites-available/${DOMAIN}.conf
-grep -q 'snippets/erkak-fishing.conf' "$CONF" || { cp "$CONF" "$CONF.bak.$(date +%s)"; sed -i "s#^\(\s*root /var/www/${DOMAIN};\)#\1\n    include snippets/erkak-fishing.conf;#" "$CONF"; }
+grep -q 'snippets/erkak-wellness.conf' "$CONF" || { cp "$CONF" "$CONF.bak.$(date +%s)"; sed -i "s#^\(\s*root /var/www/${DOMAIN};\)#\1\n    include snippets/erkak-wellness.conf;#" "$CONF"; }
 nginx -t && systemctl reload nginx
 echo "Заявки: $(curl -s http://127.0.0.1:8796/api/health)"
 REMOTE
-  echo "Готово: https://${DOMAIN} — рыболовный сайт. Вернуть магазин: ./deploy.sh vps"
+  echo "Готово: https://${DOMAIN} — экосистема ERKAK, рыбалка на /fishing/. Вернуть магазин: ./deploy.sh vps"
 else
-  echo "Использование: ./deploy.sh pages | vps | teaser | fishing"; exit 1
+  echo "Использование: ./deploy.sh pages | vps | teaser | wellness"; exit 1
 fi
