@@ -72,14 +72,14 @@ export function hub(C){
   </div>
 </section>
 
-<section class="sec dark grain" id="dirs" aria-labelledby="h-dirs">
+<section class="sec dark grain cv" id="dirs" aria-labelledby="h-dirs">
   <div class="wrap">
     ${sh(C, 3, H.dirs.kicker, T(C, I.t('hub.dirsTitle', { n:C.dirs.length })), H.dirs.lede)}
     <div class="dirs">${C.dirs.map((d, i) => dirTile(C, d, i)).join('')}</div>
   </div>
 </section>
 
-<section class="sec" id="top" aria-labelledby="h-top">
+<section class="sec cv" id="top" aria-labelledby="h-top">
   <div class="wrap">
     ${sh(C, 4, H.top.kicker, T(C, H.top.title), I.t('hub.topLede', { date:C.L.site.pricesAsOf }))}
     <div class="tools rv" role="search">

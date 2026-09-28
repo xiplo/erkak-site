@@ -197,7 +197,7 @@ for (const code of LANGS) {
   fs.writeFileSync(path.join(OUT, `sitemap-${code}.xml`), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${urls.map(k => `<url><loc>${SITE.origin}${route(code, k)}</loc><lastmod>${today}</lastmod>${onlyLang ? '' : alt(k)}</url>`).join('\n')}\n</urlset>\n`);
 }
 fs.writeFileSync(path.join(OUT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${LANGS.map(c => `<sitemap><loc>${SITE.origin}/sitemap-${c}.xml</loc><lastmod>${today}</lastmod></sitemap>`).join('\n')}\n</sitemapindex>\n`);
-fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\n\n# Поисковые и AI-роботы допускаются явно\nUser-agent: OAI-SearchBot\nAllow: /\nUser-agent: PerplexityBot\nAllow: /\nUser-agent: YandexBot\nAllow: /\n\nSitemap: ${SITE.origin}/sitemap.xml\n`);
+fs.writeFileSync(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /api/\n\n# Поисковые и AI-роботы допускаются явно\nUser-agent: OAI-SearchBot\nUser-agent: PerplexityBot\nUser-agent: YandexBot\nAllow: /\nDisallow: /api/\n\nSitemap: ${SITE.origin}/sitemap.xml\n`);
 if (SITE.indexnow) fs.writeFileSync(path.join(OUT, `${SITE.indexnow}.txt`), SITE.indexnow);
 fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify({ name:'ERKAK — Men’s wellness worldwide', short_name:'ERKAK', start_url:'/', display:'standalone', background_color:'#0B0B0A', theme_color:'#0B0B0A', icons:[{ src:'/icon-192.png', sizes:'192x192', type:'image/png' }, { src:'/icon-512.png', sizes:'512x512', type:'image/png' }, { src:'/favicon.svg', sizes:'any', type:'image/svg+xml' }] }, null, 2));
 {

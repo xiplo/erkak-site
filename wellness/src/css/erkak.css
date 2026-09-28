@@ -71,7 +71,9 @@ em{font-style:italic}
 :lang(ar) .mono-cap,:lang(zh) .mono-cap{letter-spacing:.04em;font-size:12px}
 
 /* ── Секции ──────────────────────────────────────────────────── */
-.sec{padding-block:var(--sec);position:relative;content-visibility:auto;contain-intrinsic-size:auto 1100px}
+.sec{padding-block:var(--sec);position:relative}
+/* Самые тяжёлые секции (каталог из 100 карточек, направления) рисуются по мере прокрутки */
+.sec.cv{content-visibility:auto;contain-intrinsic-size:auto 2400px}
 .sec-t{padding-block-start:clamp(56px,6vw,96px)}
 .dark{background:var(--noir);color:var(--bone)}
 .dark-2{background:var(--noir-2);color:var(--bone)}

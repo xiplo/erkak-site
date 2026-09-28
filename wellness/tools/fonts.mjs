@@ -17,7 +17,7 @@ const SETS = [
   { q:'Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500', subsets:['latin', 'latin-ext', 'cyrillic'] },
   { q:'Manrope:wght@400;500;600;700', subsets:['latin', 'latin-ext', 'cyrillic'] },
   { q:'Noto+Naskh+Arabic:wght@400;500;600', subsets:['arabic'] },
-  { q:'IBM+Plex+Sans+Arabic:wght@400;500;600', subsets:['arabic'] }
+  { q:'IBM+Plex+Sans+Arabic:wght@400;600', subsets:['arabic'] }
 ];
 
 fs.rmSync(OUT, { recursive:true, force:true });
