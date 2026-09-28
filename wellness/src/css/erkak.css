@@ -4,8 +4,8 @@
 :root{
   --noir:#0B0B0A; --noir-2:#121210; --noir-3:#1A1916; --noir-4:#24221E;
   --ivory:#F3EEE5; --ivory-2:#EAE3D6; --ivory-3:#DED5C5; --paper:#F8F5EF;
-  --ink:#15130F; --ink-2:#4F483F; --ink-3:#7E7568;
-  --bone:#ECE5D8; --bone-2:#A89F90; --bone-3:#77706A;
+  --ink:#15130F; --ink-2:#4F483F; --ink-3:#6B6358;
+  --bone:#ECE5D8; --bone-2:#A89F90; --bone-3:#8A837B;
   --gold:#C5A46D; --gold-2:#DCC08E; --gold-3:#9C7D47; --bronze:#7A5F31;
   --hair:rgba(21,19,15,.13); --hair-2:rgba(21,19,15,.26);
   --hair-d:rgba(236,229,216,.12); --hair-d2:rgba(236,229,216,.26);
@@ -67,14 +67,14 @@ em{font-style:italic}
 :lang(ar) .mono-cap,:lang(zh) .mono-cap{letter-spacing:.04em;font-size:12px}
 
 /* ── Секции ──────────────────────────────────────────────────── */
-.sec{padding-block:var(--sec);position:relative}
+.sec{padding-block:var(--sec);position:relative;content-visibility:auto;contain-intrinsic-size:auto 1100px}
 .sec-t{padding-block-start:clamp(56px,6vw,96px)}
 .dark{background:var(--noir);color:var(--bone)}
 .dark-2{background:var(--noir-2);color:var(--bone)}
 .stone{background:var(--ivory-2)}
 .paper{background:var(--paper)}
 .grain{position:relative;isolation:isolate}
-.grain::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.045;mix-blend-mode:overlay;pointer-events:none;z-index:-1}
+.grain::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.03;pointer-events:none;z-index:-1}
 .sh{display:grid;grid-template-columns:minmax(64px,1fr) minmax(0,11fr);gap:0 clamp(16px,3vw,48px);margin-block-end:clamp(48px,6vw,92px)}
 .sh-no{font:italic 400 20px/1 var(--serif);color:var(--gold-3);padding-block-start:6px;border-block-start:1px solid var(--hair-2)}
 .dark .sh-no{color:var(--gold);border-color:var(--hair-d2)}
@@ -211,12 +211,12 @@ em{font-style:italic}
 .dial .dr{fill:none;stroke:rgba(197,164,109,.26);stroke-width:1}
 .dial .dr-2{stroke:rgba(197,164,109,.5)}
 .dial .dr-3{stroke:rgba(236,229,216,.1)}
-.dial-bezel{transform-origin:320px 320px;animation:spin 240s linear infinite}
+.dial-bezel{transform-origin:320px 320px;animation:spin 240s steps(240) infinite}
 .dial-bezel line{stroke:rgba(236,229,216,.22);stroke-width:1}
 .dial-bezel .tk-l{stroke:rgba(197,164,109,.8)}
 .dial-idx line{stroke:rgba(236,229,216,.35);stroke-width:1}
 .dial .hand{stroke:var(--gold);stroke-width:1.2}
-.dial .sweep{transform-origin:320px 320px;animation:spin 60s linear infinite}
+.dial .sweep{transform-origin:320px 320px;animation:spin 60s steps(60) infinite}
 .dial .sweep line{stroke:rgba(236,229,216,.45);stroke-width:.8}
 .dial .sweep circle{fill:var(--gold)}
 .dial .pivot{fill:var(--noir);stroke:var(--gold);stroke-width:1.2}
@@ -269,7 +269,7 @@ em{font-style:italic}
 .poster::before{content:"";position:absolute;inset:0;background:
   radial-gradient(120% 90% at 78% 12%,var(--tg,rgba(197,164,109,.16)),transparent 58%),
   repeating-radial-gradient(circle at var(--ox,50%) var(--oy,118%),transparent 0 22px,rgba(236,229,216,.04) 22px 23px);z-index:-1}
-.poster::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.06;mix-blend-mode:overlay;z-index:-1}
+.poster::after{content:"";position:absolute;inset:0;background-image:var(--grain);opacity:.035;z-index:-1}
 .poster img{position:absolute;inset:0;inline-size:100%;block-size:100%;object-fit:cover;z-index:-1}
 .poster .art{position:absolute;inset-inline-start:50%;inset-block-start:50%;transform:translate(-50%,-50%);color:var(--gold);transition:transform 1.2s var(--ease),color .8s}
 [dir=rtl] .poster .art{transform:translate(50%,-50%)}
@@ -606,8 +606,8 @@ em{font-style:italic}
 .foot-cta .btns{justify-content:flex-end}
 @media(max-width:900px){.foot-cta{grid-template-columns:1fr}.foot-cta .btns{justify-content:flex-start}}
 .foot-cols{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:40px;padding-block:clamp(56px,6vw,88px)}
-.foot h4{font:600 10px/1 var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--bone-3);margin-block-end:22px}
-:lang(ar) .foot h4,:lang(zh) .foot h4{letter-spacing:.02em;font-size:12px}
+.foot h3{font:600 10px/1 var(--sans);letter-spacing:.26em;text-transform:uppercase;color:var(--bone-3);margin-block-end:22px}
+:lang(ar) .foot h3,:lang(zh) .foot h3{letter-spacing:.02em;font-size:12px}
 .foot-cols a{display:block;padding-block:6px;font-size:14.5px;color:var(--bone-2);transition:color .3s}
 .foot-cols a:hover{color:var(--gold-2)}
 .foot-brand p{max-width:340px;font-size:14.5px;margin-block-start:22px}

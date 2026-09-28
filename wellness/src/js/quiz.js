@@ -56,7 +56,9 @@
   }
   quiz.addEventListener('change', function(e){
     next.disabled = !ready();
-    if (e.target.type === 'radio' && i < steps.length - 1) setTimeout(function(){ i++; render(); window.ERK_track && window.ERK_track('quiz_step', { type:type, step:i }); }, 260);
+    // Автопереход, только если человек остался на том же шаге (не нажал «Дальше» сам)
+    var at = i;
+    if (e.target.type === 'radio' && i < steps.length - 1) setTimeout(function(){ if (i !== at || !ready()) return; i++; render(); window.ERK_track && window.ERK_track('quiz_step', { type:type, step:i }); }, 260);
   });
   quiz.addEventListener('input', function(){ next.disabled = !ready(); });
   back.addEventListener('click', function(){ if (i > 0) { i--; render(); } });

@@ -10,7 +10,9 @@
   var live = $('#live span');
   if (live && E.season) {
     var m = new Date().getMonth();
-    var top = function(l){ return E.season.filter(function(r){ return r[1][m] >= l; }).map(function(r){ return r[0].toLocaleLowerCase(E.locale); }); };
+    // Название рыбы внутри фразы — со строчной буквы (кроме немецкого и аббревиатур вроде GT)
+    var low = function(s){ return E.lang === 'de' || (s.length > 1 && s.charAt(1) !== s.charAt(1).toLocaleLowerCase(E.locale)) ? s : s.charAt(0).toLocaleLowerCase(E.locale) + s.slice(1); };
+    var top = function(l){ return E.season.filter(function(r){ return r[1][m] >= l; }).map(function(r){ return low(r[0]); }); };
     var hot = top(3), good = top(2);
     var mon = new Intl.DateTimeFormat(E.locale, { month:'long' }).format(new Date(2026, m, 15));
     mon = mon.charAt(0).toLocaleUpperCase(E.locale) + mon.slice(1);
