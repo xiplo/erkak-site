@@ -89,8 +89,10 @@ export function leadForm(C, { type, id = '', title = '', fields = ['date', 'gues
 }
 
 // ── Каркас страницы ──────────────────────────────────────────────────
-function head(C, { key, title, desc: rawDesc, og, ld: lds = [] }){
+function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [] }){
   const desc = clip(rawDesc, C.code === 'zh' ? 90 : 158);
+  // Длинный title: бренд в конце не помещается в выдаче — убираем его, а не обрезаем смысл
+  const title = rawTitle.length > (C.code === 'zh' ? 36 : 68) ? rawTitle.replace(/\s*[|｜]\s*ERKAK\s*$/, '') : rawTitle;
   const url = C.SITE.origin + C.path(key);
   const alts = C.langs.map(l => `<link rel="alternate" hreflang="${l.hreflang}" href="${C.SITE.origin + C.pathIn(l.code, key)}">`).join('');
   const xdef = key === 'hub' ? C.SITE.origin + '/' : C.SITE.origin + C.pathIn(C.SITE.defaultLang, key);

@@ -35,10 +35,10 @@ for (const [u, { html, ids }] of pages) {
   const desc = (/<meta name="description" content="([^"]*)"/.exec(html) || [])[1];
   if (!title) err(u, 'нет <title>'); else {
     if (!noindex) { if (titles.has(title)) err(u, `title повторяет ${titles.get(title)}`); else titles.set(title, u); }
-    if (title.length > 75) warn(u, `title ${title.length} зн.`);
+    if (title.length > (u.startsWith('/zh/') ? 40 : 75)) warn(u, `title ${title.length} зн.`);
   }
   if (!desc) { if (!noindex && u !== '/') err(u, 'нет description'); }
-  else { if (!noindex && descs.has(desc)) warn(u, `description повторяет ${descs.get(desc)}`); descs.set(desc, u); if (desc.length > 170) warn(u, `description ${desc.length} зн.`); if (desc.length < 50) warn(u, `description ${desc.length} зн. — коротко`); }
+  else { const k = u.startsWith('/zh/') ? .5 : 1; if (!noindex && descs.has(desc)) warn(u, `description повторяет ${descs.get(desc)}`); descs.set(desc, u); if (desc.length > 170 * k) warn(u, `description ${desc.length} зн.`); if (desc.length < 50 * k) warn(u, `description ${desc.length} зн. — коротко`); }
   const canon = (/<link rel="canonical" href="([^"]+)"/.exec(html) || [])[1];
   if (!noindex && canon !== ORIGIN + u) err(u, `canonical ${canon || '—'} ≠ ${ORIGIN + u}`);
   // hreflang: каждая альтернатива существует и ссылается обратно

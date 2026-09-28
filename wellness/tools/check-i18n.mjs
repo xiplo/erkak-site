@@ -15,7 +15,7 @@ if (!langs.length) langs = fs.readdirSync(path.join(ROOT, 'content')).filter(d =
 
 const FILES = ['ui', 'catalog', 'fishing', 'site', 'guides'];
 const CYR = /[Ѐ-ӿ]/;
-const PH = s => (s.match(/\{\w+\}/g) || []).sort().join(' ');
+const PH = s => (s.match(/\{\w+\}/g) || []).map(x => x === '{np}' ? '{n}' : x).sort().join(' '); // {np} = {n} + слово «программ» в нужной форме
 const LINKS = s => (s.match(/\]\(([^)]+)\)/g) || []).join(' ');
 const load = async (code, f) => { const p = path.join(ROOT, 'content', code, f + '.mjs'); return fs.existsSync(p) ? import(p + '?t=' + Date.now()) : null; };
 const fontPrefixes = fs.readdirSync(path.join(ROOT, 'src/fonts')).filter(f => f.endsWith('.woff2')).map(f => f.replace(/\.[0-9a-f]{8}\.woff2$/, ''));

@@ -37,6 +37,10 @@ export function makeI18n(L, SITE){
 
   // Длительность: «7d», «1-2d», «6-8w», «9-10h», «2d1n», «10lesson», «5visit», «6session», «2night»
   const unit = (u, n) => plural(n, L.units[u]);
+  // «число + слово»; в арабском двойственное число читается без цифры: «يومان», не «2 يومان»
+  const count = (n, forms) => typeof forms === 'object' && forms.two && pr.select(n) === 'two' ? plural(n, forms) : `${num(n)} ${plural(n, forms)}`;
+  // Для диапазона «1–2» берём форму множественного числа, а не двойственного
+  const rangeForm = (n, forms) => typeof forms === 'object' && forms.two && pr.select(n) === 'two' ? (forms.few || forms.other) : plural(n, forms);
   function dur(spec){
     const comp = /^(\d+)d(\d+)n$/.exec(spec);
     if (comp) return `${dur(comp[1] + 'd')} / ${dur(comp[2] + 'night')}`;
@@ -44,7 +48,7 @@ export function makeI18n(L, SITE){
     if (!m) throw new Error(`Неверная длительность: ${spec}`);
     const [, a, b, u0] = m, u = u0 === 'n' ? 'night' : u0;
     if (!L.units[u]) throw new Error(`[${code}] нет единицы ${u}`);
-    return b ? `${num(+a)}–${num(+b)} ${unit(u, +b)}` : `${num(+a)} ${unit(u, +a)}`;
+    return b ? `${num(+a)}–${num(+b)} ${rangeForm(+b, L.units[u])}` : count(+a, L.units[u]);
   }
   // Дни для подбора: «2d1n» → 2, «6-8w» → 49, занятия/визиты/сессии → 0 (гибко)
   function days(spec){
@@ -59,8 +63,8 @@ export function makeI18n(L, SITE){
     const [, upto, a, b, noun] = m, N = L.nouns[noun];
     if (!N) throw new Error(`[${code}] нет существительного ${noun}`);
     if (upto) return t('group.upto', { n:num(+a), noun:N.gen ?? plural(+a, N) });
-    if (b) return t('group.range', { a:num(+a), b:num(+b), noun:plural(+b, N) });
-    return `${num(+a)} ${plural(+a, N)}`;
+    if (b) return t('group.range', { a:num(+a), b:num(+b), noun:rangeForm(+b, N) });
+    return count(+a, N);
   }
   const monthsRange = list => {
     if (!list || !list.length || list.length >= 12) return t('allYear');
@@ -74,7 +78,7 @@ export function makeI18n(L, SITE){
   };
 
   return {
-    L, code, locale, dir:L.meta.dir || 'ltr', t, plural, num, money, conv, approx, months, monthsLong, monthsRange, dur, days, group,
+    L, code, locale, dir:L.meta.dir || 'ltr', t, plural, count, num, money, conv, approx, months, monthsLong, monthsRange, dur, days, group,
     typo: s => typo(s, code),
     has: key => get(L.ui, key) != null
   };

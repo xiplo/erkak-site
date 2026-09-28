@@ -139,6 +139,17 @@ function clientData(C){
   return `window.ERK=${JSON.stringify(data)};`;
 }
 
+// Неполный перевод (например, ещё пишется) — пропускаем язык в обычной сборке, в STRICT падаем
+for (const code of [...SITE.langs]) {
+  try { makeContext(code); }
+  catch (e) {
+    if (process.env.STRICT || code === onlyLang) throw e;
+    console.warn(`! ${code}: ${e.message} — язык пропущен`);
+    SITE.langs.splice(SITE.langs.indexOf(code), 1); LANGMETA.splice(LANGMETA.findIndex(l => l.code === code), 1); delete CONTENT[code];
+  }
+}
+if (!onlyLang) LANGS.splice(0, LANGS.length, ...SITE.langs);
+
 // ── Страницы ────────────────────────────────────────────────────────
 const urls = [];
 function write(rel, html){

@@ -105,7 +105,7 @@ export function poster({ tone, art, tl = '', tr = '', bl = '', br = '', mid = ''
   return `<div class="poster t-${tone} ${isFish(art) ? 'is-fish' : 'is-glyph'}${mid ? ' has-mid' : ''} ${cls}"${st}>${img ? `<img src="${img}" alt="${esc(alt)}" loading="lazy" decoding="async">` : ''}${use(id, 'art')}<span class="p-frame" aria-hidden="true"></span>${tl ? `<span class="p-tl">${tl}</span>` : ''}${tr ? `<span class="p-tr">${tr}</span>` : ''}${mid ? `<span class="p-mid">${mid}</span>` : ''}${bl ? `<span class="p-bl">${bl}</span>` : ''}${br ? `<span class="p-br">${br}</span>` : ''}</div>`;
 }
 // Короткое место для постера: «Пхукет, Сой Та-Иад» → «Пхукет»
-export const placeShort = where => String(where || '').split(/\s*[,·(（、،]\s*/)[0].trim();
+export const placeShort = where => String(where || '').split(/\s*[,·(（、،/]\s*|\s+(?:or|and|oder|und|или|и|yoki|va|أو)\s+|[或和]/)[0].trim();
 
 // ── Циферблат ERKAK: 14 направлений на безеле, стрелка — открытое направление ──
 export function dial(items, center){
@@ -159,6 +159,8 @@ export function sonar(){
 
 // ── Схема Андаманского моря ─────────────────────────────────────────────
 export function andamanMap(spots, names, I){
+  // Подписи на карте (карта всегда LTR): арабский текст — отдельным RTL-фрагментом, чтобы «… وFAD» не переставлялось
+  const iso = s => I.dir === 'rtl' ? '\u2067' + esc(s) + '\u2069' : esc(s);
   const B = { w0:97.45, w1:99.25, n:9.55, s:6.95 }, K = 300;
   const W = (B.w1 - B.w0) * K, H = (B.n - B.s) * K;
   const P = (lat, lon) => [((lon - B.w0) * K).toFixed(1), ((B.n - lat) * K).toFixed(1)];
@@ -171,9 +173,9 @@ export function andamanMap(spots, names, I){
   for (let lon = 97.5; lon <= 99.2; lon += 0.5) { const [x] = P(B.s, lon); grid += `<line y1="0" y2="${H}" x1="${x}" x2="${x}"/><text x="${+x + 7}" y="${H - 12}">${lon.toFixed(1)}°E</text>`; }
   const pins = spots.map(s => { const [x, y] = P(s.lat, s.lon), n = names[s.id];
     const tx = s.la === 'l' ? x - 16 : s.la === 't' ? x : +x + 16, ty = s.la === 't' ? y - 18 : +y + 5, anchor = s.la === 'l' ? 'end' : s.la === 't' ? 'middle' : 'start';
-    return `<g class="pin ${s.ok ? 'ok' : 'no'}" data-spot="${s.id}" tabindex="0" role="button" aria-label="${esc(n.name)}: ${esc(s.ok ? I.t('fishing.map.allowed') : I.t('fishing.map.banned'))}">${s.ok ? '' : `<circle class="zone" cx="${x}" cy="${y}" r="34"/>`}<circle class="ring" cx="${x}" cy="${y}" r="11"/><circle class="dot" cx="${x}" cy="${y}" r="4.5"/><text x="${tx}" y="${ty}" text-anchor="${anchor}">${esc(n.name)}</text></g>`; }).join('');
+    return `<g class="pin ${s.ok ? 'ok' : 'no'}" data-spot="${s.id}" tabindex="0" role="button" aria-label="${esc(n.name)}: ${esc(s.ok ? I.t('fishing.map.allowed') : I.t('fishing.map.banned'))}">${s.ok ? '' : `<circle class="zone" cx="${x}" cy="${y}" r="34"/>`}<circle class="ring" cx="${x}" cy="${y}" r="11"/><circle class="dot" cx="${x}" cy="${y}" r="4.5"/><text x="${tx}" y="${ty}" text-anchor="${anchor}">${iso(n.name)}</text></g>`; }).join('');
   const [cx, cy] = P(7.82, 98.36);
-  const lbl = (lat, lon, s) => { const [x, y] = P(lat, lon); return `<text x="${x}" y="${y}">${esc(s)}</text>`; };
+  const lbl = (lat, lon, s) => { const [x, y] = P(lat, lon); return `<text x="${x}" y="${y}">${iso(s)}</text>`; };
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(I.t('fishing.map.aria'))}">
   <defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="7" stroke="#1E1C18" stroke-width="2"/></pattern></defs>
   <rect width="${W}" height="${H}" fill="#0E0E0D"/>
@@ -183,7 +185,7 @@ export function andamanMap(spots, names, I){
   <path d="${poly(phuket)}" fill="#1B1915" stroke="rgba(197,164,109,.5)" stroke-width="1"/>
   ${isl.map(p => `<path d="${poly(p)}" fill="#1B1915" stroke="rgba(197,164,109,.45)"/>`).join('')}
   <g class="geo">${lbl(8.0, 98.1, I.t('fishing.map.phuket'))}${lbl(8.5, 98.62, I.t('fishing.map.thailand'))}${lbl(7.1, 97.6, I.t('fishing.map.sea'))}</g>
-  <g class="pier"><circle cx="${cx}" cy="${cy}" r="3.5"/><text x="${cx - 10}" y="${+cy + 4}" text-anchor="end">${esc(I.t('fishing.map.pier'))}</text></g>
+  <g class="pier"><circle cx="${cx}" cy="${cy}" r="3.5"/><text x="${cx - 10}" y="${+cy + 4}" text-anchor="end">${iso(I.t('fishing.map.pier'))}</text></g>
   ${pins}
   <g transform="translate(${W - 60},62)" class="rose"><circle r="24"/><path d="M0,-32V32M-32,0H32"/><path d="M0,-24L5,0 0,24 -5,0Z" class="needle"/><text y="-38" text-anchor="middle">N</text></g>
 </svg>`;

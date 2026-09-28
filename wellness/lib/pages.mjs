@@ -1,14 +1,22 @@
 // ERKAK · страницы. Каждая функция возвращает готовый HTML для одного языка (контекст C).
 import { esc, inline, roman } from './util.mjs';
-import { dial, sonar, andamanMap, use, icon, poster, artId } from './art.mjs';
+import { dial, sonar, andamanMap, use, icon, poster, artId, placeShort } from './art.mjs';
 import { page, btn, kicker, T, sh, price, crumbs, crumbsLd, faq, faqLd, monthsBar, ticks, card, posterNo, posterPlace, dirTile, row, gcard, leadForm } from './site.mjs';
 
-const ORG = C => ({ '@id':C.SITE.origin + '/#org' });
+const ORG = C => ({ '@type':'Organization', '@id':C.SITE.origin + '/#org', name:'ERKAK', url:C.SITE.origin + '/' });
 const opt = (name, val, label, sub, n) => `<div class="opt"><input type="radio" name="${name}" id="q-${name}-${val}" value="${val}"><label for="q-${name}-${val}"><i>${n != null ? String(n).padStart(2, '0') : ''}</i><span><strong>${esc(label)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</span></label></div>`;
 const stepsHtml = (C, arr, cls = '') => `<div class="steps ${cls}">${arr.map(([h, p], i) => `<div class="step rv" style="--d:${i}"><b>${roman(i + 1)}</b><h3>${T(C, h)}</h3><p>${T(C, p)}</p></div>`).join('')}</div>`;
 const paysHtml = C => `<div class="pays">${C.L.site.pays.map(x => `<span>${esc(x)}</span>`).join('')}</div>`;
 // Первое предложение (для карточек): «…» / «。» / «؟» — любой язык
 const firstSentence = s => { const m = /^[\s\S]*?[.!?。！？؟](?=\s|$)/.exec(String(s).trim()); return (m ? m[0] : String(s)).trim(); };
+// «4 программы» / «12 programs» / «12 个项目»: число и существительное в нужной форме
+// Перечисление по правилам языка: «Пхукет и Бангкок», «Phuket and Bangkok», «普吉岛和曼谷»
+const listOf = (C, arr) => arr.length ? new Intl.ListFormat(C.I.locale, { style:'long', type:'conjunction' }).format(arr) : '';
+const NP = (C, n) => C.I.count(n, C.L.nouns.program);
+// Место для title: короткое («Пхукет»), и пустое, если оно уже есть в названии
+const whereFor = p => { const w = p.type === 't' ? String(p.where || '').split('·')[0].trim() : placeShort(p.where); const stem = w.toLowerCase().slice(0, Math.max(3, w.length - 2)); return stem && p.title.replace(/\*/g, '').toLowerCase().includes(stem) ? '' : w; };
+// Убрать «висящие» разделители, если подстановка оказалась пустой: «X — , от Y» → «X — от Y»
+const tidy = s => s.replace(/\s*([—–:|｜·])\s*[,，،、]\s*/g, ' $1 ').replace(/\s*[,，،]\s*([—–|｜])/g, ' $1').replace(/([—–])\s*([—–])/g, '$1').replace(/\(\s*\)|（\s*）/g, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.，。])/g, '$1').trim();
 const idOf = s => s.toLowerCase().replace(/<[^>]+>|\*/g, '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60);
 
 function tripLd(C, p, items, availability){
@@ -33,7 +41,7 @@ export function hub(C){
   <div class="wrap">
     <div class="hero-copy">
       <p class="chip"><i></i>${esc(H.chip)}</p>
-      <h1 class="display">${T(C, H.title)}</h1>
+      <h1 class="display">${C.code === 'zh' ? T(C, H.title).replace(/。(?!<\/em>)/g, '。<br>') : T(C, H.title)}</h1>
       <p class="lede">${T(C, I.t('hub.lede', { n:C.items.length, d:C.dirs.length }))}</p>
       <div class="btns hero-btns">${btn(I.t('cta.pick'), '#pick', 'btn-gold')}<a class="link" href="#top">${esc(H.ctaAll)}</a></div>
       <div class="hero-meta">
@@ -197,8 +205,8 @@ export function direction(C, d){
       ${kicker(I.t(d.status === 'live' ? 'dir.kickerLive' : 'dir.kickerSoon'))}
       <h1 class="h1">${T(C, d.name)}</h1>
       <p class="lede">${T(C, d.intro)}</p>
-      <dl class="facts"><div><dt>${esc(I.t('dir.programs'))}</dt><dd>${I.num(list.length)}</dd></div><div><dt>${esc(I.t('dir.from'))}</dt><dd>${I.money(minP, 'USD')}</dd></div><div><dt>${esc(I.t('dir.where'))}</dt><dd>${esc(dests.slice(0, 2).map(x => x.name).join(', ') || C.L.regions[list[0].reg])}</dd></div><div><dt>${esc(I.t('dir.status'))}</dt><dd>${esc(I.t(d.status === 'live' ? 'tag.live' : 'tag.soon'))}</dd></div></dl>
-      <div class="btns">${btn(I.t('dir.see', { n:list.length }), '#list', 'btn-gold')}${btn(I.t('cta.pick'), C.path('hub') + '#pick', 'btn-ghost')}</div>
+      <dl class="facts"><div><dt>${esc(I.t('dir.programs'))}</dt><dd>${I.num(list.length)}</dd></div><div><dt>${esc(I.t('dir.from'))}</dt><dd>${I.money(minP, 'USD')}</dd></div><div><dt>${esc(I.t('dir.where'))}</dt><dd>${esc(listOf(C, dests.slice(0, 2).map(x => x.name)) || C.L.regions[list[0].reg])}</dd></div><div><dt>${esc(I.t('dir.status'))}</dt><dd>${esc(I.t(d.status === 'live' ? 'tag.live' : 'tag.soon'))}</dd></div></dl>
+      <div class="btns">${btn(I.t('dir.see', { n:list.length, np:NP(C, list.length) }), '#list', 'btn-gold')}${btn(I.t('cta.pick'), C.path('hub') + '#pick', 'btn-ghost')}</div>
     </div>
     ${poster({ tone:d.tone, art:d.art, tl:`<b>${roman(C.dirs.indexOf(d) + 1)}</b>`, br:esc(I.t(d.status === 'live' ? 'tag.live' : 'tag.soon')) })}
   </div>
@@ -220,7 +228,7 @@ ${guides.length ? `<section class="sec stone"><div class="wrap">${sh(C, 3, I.t('
 <section class="sec dark grain"><div class="wrap">${sh(C, 4, I.t('dir.othersKicker'), T(C, I.t('dir.othersTitle')), '')}<div class="dirs">${others.slice(0, 8).map((x, i) => dirTile(C, x, C.dirs.indexOf(x))).join('')}</div></div></section>`;
   const lds = [crumbsLd(C, [[I.t('nav.dirs'), C.path('hub') + '#dirs'], [d.name, C.path('dir:' + d.id)]]),
     { '@context':'https://schema.org', '@type':'ItemList', name:d.name, itemListElement:list.map((p, i) => ({ '@type':'ListItem', position:i + 1, url:C.SITE.origin + p.href, name:p.title.replace(/\*/g, '') })) }];
-  return page(C, { key:'dir:' + d.id, title:I.t('meta.dirTitle', { name:d.name, n:list.length }), desc:I.t('meta.dirDesc', { short:d.short, n:list.length }), body, lds, og:`/assets/og/${d.id}.jpg` });
+  return page(C, { key:'dir:' + d.id, title:I.t('meta.dirTitle', { name:d.name, n:list.length, np:NP(C, list.length) }), desc:I.t('meta.dirDesc', { short:d.short, n:list.length, np:NP(C, list.length) }), body, lds, og:`/assets/og/${d.id}.jpg` });
 }
 
 // ════ Программа (предзапись) ══════════════════════════════════════════
@@ -266,7 +274,7 @@ export function program(C, p){
 </section>
 ${same.length ? `<section class="sec stone"><div class="wrap">${sh(C, 1, d.name, T(C, I.t('prog.more')), '')}<div class="grid">${same.map(x => card(C, x)).join('')}</div></div></section>` : ''}`;
   const lds = [crumbsLd(C, cr), tripLd(C, p, p.plan, 'PreOrder')];
-  return page(C, { key:'prog:' + p.id, title:I.t('meta.progTitle', { title:p.title.replace(/\*/g, ''), where:p.where, price:I.money(p.price, p.cur) }), desc:I.t('meta.progDesc', { short:p.short.replace(/\*/g, ''), dur:p.durLabel, price:I.money(p.price, p.cur) }), body, lds, og:`/assets/og/${p.dir}.jpg`, mbar:[I.t('prog.waitCta'), '#book'] });
+  return page(C, { key:'prog:' + p.id, title:tidy(I.t('meta.progTitle', { title:p.title.replace(/\*/g, ''), where:whereFor(p), price:I.money(p.price, p.cur) })), desc:I.t('meta.progDesc', { short:p.short.replace(/\*/g, ''), dur:p.durLabel, price:I.money(p.price, p.cur) }), body, lds, og:`/assets/og/${p.dir}.jpg`, mbar:[I.t('prog.waitCta'), '#book'] });
 }
 
 // ════ Раздел рыбалки ══════════════════════════════════════════════════
@@ -421,7 +429,7 @@ export function tour(C, t){
       <div class="block rv"><h2>${esc(I.t('tour.species'))}</h2>${ticks(C, t.species)}<h3 class="h3" style="margin-block:40px 18px;font-size:24px">${esc(I.t('prog.best'))}</h3>${monthsBar(C, t.months)}</div>
       <div class="block rv"><h2>${esc(I.t('tour.day'))}</h2><ol class="timeline">${t.day.map(([h, x]) => `<li><b>${esc(h)}</b><span>${T(C, x)}</span></li>`).join('')}</ol></div>
       <div class="block rv"><h2>${esc(I.t('tour.incl'))}</h2>${ticks(C, t.incl)}<h3 class="h3" style="margin-block:40px 18px;font-size:24px">${esc(I.t('tour.excl'))}</h3>${ticks(C, t.excl, 'muted')}</div>
-      ${spot ? `<div class="block rv"><h2>${esc(I.t('tour.where'))}</h2><p><strong>${esc(spot.name)}</strong> · ${esc(spot.run)}. ${T(C, spot.note)}</p><p class="note" style="margin-block-start:22px">${T(C, F.legalNote)}</p></div>` : ''}
+      ${spot ? `<div class="block rv"><h2>${esc(I.t('tour.where'))}</h2><p><strong>${esc(spot.name)}</strong> · ${esc(spot.run)}</p><p style="margin-block-start:8px">${T(C, spot.note)}</p><p class="note" style="margin-block-start:22px">${T(C, F.legalNote)}</p></div>` : ''}
       <div class="block rv"><h2>${esc(I.t('tour.upsell'))}</h2><div class="upsell">${t.upsell.map(([a, b]) => `<div><strong>${T(C, a)}</strong><span>${T(C, b)}</span></div>`).join('')}</div></div>
       <div class="block rv"><h2>${esc(I.t('prog.faq'))}</h2>${faq(C, F.faq.slice(0, 4))}</div>
     </div>
@@ -436,7 +444,7 @@ export function tour(C, t){
 </section>
 <section class="sec stone"><div class="wrap">${sh(C, 1, I.t('tour.relKicker'), T(C, I.t('tour.relTitle')), '')}<div class="grid">${related.map(x => card(C, x, { level:true })).join('')}</div></div></section>`;
   const lds = [crumbsLd(C, cr), tripLd(C, t, t.day.map(x => x[1]), 'InStock')];
-  return page(C, { key:'tour:' + t.id, title:I.t('meta.tourTitle', { title:t.title, where:t.where, price:I.money(t.price, 'THB') }), desc:I.t('meta.tourDesc', { short:t.short, dur:t.durLabel, group:t.groupLabel, price:I.money(t.price, 'THB') }), body, lds, og:'/assets/og/fishing.jpg', nav:'fish', mbar:[I.t('tour.cta'), '#book'] });
+  return page(C, { key:'tour:' + t.id, title:tidy(I.t('meta.tourTitle', { title:t.title, where:whereFor(t), price:I.money(t.price, 'THB') })), desc:I.t('meta.tourDesc', { short:t.short, dur:t.durLabel, group:t.groupLabel, price:I.money(t.price, 'THB') }), body, lds, og:'/assets/og/fishing.jpg', nav:'fish', mbar:[I.t('tour.cta'), '#book'] });
 }
 
 // ════ Места ═══════════════════════════════════════════════════════════
@@ -475,7 +483,7 @@ export function dest(C, d){
 </div></section>
 ${guides.length ? `<section class="sec stone"><div class="wrap">${sh(C, 2, I.t('guides.kicker'), T(C, I.t('dir.guidesTitle')), '')}<div class="gcards">${guides.slice(0, 3).map(g => gcard(C, g)).join('')}</div></div></section>` : ''}`;
   const lds = [crumbsLd(C, cr), { '@context':'https://schema.org', '@type':'TouristDestination', name:d.name, description:d.intro.replace(/\*/g, ''), url:C.SITE.origin + C.path('dest:' + d.id), includesAttraction:list.slice(0, 20).map(p => ({ '@type':'TouristTrip', name:p.title.replace(/\*/g, ''), url:C.SITE.origin + p.href })) }];
-  return page(C, { key:'dest:' + d.id, title:I.t('meta.destTitle', { title:d.title.replace(/\*/g, ''), n:list.length }), desc:d.metaDesc || I.t('meta.destDesc', { name:d.name, n:list.length }), body, lds, scripts:['catalog'] });
+  return page(C, { key:'dest:' + d.id, title:I.t('meta.destTitle', { title:d.title.replace(/\*/g, ''), n:list.length, np:NP(C, list.length) }), desc:d.metaDesc || I.t('meta.destDesc', { name:d.name, n:list.length, np:NP(C, list.length) }), body, lds, scripts:['catalog'] });
 }
 
 // ════ Гайды ═══════════════════════════════════════════════════════════
