@@ -62,9 +62,11 @@ elif [ "$MODE" = "wellness" ]; then
   # Заявки: wellness/server/leads.mjs → /opt/erkak-wellness (systemd erkak-wellness, порт 8796), nginx: location = /api/lead.
   VPS="${VPS_USER:-root}@${VPS_HOST:-62.238.59.42}"
   SSH="ssh -o StrictHostKeyChecking=no $VPS"
-  (cd "$DIR/wellness" && node build.mjs)
+  # Сборка всех языков (STRICT: недописанный перевод — ошибка) и проверки: переводы, ссылки, hreflang, JSON-LD
+  (cd "$DIR/wellness" && STRICT=1 node build.mjs && node tools/check-i18n.mjs && node tools/check.mjs)
   $SSH "set -e; [ -f /var/www/${DOMAIN}/catalog.html ] && { rm -rf /var/www/${DOMAIN}-shop; mv /var/www/${DOMAIN} /var/www/${DOMAIN}-shop; }; mkdir -p /var/www/${DOMAIN} /opt/erkak-wellness/data"
-  rsync -az --delete --exclude 'server' --exclude 'data' --exclude 'build.mjs' --exclude '*.md' --exclude '.gitignore' -e "ssh -o StrictHostKeyChecking=no" "$DIR/wellness/" "$VPS:/var/www/${DOMAIN}/"
+  # Выкладывается только собранный сайт (wellness/public/)
+  rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" "$DIR/wellness/public/" "$VPS:/var/www/${DOMAIN}/"
   rsync -az -e "ssh -o StrictHostKeyChecking=no" "$DIR/wellness/server/" "$VPS:/opt/erkak-wellness/"
   $SSH "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
 set -e
@@ -73,13 +75,21 @@ chown -R www-data:www-data /opt/erkak-wellness/data
 cp /opt/erkak-wellness/erkak-wellness.service /etc/systemd/system/erkak-wellness.service
 systemctl daemon-reload; systemctl enable erkak-wellness >/dev/null 2>&1 || true; systemctl restart erkak-wellness
 sleep 1; curl -sf http://127.0.0.1:8796/api/health >/dev/null || { journalctl -u erkak-wellness -n 20 --no-pager; exit 1; }
-cp /opt/erkak-wellness/nginx.wellness-snippet.conf /etc/nginx/snippets/erkak-wellness.conf
+SNIP=/etc/nginx/snippets/erkak-wellness.conf
+[ -f "$SNIP" ] && cp "$SNIP" "$SNIP.prev"
+cp /opt/erkak-wellness/nginx.wellness-snippet.conf "$SNIP"
 CONF=/etc/nginx/sites-available/${DOMAIN}.conf
 grep -q 'snippets/erkak-wellness.conf' "$CONF" || { cp "$CONF" "$CONF.bak.$(date +%s)"; sed -i "s#^\(\s*root /var/www/${DOMAIN};\)#\1\n    include snippets/erkak-wellness.conf;#" "$CONF"; }
-nginx -t && systemctl reload nginx
+# Если сниппет конфликтует с конфигом сервера (например, свой location /assets/) — откат к прежнему
+if ! nginx -t 2>/dev/null; then
+  echo "! nginx -t не прошёл со сниппетом ERKAK — откат"; if [ -f "$SNIP.prev" ]; then mv "$SNIP.prev" "$SNIP"; else rm -f "$SNIP"; fi; nginx -t
+fi
+systemctl reload nginx
 echo "Заявки: $(curl -s http://127.0.0.1:8796/api/health)"
 REMOTE
-  echo "Готово: https://${DOMAIN} — экосистема ERKAK, рыбалка на /fishing/. Вернуть магазин: ./deploy.sh vps"
+  # IndexNow (Bing, Yandex, Seznam…): сообщаем о всех адресах из карт сайта. Отключить: NO_INDEXNOW=1
+  [ -n "${NO_INDEXNOW:-}" ] || (cd "$DIR/wellness" && node tools/indexnow.mjs) || echo "! IndexNow не ответил — не критично"
+  echo "Готово: https://${DOMAIN} — экосистема ERKAK на 6 языках (/ru/ /en/ /de/ /ar/ /zh/ /uz/). Вернуть магазин: ./deploy.sh vps"
 else
   echo "Использование: ./deploy.sh pages | vps | teaser | wellness"; exit 1
 fi

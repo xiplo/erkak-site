@@ -3,7 +3,8 @@
 //          STATIC_DIR=. node server/leads.mjs    (локально: API + статика сайта)
 // CLI:     node server/leads.mjs list [n]        последние заявки
 //          node server/leads.mjs status <id> <new|contacted|quoted|deposit|done|lost> [заметка]
-//          node server/leads.mjs stats            воронка и источники за 30 дней
+//          node server/leads.mjs stats            воронка, источники, языки за 30 дней
+//          node server/leads.mjs export [дней] > leads.csv   выгрузка в CSV (по умолчанию 90 дней)
 // Переменные: PORT, DATA_DIR, STATIC_DIR, TELEGRAM_BOT_TOKEN, LEADS_TG_CHAT, ALLOWED_ORIGIN
 import http from 'node:http';
 import fs from 'node:fs';
@@ -27,16 +28,22 @@ create table if not exists leads (
   status text not null default 'new', note text, updated_at text
 );
 create index if not exists leads_created on leads(created_at desc);`);
+// Миграции: колонки, появившиеся с многоязычным сайтом
+const cols = new Set(db.prepare('pragma table_info(leads)').all().map(c => c.name));
+for (const [c, def] of [['lang', 'text'], ['currency', 'text']]) if (!cols.has(c)) db.exec(`alter table leads add column ${c} ${def}`);
 const q = {
-  insert: db.prepare(`insert into leads (type,tour,name,contact,channel,date,guests,answers,summary,page,utm,ref,ip,ua) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
-  last: db.prepare(`select id,created_at,type,tour,name,contact,channel,date,status from leads order by id desc limit ?`),
+  insert: db.prepare(`insert into leads (type,tour,name,contact,channel,date,guests,answers,summary,page,utm,ref,ip,ua,lang,currency) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
+  last: db.prepare(`select id,created_at,lang,type,tour,name,contact,date,status from leads order by id desc limit ?`),
+  exportAll: db.prepare(`select id,created_at,lang,type,tour,name,contact,channel,date,guests,summary,currency,page,json_extract(utm,'$.utm_source') utm_source,json_extract(utm,'$.utm_campaign') utm_campaign,ref,status,note from leads where created_at > datetime('now', ?) order by id`),
+  langs: db.prepare(`select coalesce(lang,'?') lang, count(*) n from leads where created_at > datetime('now','-30 days') group by lang order by n desc`),
   setStatus: db.prepare(`update leads set status = ?, note = coalesce(?, note), updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') where id = ?`),
   funnel: db.prepare(`select status, count(*) n from leads where created_at > datetime('now','-30 days') group by status`),
   sources: db.prepare(`select coalesce(json_extract(utm,'$.utm_source'), case when ref = '' then 'direct' else 'referral' end) src, count(*) n from leads where created_at > datetime('now','-30 days') group by src order by n desc`),
   tours: db.prepare(`select tour, count(*) n from leads where created_at > datetime('now','-30 days') group by tour order by n desc`)
 };
 
-const TYPES = new Set(['quiz','tour','guide','eco','waitlist']);
+const TYPES = new Set(['quiz','tour','guide','eco','waitlist','plan']);
+const LANGS = new Set(['ru','en','de','ar','zh','uz']);
 const STATUSES = ['new','contacted','quoted','deposit','done','lost'];
 const clip = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -48,12 +55,13 @@ async function notify(lead, id){
   if (!token || !chat) return;
   const u = lead.utm || {};
   const text = [
-    `${lead.type === 'waitlist' ? '📝' : lead.type === 'eco' ? '🧭' : '🎣'} <b>Заявка #${id}</b> · ${esc(lead.type)}`,
+    `${({ waitlist:'📝', eco:'🧭', plan:'🗺' })[lead.type] || '🎣'} <b>Заявка #${id}</b> · ${esc(lead.type)} · ${esc((lead.lang || '?').toUpperCase())}`,
     lead.tourTitle && `Программа: <b>${esc(lead.tourTitle)}</b>`,
     lead.name && `Имя: ${esc(lead.name)}`,
     `Контакт: <code>${esc(lead.contact)}</code>${lead.channel ? ' · ' + esc(lead.channel) : ''}`,
     lead.date && `Даты: ${esc(lead.date)}`,
     lead.guests && `Гостей: ${esc(lead.guests)}`,
+    lead.currency && `Валюта на сайте: ${esc(lead.currency)}`,
     lead.summary && `Квиз: ${esc(lead.summary)}`,
     lead.guide && 'Хочет гайд по Андаману',
     (u.utm_source || u.ref) && `Источник: ${esc([u.utm_source, u.utm_campaign, u.ref].filter(Boolean).join(' / '))}`,
@@ -75,10 +83,11 @@ async function postLead(req, res){
   const lead = {
     type: TYPES.has(b.type) ? b.type : 'quiz', tour: clip(b.tour, 200), tourTitle: clip(b.tourTitle, 300), name: clip(b.name, 80), contact: clip(b.contact, 120),
     channel: clip(b.channel, 20), date: clip(b.date, 120), guests: clip(b.guests, 20), summary: clip(b.summary, 400), guide: !!b.guide,
-    answers: b.answers && typeof b.answers === 'object' ? b.answers : {}, utm: b.utm && typeof b.utm === 'object' ? b.utm : {}, page: clip(b.page, 200), ref: clip(b.ref, 300)
+    answers: b.answers && typeof b.answers === 'object' ? b.answers : {}, utm: b.utm && typeof b.utm === 'object' ? b.utm : {}, page: clip(b.page, 200), ref: clip(b.ref, 300),
+    lang: LANGS.has(b.lang) ? b.lang : '', currency: /^[A-Z]{3}$/.test(b.currency || '') ? b.currency : ''
   };
   if (lead.contact.length < 4) return json(res, 400, { error:'Укажите контакт' });
-  const r = q.insert.run(lead.type, lead.tour, lead.name, lead.contact, lead.channel, lead.date, lead.guests, JSON.stringify(lead.answers).slice(0, 2000), lead.summary, lead.page, JSON.stringify(lead.utm).slice(0, 1000), lead.ref, ip, clip(req.headers['user-agent'] || '', 300));
+  const r = q.insert.run(lead.type, lead.tour, lead.name, lead.contact, lead.channel, lead.date, lead.guests, JSON.stringify(lead.answers).slice(0, 2000), lead.summary, lead.page, JSON.stringify(lead.utm).slice(0, 1000), lead.ref, ip, clip(req.headers['user-agent'] || '', 300), lead.lang, lead.currency);
   const id = Number(r.lastInsertRowid);
   notify(lead, id);
   json(res, 200, { ok:true, id });
@@ -108,6 +117,12 @@ if (cmd === 'list') {
   console.log('Воронка за 30 дней:'); console.table(q.funnel.all());
   console.log('Источники:'); console.table(q.sources.all());
   console.log('Туры:'); console.table(q.tours.all());
+  console.log('Языки:'); console.table(q.langs.all());
+} else if (cmd === 'export') {
+  const rows = q.exportAll.all(`-${+(process.argv[3] || 90)} days`);
+  const cell = v => { const t = v == null ? '' : String(v); return /[",\n;]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  const head = rows.length ? Object.keys(rows[0]) : ['id'];
+  process.stdout.write('\uFEFF' + [head.join(','), ...rows.map(r => head.map(k => cell(r[k])).join(','))].join('\n') + '\n');
 } else {
   http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
@@ -119,5 +134,5 @@ if (cmd === 'list') {
       if (STATIC_DIR && req.method === 'GET') return serveStatic(req, res, url);
       json(res, 404, { error:'Не найдено' });
     } catch (e) { console.error(e); json(res, 500, { error:'Внутренняя ошибка' }); }
-  }).listen(PORT, STATIC_DIR ? '0.0.0.0' : '127.0.0.1', () => console.log(`erkak-fishing-leads on :${PORT}${STATIC_DIR ? ' + static ' + STATIC_DIR : ''}`));
+  }).listen(PORT, STATIC_DIR ? '0.0.0.0' : '127.0.0.1', () => console.log(`erkak-leads on :${PORT}${STATIC_DIR ? ' + static ' + STATIC_DIR : ''}`));
 }
