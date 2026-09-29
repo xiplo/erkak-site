@@ -653,3 +653,10 @@ em,i{font-style:normal}
   .foot-cols > div:nth-child(2),.foot-cols > div:nth-child(3){display:none}
   .foot-cols{gap:28px}
 }
+/* Согласие на аналитику: компактная плашка снизу, не перекрывает кнопки */
+.consent{position:fixed;inset-inline:auto 20px;inset-block-end:20px;z-index:85;display:grid;gap:12px;max-inline-size:400px;padding:16px 18px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);font-size:14px;color:var(--ink-2)}
+.consent .btns{gap:8px}
+.foot-btn{padding:0;border:0;background:none;font:inherit;color:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.pay-note{margin-block-start:-4px}
+[data-pay] .ico{inline-size:18px;block-size:18px}
+@media(max-width:760px){.consent{inset-inline:12px;inset-block-end:82px;max-inline-size:none}}

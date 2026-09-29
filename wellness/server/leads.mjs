@@ -2,11 +2,17 @@
 // Запуск:  node server/leads.mjs                 (API на 127.0.0.1:8796, за nginx)
 //          STATIC_DIR=. node server/leads.mjs    (локально: API + статика сайта)
 // CLI:     node server/leads.mjs list [n]        последние заявки
+//          node server/leads.mjs tg-test          тестовое сообщение в группу заявок
 //          node server/leads.mjs status <id> <new|contacted|quoted|deposit|done|lost> [заметка]
 //          node server/leads.mjs stats            воронка, источники, языки за 30 дней
 //          node server/leads.mjs export [дней] > leads.csv   выгрузка в CSV (по умолчанию 90 дней)
-// Переменные: PORT, DATA_DIR, STATIC_DIR, TELEGRAM_BOT_TOKEN, LEADS_TG_CHAT, ALLOWED_ORIGIN
+// Переменные: PORT, DATA_DIR, STATIC_DIR, TELEGRAM_BOT_TOKEN, LEADS_TG_CHAT, ALLOWED_ORIGIN,
+//             STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SITE_ORIGIN (по умолчанию https://erkak.com)
+// Оплата: POST /api/checkout — предоплата 30% за тур через Stripe Checkout; POST /api/stripe — вебхук Stripe.
+// Цены берутся только из prices.json (его пишет build.mjs), а не из запроса браузера.
 import http from 'node:http';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -50,9 +56,17 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 const rate = new Map();
 const limited = ip => { const now = Date.now(); const a = (rate.get(ip) || []).filter(t => now - t < 3_600_000); a.push(now); rate.set(ip, a); return a.length > 8; };
 
-async function notify(lead, id){
+// Отправка в Telegram-группу заявок. Возвращает ответ API, чтобы tg-test мог показать ошибку.
+async function tg(text){
   const token = ENV.TELEGRAM_BOT_TOKEN, chat = ENV.LEADS_TG_CHAT;
-  if (!token || !chat) return;
+  if (!token || !chat) return { ok:false, description:'TELEGRAM_BOT_TOKEN или LEADS_TG_CHAT не заданы' };
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ chat_id:chat, text, parse_mode:'HTML', disable_web_page_preview:true }) });
+    const j = await r.json(); if (!j.ok) console.error('telegram:', j.description); return j;
+  } catch (e) { console.error('telegram:', e.message); return { ok:false, description:e.message }; }
+}
+
+async function notify(lead, id){
   const u = lead.utm || {};
   const text = [
     `${({ waitlist:'📝', eco:'🧭', plan:'🗺' })[lead.type] || '🎣'} <b>Заявка #${id}</b> · ${esc(lead.type)} · ${esc((lead.lang || '?').toUpperCase())}`,
@@ -67,12 +81,89 @@ async function notify(lead, id){
     (u.utm_source || u.ref) && `Источник: ${esc([u.utm_source, u.utm_campaign, u.ref].filter(Boolean).join(' / '))}`,
     '⏱ Ответить в течение 15 минут'
   ].filter(Boolean).join('\n');
-  try { await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ chat_id:chat, text, parse_mode:'HTML', disable_web_page_preview:true }) }); } catch {}
+  await tg(text);
+}
+
+// ── Оплата: Stripe Checkout, предоплата 30% ─────────────────────────
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const PRICES_FILE = path.join(HERE, 'prices.json');
+const PRICES = fs.existsSync(PRICES_FILE) ? JSON.parse(fs.readFileSync(PRICES_FILE, 'utf8')) : { tours:{} };
+const ORIGIN = (ENV.SITE_ORIGIN || 'https://erkak.com').replace(/\/$/, '');
+const DEPOSIT = PRICES.deposit || 0.3;
+const money = (n, cur) => new Intl.NumberFormat('ru-RU').format(n) + ' ' + cur;
+
+async function stripe(pathname, form){
+  const body = new URLSearchParams(form);
+  const r = await fetch('https://api.stripe.com/v1/' + pathname, { method:'POST', headers:{ authorization:'Bearer ' + ENV.STRIPE_SECRET_KEY, 'content-type':'application/x-www-form-urlencoded' }, body });
+  const j = await r.json(); if (!r.ok) throw new Error(j.error ? j.error.message : 'Stripe ' + r.status); return j;
+}
+
+async function postCheckout(req, res){
+  if (!ENV.STRIPE_SECRET_KEY) return json(res, 503, { error:'payments_off' });
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  if (limited(ip)) return json(res, 429, { error:'Слишком много попыток. Напишите нам в мессенджер.' });
+  let b; try { b = JSON.parse(await readBody(req)); } catch { return json(res, 400, { error:'Неверный запрос' }); }
+  if (b.company) return json(res, 200, { ok:true });
+  const t = PRICES.tours[clip(b.tour, 60)];
+  if (!t || !t.online) return json(res, 400, { error:'Для этой программы онлайн-оплата недоступна' });
+  const lang = LANGS.has(b.lang) ? b.lang : 'en';
+  const guests = Math.max(1, Math.min(t.max || 6, parseInt(b.guests, 10) || 1));
+  const contact = clip(b.contact, 120);
+  if (contact.length < 4) return json(res, 400, { error:'Укажите контакт' });
+  const total = t.per === 'person' ? t.price * guests : t.price;
+  const deposit = Math.round(total * DEPOSIT);
+  const title = (t.title && (t.title[lang] || t.title.en)) || b.tour;
+  const lead = { type:'tour', tour:b.tour, tourTitle:title, name:clip(b.name, 80), contact, channel:'', date:clip(b.date, 120), guests:String(guests), summary:`Онлайн-предоплата ${money(deposit, t.cur)} из ${money(total, t.cur)}`,
+    answers:{}, utm:b.utm && typeof b.utm === 'object' ? b.utm : {}, page:clip(b.page, 200), ref:clip(b.ref, 300), lang, currency:t.cur };
+  const r = q.insert.run(lead.type, lead.tour, lead.name, lead.contact, 'stripe', lead.date, lead.guests, '{}', lead.summary, lead.page, JSON.stringify(lead.utm).slice(0, 1000), lead.ref, ip, clip(req.headers['user-agent'] || '', 300), lead.lang, lead.currency);
+  const id = Number(r.lastInsertRowid);
+  const back = ORIGIN + (lead.page && lead.page.startsWith('/') ? lead.page.split('?')[0] : `/${lang}/`);
+  try {
+    const cs = await stripe('checkout/sessions', {
+      mode:'payment', locale:'auto', client_reference_id:String(id),
+      success_url:`${ORIGIN}/${lang}/pay/done/?session_id={CHECKOUT_SESSION_ID}`, cancel_url:back + '?pay=cancel',
+      'line_items[0][quantity]':'1', 'line_items[0][price_data][currency]':t.cur.toLowerCase(), 'line_items[0][price_data][unit_amount]':String(deposit * 100),
+      'line_items[0][price_data][product_data][name]':`${Math.round(DEPOSIT * 100)}% · ${title}`,
+      'line_items[0][price_data][product_data][description]':[lead.date, t.per === 'person' ? `× ${guests}` : ''].filter(Boolean).join(' · ') || title,
+      'metadata[lead_id]':String(id), 'metadata[tour]':lead.tour, 'payment_intent_data[metadata][lead_id]':String(id)
+    });
+    q.setStatus.run('new', `Stripe: ${cs.id}`, id);
+    notify({ ...lead, summary:lead.summary + ' — ждём оплату' }, id);
+    json(res, 200, { ok:true, id, url:cs.url });
+  } catch (e) {
+    console.error('stripe:', e.message);
+    notify({ ...lead, summary:lead.summary + ' — Stripe недоступен, связаться вручную' }, id);
+    json(res, 502, { error:'payments_failed', id });
+  }
+}
+
+// Вебхук: подпись Stripe-Signature (HMAC-SHA256 от «t.тело»), допуск 5 минут
+function stripeVerified(raw, header){
+  const secret = ENV.STRIPE_WEBHOOK_SECRET; if (!secret || !header) return false;
+  const parts = Object.fromEntries(header.split(',').map(x => x.split('=')).filter(x => x.length === 2).map(([k, v]) => [k, v]));
+  const sigs = header.split(',').filter(x => x.startsWith('v1=')).map(x => x.slice(3));
+  if (!parts.t || Math.abs(Date.now() / 1000 - Number(parts.t)) > 300) return false;
+  const want = crypto.createHmac('sha256', secret).update(`${parts.t}.${raw}`).digest('hex');
+  return sigs.some(s => s.length === want.length && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(want)));
+}
+
+async function postStripe(req, res){
+  const raw = await readBody(req, 262_144);
+  if (!stripeVerified(raw, req.headers['stripe-signature'])) return json(res, 400, { error:'bad signature' });
+  const ev = JSON.parse(raw), o = ev.data && ev.data.object || {};
+  if (ev.type === 'checkout.session.completed' && o.payment_status === 'paid') {
+    const id = Number(o.client_reference_id || (o.metadata && o.metadata.lead_id));
+    const paid = money(Math.round(o.amount_total / 100), String(o.currency || '').toUpperCase());
+    if (id) q.setStatus.run('deposit', `Оплачено ${paid} · ${o.id}`, id);
+    await tg(`💳 <b>Предоплата получена</b> · заявка #${esc(id || '?')}\nСумма: <b>${esc(paid)}</b>\n${o.customer_details && o.customer_details.email ? 'E-mail: ' + esc(o.customer_details.email) + '\n' : ''}${o.customer_details && o.customer_details.phone ? 'Телефон: ' + esc(o.customer_details.phone) + '\n' : ''}⏱ Подтвердить бронь клиенту`);
+  }
+  json(res, 200, { received:true });
 }
 
 function json(res, code, body){ res.writeHead(code, { 'content-type':'application/json; charset=utf-8', 'cache-control':'no-store' }); res.end(JSON.stringify(body)); }
 function readBody(req, max = 16_384){
-  return new Promise((ok, fail) => { let s = ''; req.on('data', c => { s += c; if (s.length > max) { fail(new Error('too large')); req.destroy(); } }); req.on('end', () => ok(s)); req.on('error', fail); });
+  // Собираем байты целиком: иначе многобайтовый символ на стыке кусков испортит текст (и подпись Stripe)
+  return new Promise((ok, fail) => { const parts = []; let n = 0; req.on('data', c => { n += c.length; if (n > max) { fail(new Error('too large')); req.destroy(); } else parts.push(c); }); req.on('end', () => ok(Buffer.concat(parts).toString('utf8'))); req.on('error', fail); });
 }
 
 async function postLead(req, res){
@@ -107,7 +198,10 @@ function cors(req, res){
 }
 
 const cmd = process.argv[2];
-if (cmd === 'list') {
+if (cmd === 'tg-test') {
+  const r = await tg('✅ <b>ERKAK</b>: заявки с сайта будут приходить сюда.');
+  console.log(r.ok ? 'Telegram: тестовое сообщение отправлено' : 'Telegram: ' + r.description); process.exitCode = r.ok ? 0 : 1;
+} else if (cmd === 'list') {
   console.table(q.last.all(+(process.argv[3] || 20)));
 } else if (cmd === 'status') {
   const [, , , id, st, ...note] = process.argv;
@@ -130,7 +224,9 @@ if (cmd === 'list') {
     try {
       if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
       if (url.pathname === '/api/lead' && req.method === 'POST') return await postLead(req, res);
-      if (url.pathname === '/api/health') return json(res, 200, { ok:true });
+      if (url.pathname === '/api/checkout' && req.method === 'POST') return await postCheckout(req, res);
+      if (url.pathname === '/api/stripe' && req.method === 'POST') return await postStripe(req, res);
+      if (url.pathname === '/api/health') return json(res, 200, { ok:true, payments:!!ENV.STRIPE_SECRET_KEY });
       if (STATIC_DIR && req.method === 'GET') return serveStatic(req, res, url);
       json(res, 404, { error:'Не найдено' });
     } catch (e) { console.error(e); json(res, 500, { error:'Внутренняя ошибка' }); }

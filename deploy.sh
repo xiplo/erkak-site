@@ -68,9 +68,17 @@ elif [ "$MODE" = "wellness" ]; then
   # Выкладывается только собранный сайт (wellness/public/)
   rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" "$DIR/wellness/public/" "$VPS:/var/www/${DOMAIN}/"
   rsync -az -e "ssh -o StrictHostKeyChecking=no" "$DIR/wellness/server/" "$VPS:/opt/erkak-wellness/"
+  # Секреты — только из переменных окружения вашего терминала, в git и в логи не попадают:
+  #   TELEGRAM_BOT_TOKEN=… LEADS_TG_CHAT=… STRIPE_SECRET_KEY=… STRIPE_WEBHOOK_SECRET=… ./deploy.sh wellness
+  # Заданные переменные дописываются (или заменяются) в /opt/erkak-wellness/.env; остальные строки файла не трогаем.
+  ENVFRAG=""
+  for k in TELEGRAM_BOT_TOKEN LEADS_TG_CHAT STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET SITE_ORIGIN; do
+    v="${!k:-}"; [ -n "$v" ] && ENVFRAG+="$k=$v"$'\n'
+  done
+  [ -n "$ENVFRAG" ] && printf '%s' "$ENVFRAG" | $SSH 'set -e; f=/opt/erkak-wellness/.env; umask 077; touch "$f"; while IFS= read -r line; do k="${line%%=*}"; [ -n "$k" ] || continue; grep -v -E "^#? *${k}=" "$f" > "$f.tmp" || true; printf "%s\n" "$line" >> "$f.tmp"; mv "$f.tmp" "$f"; done; chmod 600 "$f"; echo "Настройки сервера обновлены: $(cut -d= -f1 "$f" | grep -v "^#" | tr "\n" " ")"'
   $SSH "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
 set -e
-[ -f /opt/erkak-wellness/.env ] || { printf '# TELEGRAM_BOT_TOKEN=\n# LEADS_TG_CHAT=\n' > /opt/erkak-wellness/.env; chmod 600 /opt/erkak-wellness/.env; }
+[ -f /opt/erkak-wellness/.env ] || { printf '# TELEGRAM_BOT_TOKEN=\n# LEADS_TG_CHAT=\n# STRIPE_SECRET_KEY=\n# STRIPE_WEBHOOK_SECRET=\n' > /opt/erkak-wellness/.env; chmod 600 /opt/erkak-wellness/.env; }
 chown -R www-data:www-data /opt/erkak-wellness/data
 cp /opt/erkak-wellness/erkak-wellness.service /etc/systemd/system/erkak-wellness.service
 systemctl daemon-reload; systemctl enable erkak-wellness >/dev/null 2>&1 || true; systemctl restart erkak-wellness
@@ -86,6 +94,8 @@ if ! nginx -t 2>/dev/null; then
 fi
 systemctl reload nginx
 echo "Заявки: $(curl -s http://127.0.0.1:8796/api/health)"
+# Проверка Telegram: одно тестовое сообщение в группу заявок, если бот настроен
+(set -a; . /opt/erkak-wellness/.env; set +a; cd /opt/erkak-wellness && node leads.mjs tg-test) || echo "! Telegram: проверьте TELEGRAM_BOT_TOKEN и LEADS_TG_CHAT в /opt/erkak-wellness/.env"
 REMOTE
   # IndexNow (Bing, Yandex, Seznam…): сообщаем о всех адресах из карт сайта. Отключить: NO_INDEXNOW=1
   [ -n "${NO_INDEXNOW:-}" ] || (cd "$DIR/wellness" && node tools/indexnow.mjs) || echo "! IndexNow не ответил — не критично"

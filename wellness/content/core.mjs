@@ -9,6 +9,9 @@ export const SITE = {
   // Юрданные показываются только заполненными.
   legal: { operator:'', tat:'', insurance:'' },
   analytics: { metrika:'', ga4:'' },
+  // Оплата: stripe:true показывает кнопку предоплаты картой на страницах туров (сервер должен иметь STRIPE_SECRET_KEY,
+  // иначе кнопка честно сообщит, что оплата недоступна, и отправит обычную заявку). deposit — доля предоплаты.
+  payments: { stripe:true, deposit:0.3 },
   verify: { yandex:'', google:'', bing:'' },
   // Единиц валюты за 1 USD. Ориентир для «≈» на сайте; итоговая цена — в подтверждении.
   rates: { USD:1, THB:33.4, RUB:84.3, EUR:0.87, GBP:0.74, AED:3.67, SAR:3.75, CNY:7.1, KZT:510, UZS:12600, INR:88 },
@@ -46,32 +49,34 @@ export const DIRECTIONS = [
 ].map(d => ({ status:'soon', ...d }));
 
 // ── Места (страницы — где программ достаточно, page:true) ────────────
+// air — аэропорт прилёта (IATA), tr — ориентир трансфера до места программы, минут
 export const DESTINATIONS = [
-  { id:'phuket',       slug:'phuket',        reg:'th',  page:true, art:'fish-sailfish', tone:'navy' },
-  { id:'bangkok',      slug:'bangkok',       reg:'th',  page:true, art:'pulse',    tone:'plum' },
-  { id:'samui',        slug:'koh-samui',     reg:'th',  page:true, art:'leaf',     tone:'forest' },
-  { id:'chiang-mai',   slug:'chiang-mai',    reg:'th',  page:true, art:'enso',     tone:'noir' },
-  { id:'krabi',        slug:'krabi-khao-lak',reg:'th',  page:true, art:'mountain', tone:'forest' },
-  { id:'gulf',         slug:'hua-hin-pattaya',reg:'th', page:true, art:'wave',     tone:'slate' },
-  { id:'bali',         slug:'bali',          reg:'asia',page:true, art:'wave',     tone:'forest' },
-  { id:'dubai',        slug:'dubai',         reg:'me',  page:true, art:'spark',    tone:'sand' },
-  { id:'caucasus',     slug:'caucasus',      reg:'cis', page:true, art:'mountain', tone:'bronze' },
-  { id:'central-asia', slug:'central-asia',  reg:'cis', page:true, art:'compass',  tone:'espresso' },
+  { id:'phuket',       slug:'phuket',        reg:'th', air:'HKT', tr:40,  page:true, art:'fish-sailfish', tone:'navy' },
+  { id:'bangkok',      slug:'bangkok',       reg:'th', air:'BKK', tr:45,  page:true, art:'pulse',    tone:'plum' },
+  { id:'samui',        slug:'koh-samui',     reg:'th', air:'USM', tr:20,  page:true, art:'leaf',     tone:'forest' },
+  { id:'chiang-mai',   slug:'chiang-mai',    reg:'th', air:'CNX', tr:20,  page:true, art:'enso',     tone:'noir' },
+  { id:'krabi',        slug:'krabi-khao-lak',reg:'th', air:'KBV', tr:40,  page:true, art:'mountain', tone:'forest' },
+  { id:'gulf',         slug:'hua-hin-pattaya',reg:'th', air:'BKK', tr:150, page:true, art:'wave',     tone:'slate' },
+  { id:'bali',         slug:'bali',          reg:'asia', air:'DPS', tr:45,page:true, art:'wave',     tone:'forest' },
+  { id:'dubai',        slug:'dubai',         reg:'me', air:'DXB', tr:30,  page:true, art:'spark',    tone:'sand' },
+  { id:'caucasus',     slug:'caucasus',      reg:'cis', air:'MRV', tr:180, page:true, art:'mountain', tone:'bronze' },
+  { id:'central-asia', slug:'central-asia',  reg:'cis', air:'TAS', tr:60, page:true, art:'compass',  tone:'espresso' },
   { id:'russia',       slug:'altai-kamchatka',reg:'cis',page:true, art:'snow',     tone:'slate' },
-  { id:'east-africa',  slug:'east-africa',   reg:'me',  page:true, art:'mountain', tone:'oxblood' },
+  { id:'east-africa',  slug:'east-africa',   reg:'me', air:'JRO', tr:60,  page:true, art:'mountain', tone:'oxblood' },
   { id:'europe',       slug:'europe',        reg:'eu',  page:true, art:'flag',     tone:'forest' },
   { id:'east-asia',    slug:'japan-korea',   reg:'asia',page:true, art:'enso',     tone:'plum' },
-  { id:'nepal',        slug:'nepal',         reg:'asia' },
-  { id:'india',        slug:'india',         reg:'asia' },
-  { id:'jordan',       slug:'jordan',        reg:'me' },
+  { id:'nepal',        slug:'nepal',         reg:'asia', air:'KTM', tr:30 },
+  { id:'india',        slug:'india',         reg:'asia', air:'COK', tr:60 },
+  { id:'jordan',       slug:'jordan',        reg:'me', air:'AMM', tr:60 },
   { id:'maldives',     slug:'maldives',      reg:'asia' },
-  { id:'istanbul',     slug:'istanbul',      reg:'me' },
+  { id:'istanbul',     slug:'istanbul',      reg:'me', air:'IST', tr:50 },
   { id:'online',       slug:'online',        reg:'online' }
 ];
 
 // ── Программы экосистемы ─────────────────────────────────────────────
 // [id, slug, направление, место, длительность, от USD, лучшие месяцы (пусто = круглый год), хит, за что цена (person по умолчанию)]
-// Цены «от» = стоимость партнёра × ~1,25 по исследованию рынка сентября 2026 (см. ECOSYSTEM.md). Проверить до запуска.
+// Цены «от» — по исследованию рынка сентября 2026 (см. ECOSYSTEM.md). Проверить до запуска.
+// Себестоимость и маржа — во внутренней таблице, НЕ в этом репозитории: он публичный.
 const ALL = [];
 const M = (...m) => m;
 const P = [

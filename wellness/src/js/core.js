@@ -82,6 +82,31 @@
   }
 
   // ── Аналитика (если подключена) ──
+  // ── Аналитика только с согласия (GDPR): до «Разрешить» не грузим ни GA4, ни Метрику ──
+  var loadAnalytics = function(){
+    if (E.ga4 && !window.gtag) {
+      var g = document.createElement('script'); g.async = true; g.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(E.ga4); document.head.appendChild(g);
+      window.dataLayer = window.dataLayer || []; window.gtag = function(){ window.dataLayer.push(arguments); };
+      window.gtag('js', new Date()); window.gtag('config', E.ga4);
+    }
+    if (E.metrika && !window.ym) {
+      (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,'script','https://mc.yandex.ru/metrika/tag.js','ym');
+      window.ym(+E.metrika, 'init', { clickmap:true, trackLinks:true, accurateTrackBounce:true });
+    }
+  };
+  var consentBar = function(){
+    if ($('#consent')) return;
+    var b = document.createElement('div'); b.className = 'consent'; b.id = 'consent'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-live', 'polite');
+    b.innerHTML = '<p>' + esc(U.consentText) + '</p><div class="btns"><button type="button" class="btn btn-primary btn-sm" data-c="yes">' + esc(U.consentOk) + '</button><button type="button" class="btn btn-ghost btn-sm" data-c="no">' + esc(U.consentNo) + '</button></div>';
+    document.body.appendChild(b);
+    $$('[data-c]', b).forEach(function(x){ x.addEventListener('click', function(){ var v = x.getAttribute('data-c'); store.set('erk_consent', v); b.remove(); if (v === 'yes') loadAnalytics(); }); });
+  };
+  if (E.ga4 || E.metrika) {
+    var consent = store.get('erk_consent');
+    if (consent === 'yes') loadAnalytics(); else if (!consent) setTimeout(consentBar, 1200);
+    $$('[data-consent-reset]').forEach(function(x){ x.addEventListener('click', function(){ try { localStorage.removeItem('erk_consent'); } catch (e) {} consentBar(); }); });
+  }
+
   window.ERK_track = function(ev, data){ try { window.dataLayer && window.dataLayer.push(Object.assign({ event:ev }, data || {})); if (window.ym && E.metrika) window.ym(E.metrika, 'reachGoal', ev); if (window.gtag) window.gtag('event', ev, data || {}); } catch (e) {} };
 
   // ── UTM и источник ──
@@ -107,7 +132,25 @@
   window.ERK_done = function(ok, lead, light){
     return '<div class="ok-msg"><h3>' + esc(ok ? U.okTitle : U.failTitle) + '</h3><p>' + esc(ok ? U.okText : U.failText) + '</p><div class="btns" style="justify-content:center">' + window.ERK_links(lead) + '</div></div>';
   };
+  // ── Предоплата картой (Stripe Checkout): сервер считает сумму и возвращает ссылку на оплату ──
+  var payBack = qs.get('pay') === 'cancel';
   $$('.lead-form').forEach(function(f){
+    var pay = $('[data-pay]', f);
+    if (pay && payBack) { var n = document.createElement('p'); n.className = 'note'; n.textContent = U.payCancel; f.insertBefore(n, f.firstChild); }
+    pay && pay.addEventListener('click', function(){
+      var c = f.contact; if (!c || c.value.trim().length < 4) { c && c.setAttribute('aria-invalid', 'true'); c && c.focus(); return; }
+      c.removeAttribute('aria-invalid'); pay.disabled = true; var label = pay.lastChild.textContent; pay.lastChild.textContent = U.sending;
+      var lead = { tour:pay.getAttribute('data-pay'), contact:c.value.trim(), name:f.name ? f.name.value.trim() : '', date:f.date ? f.date.value.trim() : '', guests:f.guests ? f.guests.value.trim() : '',
+        lang:E.lang, page:location.pathname, utm:getUtm(), ref:document.referrer || '', company:f.company ? f.company.value : '' };
+      fetch(E.api.replace(/lead$/, 'checkout'), { method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify(lead) })
+        .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+        .then(function(x){
+          if (x.ok && x.j.url) { window.ERK_track('begin_checkout', { id:lead.tour }); location.href = x.j.url; return; }
+          if (x.j && x.j.id) { lead.tourTitle = f.getAttribute('data-title'); var box = document.createElement('div'); box.innerHTML = window.ERK_done(true, lead); f.replaceWith(box.firstChild); return; }
+          pay.disabled = false; pay.lastChild.textContent = label; f.requestSubmit ? f.requestSubmit() : f.dispatchEvent(new Event('submit', { cancelable:true }));
+        })
+        .catch(function(){ pay.disabled = false; pay.lastChild.textContent = label; f.requestSubmit ? f.requestSubmit() : f.dispatchEvent(new Event('submit', { cancelable:true })); });
+    });
     f.addEventListener('submit', function(e){
       e.preventDefault();
       if (f.company && f.company.value) return;

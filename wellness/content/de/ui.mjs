@@ -21,6 +21,8 @@ export const nouns = {
 };
 
 export const ui = {
+  pay:{ cta:'{p} % Anzahlung per Karte', note:'Sichere Zahlung über Stripe. Der Rest wird am Tag der Ausfahrt bezahlt.', doneTitle:'Anzahlung erhalten', doneText:'Vielen Dank! Ihr Concierge bestätigt den Termin und sendet die Details innerhalb von 15 Minuten während der Geschäftszeiten.', doneBack:'Zurück zum Angeln' },
+  time:{ min:'{n} Min.', h:'{n} Std.' },
   from:'ab', allYear:'Ganzjährig', notFound:'Seite nicht gefunden',
   suggest:['Diese Seite gibt es auf Deutsch', 'Wechseln'],
   brand:{ tag:'Wellness für Männer · weltweit' },
@@ -45,7 +47,7 @@ export const ui = {
     progTitle:'{title} – {where}, ab {price} | ERKAK', progDesc:'{short} {dur}. Ab {price}. Concierge auf Englisch, geprüfte Partner, Vormerkung möglich.',
     tourTitle:'{title}: Angeln {where} – ab {price} | ERKAK', tourDesc:'{short} {dur}, {group}. Ab {price}. Lizenzierter Guide, Transfer, Ausrüstung, Versicherung.',
     destTitle:'{title} | ERKAK', destDesc:'{name}: {np} für Männer – Sport, Gesundheit, Regeneration, Abenteuer. Concierge auf Englisch.' },
-  prog:{ where:'Wo', dur:'Dauer', when:'Beste Reisezeit', price:'Preis', about:'Über das Programm', plan:'Ablauf', stage:'Phase {n}', incl:'Was enthalten ist', inclNote:'Den genauen Leistungsumfang und die Partner legen wir im Angebot für Ihre Termine fest. Flüge sind nicht enthalten.',
+  prog:{ fly:'Anreise', flyVal:'{a} · ca. {t} bis zum Ort', where:'Wo', dur:'Dauer', when:'Beste Reisezeit', price:'Preis', about:'Über das Programm', plan:'Ablauf', stage:'Phase {n}', incl:'Was enthalten ist', inclNote:'Den genauen Leistungsumfang und die Partner legen wir im Angebot für Ihre Termine fest. Flüge sind nicht enthalten.',
     best:'Beste Reisezeit', bestNote:'Die Termine planen wir nach Wetter, Saison und Verfügbarkeit der Partner.', who:'Für wen es passt', how:'So funktioniert es', combine:'Gut kombinierbar mit', faq:'Häufige Fragen',
     waitNote:'Dieser Bereich wird gerade für den Start vorbereitet. Hinterlassen Sie eine Anfrage – Sie erhalten Vorrang bei den Terminen, einen Frühbucherpreis und ein Programm für Ihre Gruppe.', waitCta:'Als Erster dabei sein', more:'Mehr aus diesem *Bereich*' },
   quiz:{ back:'Zurück', next:'Weiter' },
@@ -64,7 +66,8 @@ export const client = {
   failTitle:'Nur noch ein Schritt', failText:'Senden Sie die Anfrage per Messenger – der Text ist bereits vorbereitet.',
   planSummary:'Reise aus mehreren Programmen', planAdd:'Zur Reise', planAdded:'Hinzugefügt', planRemove:'Aus der Reise entfernen',
   livePeak:'Hochsaison für {list}', liveGood:'gute Chancen auf {list}', liveFresh:'Süßwassersaison', liveCalm:'ruhige See', liveMonsoon:'Monsun, wir angeln in Wetterfenstern',
-  allowed:'Angeln erlaubt', banned:'Angeln verboten', spotRun:'Anfahrt', spotFish:'Zielfische', spotHow:'Methode', spotCta:'Diesen Spot anfragen'
+  allowed:'Angeln erlaubt', banned:'Angeln verboten', spotRun:'Anfahrt', spotFish:'Zielfische', spotHow:'Methode', spotCta:'Diesen Spot anfragen',
+  payCancel:'Die Zahlung wurde nicht abgeschlossen. Senden Sie stattdessen eine Anfrage – Ihr Concierge schickt Ihnen einen Zahlungslink.', consentText:'Dürfen wir Analyse-Cookies verwenden? Sie helfen uns zu verstehen, was wir auf der Website verbessern können.', consentOk:'Zulassen', consentNo:'Ablehnen', consentLink:'Cookie-Einstellungen'
 };
 
 export const goals = {

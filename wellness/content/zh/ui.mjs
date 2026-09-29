@@ -21,6 +21,8 @@ export const nouns = {
 };
 
 export const ui = {
+  pay:{ cta:'刷卡支付 {p}% 定金', note:'通过 Stripe 安全支付，尾款在出海当天支付。', doneTitle:'定金已收到', doneText:'谢谢！工作时间内，礼宾顾问会在 15 分钟内确认日期并发送行程细节。', doneBack:'返回海钓' },
+  time:{ min:'{n} 分钟', h:'{n} 小时' },
   from:'起价', allYear:'全年', notFound:'页面不存在',
   suggest:['本站提供简体中文版', '切换'],
   brand:{ tag:'男士健康 · 全球' },
@@ -45,7 +47,7 @@ export const ui = {
     progTitle:'{title} · {where} · 起价 {price} | ERKAK', progDesc:'{short}时长 {dur}。起价 {price}。英文礼宾服务，严选合作伙伴，现可预约登记。',
     tourTitle:'{title}：{where}钓鱼，起价 {price} | ERKAK', tourDesc:'{short}时长 {dur}，{group}。起价 {price}。含持证向导、接送、钓具和保险。',
     destTitle:'{title} | ERKAK', destDesc:'{name}：{n} 个男士项目，涵盖运动、健康管理、身心恢复与探险。英文礼宾服务。' },
-  prog:{ where:'地点', dur:'时长', when:'最佳时间', price:'价格', about:'项目介绍', plan:'行程安排', stage:'第 {n} 阶段', incl:'包含内容', inclNote:'具体内容和合作方以按您的日期出具的方案为准。不含机票。',
+  prog:{ fly:'抵达', flyVal:'{a} · 距目的地约 {t}', where:'地点', dur:'时长', when:'最佳时间', price:'价格', about:'项目介绍', plan:'行程安排', stage:'第 {n} 阶段', incl:'包含内容', inclNote:'具体内容和合作方以按您的日期出具的方案为准。不含机票。',
     best:'最佳时间', bestNote:'我们会根据天气、季节和合作方档期安排日期。', who:'适合人群', how:'服务流程', combine:'可以搭配', faq:'常见问题',
     waitNote:'该方向正在筹备上线。现在提交需求，可优先选择日期、享受早鸟价，并获得为您团队定制的项目。', waitCta:'优先登记', more:'该*方向*的更多项目' },
   quiz:{ back:'上一步', next:'下一步' },
@@ -64,7 +66,8 @@ export const client = {
   failTitle:'还差一步', failText:'请通过 WhatsApp 或 Telegram 发送需求，内容已为您填好。',
   planSummary:'多项目组合行程', planAdd:'加入行程', planAdded:'已加入行程', planRemove:'从行程中移除',
   livePeak:'{list}正值旺季', liveGood:'可钓{list}', liveFresh:'淡水垂钓季', liveCalm:'海况平稳', liveMonsoon:'季风期，择机出海',
-  allowed:'允许垂钓', banned:'禁止垂钓', spotRun:'航程', spotFish:'鱼种', spotHow:'钓法', spotCta:'我想去这里'
+  allowed:'允许垂钓', banned:'禁止垂钓', spotRun:'航程', spotFish:'鱼种', spotHow:'钓法', spotCta:'我想去这里',
+  payCancel:'支付未完成或已取消。您也可以提交需求，礼宾顾问会发送支付链接。', consentText:'是否允许分析类 Cookie？它们帮助我们了解网站哪里需要改进。', consentOk:'允许', consentNo:'暂不', consentLink:'Cookie 设置'
 };
 
 export const goals = {

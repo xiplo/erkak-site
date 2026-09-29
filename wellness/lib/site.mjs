@@ -82,7 +82,7 @@ export function gcard(C, g, h = 'h3'){
 }
 
 // ── Формы ────────────────────────────────────────────────────────────
-export function leadForm(C, { type, id = '', title = '', fields = ['date', 'guests', 'contact'], submit, light = false }){
+export function leadForm(C, { type, id = '', title = '', fields = ['date', 'guests', 'contact'], submit, light = false, pay = false }){
   const F = {
     name:`<div class="field"><label for="f-name-${id}">${esc(C.I.t('form.name'))}</label><input id="f-name-${id}" name="name" autocomplete="given-name" placeholder="${esc(C.I.t('form.namePh'))}"></div>`,
     date:`<div class="field"><label for="f-date-${id}">${esc(C.I.t('form.date'))}</label><input id="f-date-${id}" name="date" placeholder="${esc(C.I.t('form.datePh'))}" autocomplete="off"></div>`,
@@ -93,12 +93,13 @@ export function leadForm(C, { type, id = '', title = '', fields = ['date', 'gues
     ${fields.map(f => F[f]).join('')}
     <input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
     <button class="btn btn-primary btn-block" type="submit">${esc(submit || C.I.t('form.send'))}</button>
+    ${pay ? `<button class="btn btn-ghost btn-block" type="button" data-pay="${esc(id)}">${icon('card')}${esc(C.I.t('pay.cta', { p:Math.round(C.SITE.payments.deposit * 100) }))}</button><p class="small pay-note">${esc(C.I.t('pay.note'))}</p>` : ''}
     <p class="small">${inline(C.I.t('form.consent', { privacy:C.path('privacy') }))}</p>
   </form>`;
 }
 
 // ── Каркас страницы ──────────────────────────────────────────────────
-function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [] }){
+function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [], noindex = false }){
   const desc = clip(rawDesc, C.code === 'zh' ? 84 : 158);
   // Длинный title: бренд в конце не помещается в выдаче — убираем его, а не обрезаем смысл
   let title = rawTitle.length > (C.code === 'zh' ? 36 : 68) ? rawTitle.replace(/\s*[|｜]\s*ERKAK\s*$/, '') : rawTitle;
@@ -108,7 +109,7 @@ function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [] }){
   const url = C.SITE.origin + C.path(key);
   const alts = C.langs.map(l => `<link rel="alternate" hreflang="${l.hreflang}" href="${C.SITE.origin + C.pathIn(l.code, key)}">`).join('');
   const xdef = key === 'hub' ? C.SITE.origin + '/' : C.SITE.origin + C.pathIn(C.SITE.defaultLang, key);
-  const V = C.SITE.verify, A = C.SITE.analytics;
+  const V = C.SITE.verify;
   const ogImg = C.SITE.origin + (og || '/assets/og/erkak.jpg');
   return `<!doctype html>
 <html lang="${C.L.meta.htmlLang || C.code}" dir="${C.I.dir}">
@@ -117,8 +118,8 @@ function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [] }){
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
-<link rel="canonical" href="${url}">
-${alts}<link rel="alternate" hreflang="x-default" href="${xdef}">
+${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${url}">
+${alts}<link rel="alternate" hreflang="x-default" href="${xdef}">`}
 <meta property="og:type" content="${key.startsWith('guide:') ? 'article' : 'website'}">
 <meta property="og:site_name" content="ERKAK">
 <meta property="og:locale" content="${C.L.meta.ogLocale}">
@@ -140,8 +141,6 @@ ${C.fontPreload.map(f => `<link rel="preload" href="${f}" as="font" type="font/w
 ${usesCdn() ? '<link rel="preconnect" href="https://images.unsplash.com">' : ''}
 <link rel="stylesheet" href="${C.asset('css')}">
 ${lds.map(ld).join('\n')}
-${A.metrika ? `<script>(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");ym(${+A.metrika},"init",{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});</script>` : ''}
-${A.ga4 ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(A.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${esc(A.ga4)}');</script>` : ''}
 </head>`;
 }
 
@@ -185,7 +184,7 @@ function footer(C, key){
       <div><h3>ERKAK</h3><a href="${C.path('about')}">${esc(I.t('nav.about'))}</a><a href="${C.path('guides')}">${esc(I.t('nav.guides'))}</a><a href="${C.path('hub')}#club">${esc(I.t('nav.club'))}</a><a href="${C.path('about')}#visa">${esc(I.t('nav.visa'))}</a><a href="${C.path('terms')}">${esc(I.t('nav.terms'))}</a><a href="${C.path('privacy')}">${esc(I.t('nav.privacy'))}</a>
         <h3 style="margin-block-start:34px">${esc(I.t('foot.contact'))}</h3>${m.map(x => `<a href="${x.href}" target="_blank" rel="noopener">${esc(x.label)}</a>`).join('')}${S.contacts.email ? `<a href="mailto:${S.contacts.email}">${esc(S.contacts.email)}</a>` : ''}${S.contacts.phone ? `<a href="tel:${S.contacts.phone.replace(/\s/g, '')}">${esc(S.contacts.phone)}</a>` : ''}</div>
     </div>
-    <div class="foot-legal"><span>© ${new Date().getFullYear()} ERKAK${legal ? ' · ' + legal : ''}</span><span>${esc(I.t('foot.note'))}</span></div>
+    <div class="foot-legal"><span>© ${new Date().getFullYear()} ERKAK${legal ? ' · ' + legal : ''}${S.analytics.ga4 || S.analytics.metrika ? ` · <button type="button" class="foot-btn" data-consent-reset>${esc(C.L.client.consentLink)}</button>` : ''}</span><span>${esc(I.t('foot.note'))}</span></div>
   </div>
 </footer>`;
 }
@@ -207,11 +206,11 @@ function chrome(C){
 // Секция с aria-labelledby="h-…": id получает её первый заголовок h2 (sh() id не знает)
 const labelSections = html => html.replace(/(<section\b[^>]*aria-labelledby="(h-[\w-]+)"[^>]*>)((?:(?!<section\b)[\s\S])*?)<h2\b(?![^>]*\sid=)/g, (m, open, id, mid) => mid.includes(`id="${id}"`) ? m : `${open}${mid}<h2 id="${id}"`);
 
-export function page(C, { key, title, desc, body, lds = [], og, nav = 'eco', scripts = [], mbar }){
+export function page(C, { key, title, desc, body, lds = [], og, nav = 'eco', scripts = [], mbar, noindex = false }){
   const I = C.I;
   body = labelSections(body);
   const mb = mbar || (nav === 'fish' ? [I.t('cta.pickTour'), C.path('dir:fishing') + '#pick'] : [I.t('cta.pick'), C.path('hub') + '#pick']);
-  return `${head(C, { key, title, desc, og, ld:lds })}
+  return `${head(C, { key, title, desc, og, ld:lds, noindex })}
 <body class="no-js">
 ${header(C, key, nav)}
 <main id="main">

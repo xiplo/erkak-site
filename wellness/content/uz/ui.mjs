@@ -21,6 +21,8 @@ export const nouns = {
 };
 
 export const ui = {
+  pay:{ cta:'Karta bilan {p}% oldindan toʻlash', note:'Stripe orqali xavfsiz toʻlov. Qolgan qismi chiqish kuni toʻlanadi.', doneTitle:'Oldindan toʻlov qabul qilindi', doneText:'Rahmat! Ish vaqtida konsyerj 15 daqiqa ichida sanani tasdiqlaydi va tafsilotlarni yuboradi.', doneBack:'Baliq oviga qaytish' },
+  time:{ min:'{n} daq', h:'{n} soat' },
   from:'kamida', allYear:'Yil boʻyi', notFound:'Sahifa topilmadi',
   suggest:['Sayt oʻzbek tilida ham bor', 'Oʻtish'],
   brand:{ tag:'Erkaklar velnesi · butun dunyo boʻylab' },
@@ -45,7 +47,7 @@ export const ui = {
     progTitle:'{title} — {where}, kamida {price} | ERKAK', progDesc:'{short} {dur}. Boshlangʻich narx — {price}. Oʻzbek va rus tillarida konsyerj, tekshirilgan hamkorlar, oldindan yozilish.',
     tourTitle:'{title}: baliq ovi, {where} — kamida {price} | ERKAK', tourDesc:'{short} {dur}, {group}. Boshlangʻich narx — {price}. Litsenziyali gid, transfer, anjomlar, sugʻurta.',
     destTitle:'{title} | ERKAK', destDesc:'{name}: erkaklar uchun {n} dastur — sport, salomatlik, tiklanish, sarguzashtlar. Oʻzbek va rus tillarida konsyerj.' },
-  prog:{ where:'Qayerda', dur:'Davomiyligi', when:'Eng qulay vaqt', price:'Narxi', about:'Dastur haqida', plan:'Qanday oʻtadi', stage:'{n}-bosqich', incl:'Nimalar kiradi', inclNote:'Aniq tarkib va hamkorlarni sanalaringizga moslangan taklifda belgilaymiz. Parvoz narxga kirmaydi.',
+  prog:{ fly:'Uchib kelish', flyVal:'{a} · joygacha ~{t}', where:'Qayerda', dur:'Davomiyligi', when:'Eng qulay vaqt', price:'Narxi', about:'Dastur haqida', plan:'Qanday oʻtadi', stage:'{n}-bosqich', incl:'Nimalar kiradi', inclNote:'Aniq tarkib va hamkorlarni sanalaringizga moslangan taklifda belgilaymiz. Parvoz narxga kirmaydi.',
     best:'Eng qulay vaqt', bestNote:'Sanalarni ob-havo, mavsum va hamkorlar bandligiga qarab tanlaymiz.', who:'Kimlarga mos keladi', how:'Bu qanday ishlaydi', combine:'Bir safarda birlashtirish mumkin', faq:'Koʻp beriladigan savollar',
     waitNote:'Yoʻnalish ishga tushirishga tayyorlanmoqda. Ariza qoldiring — sanalarda ustuvorlik, erta narx va guruhingizga moslangan dasturga ega boʻlasiz.', waitCta:'Birinchilardan boʻlib yozilish', more:'Ushbu *yoʻnalishdagi* boshqa dasturlar' },
   quiz:{ back:'Orqaga', next:'Keyingi' },
@@ -64,7 +66,8 @@ export const client = {
   failTitle:'Bir qadam qoldi', failText:'Arizani messenjer orqali yuboring — matn allaqachon tayyor.',
   planSummary:'Bir nechta dasturdan iborat sayohat', planAdd:'Sayohatga qoʻshish', planAdded:'Qoʻshilgan', planRemove:'Sayohatdan olib tashlash',
   livePeak:'avj pallasi — {list}', liveGood:'{list} yaxshi ilinadi', liveFresh:'chuchuk suv mavsumi', liveCalm:'dengiz tinch', liveMonsoon:'musson, qulay kunlarda chiqamiz',
-  allowed:'Baliq ovlashga ruxsat berilgan', banned:'Baliq ovlash taqiqlangan', spotRun:'Yoʻl', spotFish:'Baliq', spotHow:'Usul', spotCta:'Shu joyni tanlayman'
+  allowed:'Baliq ovlashga ruxsat berilgan', banned:'Baliq ovlash taqiqlangan', spotRun:'Yoʻl', spotFish:'Baliq', spotHow:'Usul', spotCta:'Shu joyni tanlayman',
+  payCancel:'Toʻlov amalga oshmadi yoki bekor qilindi. Uning oʻrniga ariza yuboring — konsyerj toʻlov havolasini yuboradi.', consentText:'Analitik cookie-fayllarga ruxsat berasizmi? Ular saytda nimani yaxshilash kerakligini tushunishga yordam beradi.', consentOk:'Ruxsat berish', consentNo:'Hozir emas', consentLink:'Cookie sozlamalari'
 };
 
 export const goals = {

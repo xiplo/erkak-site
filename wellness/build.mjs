@@ -32,7 +32,7 @@ const LANGMETA = SITE.langs.map(code => { const m = CONTENT[code].meta; return {
 // ── Маршруты ────────────────────────────────────────────────────────
 const byId = arr => Object.fromEntries(arr.map(x => [x.id, x]));
 const DIRS = byId(DIRECTIONS), PROGS = byId(PROGRAMS), DESTS = byId(DESTINATIONS), GUIDE = byId(GUIDES);
-const RESERVED = new Set(['destinations', 'guides', 'about', 'terms', 'privacy', 'assets']);
+const RESERVED = new Set(['destinations', 'guides', 'about', 'terms', 'privacy', 'assets', 'pay']);
 for (const d of DIRECTIONS) if (RESERVED.has(d.slug)) throw new Error(`Слаг направления занят: ${d.slug}`);
 export function route(code, key){
   const b = `/${code}/`;
@@ -47,6 +47,7 @@ export function route(code, key){
     case 'guides': return b + 'guides/';
     case 'guide': return b + 'guides/' + GUIDE[id].slug + '/';
     case 'about': case 'terms': case 'privacy': return b + k + '/';
+    case 'paydone': return b + 'pay/done/';
   }
   throw new Error('Неизвестный маршрут ' + key);
 }
@@ -129,7 +130,7 @@ function clientData(C){
   const plain = s => String(s).replace(/\*/g, '');
   const data = {
     lang:C.code, locale:C.L.meta.locale, dir:C.I.dir, api:SITE.api, cur:C.cur, curs:SITE.currencies, rates:SITE.rates,
-    msg:C.messengers.map(m => ({ icon:m.icon, label:m.label, href:m.href })), sprite:spriteUrl, ui:C.L.client, metrika:SITE.analytics.metrika || '',
+    msg:C.messengers.map(m => ({ icon:m.icon, label:m.label, href:m.href })), sprite:spriteUrl, ui:C.L.client, metrika:SITE.analytics.metrika || '', ga4:SITE.analytics.ga4 || '',
     suggest:Object.fromEntries(SITE.langs.filter(c => c !== C.code).map(c => [c, CONTENT[c].ui.suggest])),
     items:C.items.map(p => [p.id, p.type, p.dir, p.reg, plain(p.title), p.href, p.days, p.durLabel, p.price, p.cur, p.months || [], p.hot ? 1 : 0, p.live ? 1 : 0, p.art, p.perLabel, p.usdEq, p.dest]),
     dirs:Object.fromEntries(C.dirs.map(d => [d.id, [d.name, d.goals]])),
@@ -174,6 +175,16 @@ for (const code of LANGS) {
   add('about', Pages.about(C));
   add('terms', Pages.legal(C, 'terms'));
   add('privacy', Pages.legal(C, 'privacy'));
+  write(C.path('paydone'), Pages.payDone(C)); pages++; // служебная: без карты сайта
+}
+
+// ── Цены для сервера оплаты (server/prices.json): сумму считает сервер, а не браузер ──
+// online: предоплата картой через Stripe; туры «за группу» (турнир, Signature Week) — только по счёту.
+{
+  const maxOf = g => Math.max(...String(g).match(/\d+/g).map(Number));
+  const tours = Object.fromEntries(TOURS.map(t => [t.id, { price:t.price, cur:'THB', per:t.per, max:maxOf(t.group), online:t.per !== 'group',
+    title:Object.fromEntries(SITE.langs.map(c => [c, String(CONTENT[c].fishing.tours[t.id].title).replace(/\*/g, '')])) }]));
+  fs.writeFileSync(path.join(DIR, 'server', 'prices.json'), JSON.stringify({ deposit:SITE.payments.deposit, tours }, null, 1) + '\n');
 }
 
 // ── Корень: выбор языка (x-default) и 404 ───────────────────────────

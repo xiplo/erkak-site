@@ -9,6 +9,8 @@ const opt = (name, val, label, sub, n) => `<div class="opt"><input type="radio" 
 const stepsHtml = (C, arr, cls = '') => `<div class="steps ${cls}">${arr.map(([h, p], i) => `<div class="step rv" style="--d:${i}"><b>${i + 1}</b><h3>${T(C, h)}</h3><p>${T(C, p)}</p></div>`).join('')}</div>`;
 const paysHtml = C => `<div class="pays">${C.L.site.pays.map(x => `<span>${esc(x)}</span>`).join('')}</div>`;
 // Первое предложение (для карточек): «…» / «。» / «؟» — любой язык
+// Прилёт: «HKT · ~40 мин до места» — аэропорт и ориентир трансфера (данные места в core.mjs)
+const fly = (C, d) => d && d.air ? `<div><dt>${esc(C.I.t('prog.fly'))}</dt><dd>${esc(C.I.t('prog.flyVal', { a:d.air, t:d.tr < 90 ? C.I.t('time.min', { n:C.I.num(d.tr) }) : C.I.t('time.h', { n:C.I.num(Math.round(d.tr / 30) / 2) }) }))}</dd></div>` : '';
 const firstSentence = s => { const m = /^[\s\S]*?[.!?。！？؟](?=\s|$)/.exec(String(s).trim()); return (m ? m[0] : String(s)).trim(); };
 // «4 программы» / «12 programs» / «12 个项目»: число и существительное в нужной форме
 // Перечисление по правилам языка: «Пхукет и Бангкок», «Phuket and Bangkok», «普吉岛和曼谷»
@@ -245,7 +247,7 @@ export function program(C, p){
     <aside class="book" id="book">
       <span class="stat">${esc(I.t('tag.soon'))}</span>
       ${price(C, p.price, p.cur, p.perLabel)}
-      <dl><div><dt>${esc(I.t('prog.dur'))}</dt><dd>${esc(p.durLabel)}</dd></div><div><dt>${esc(I.t('prog.where'))}</dt><dd>${esc(p.where)}</dd></div><div><dt>${esc(I.t('prog.when'))}</dt><dd>${esc(I.monthsRange(p.months))}</dd></div></dl>
+      <dl><div><dt>${esc(I.t('prog.dur'))}</dt><dd>${esc(p.durLabel)}</dd></div><div><dt>${esc(I.t('prog.where'))}</dt><dd>${esc(p.where)}</dd></div><div><dt>${esc(I.t('prog.when'))}</dt><dd>${esc(I.monthsRange(p.months))}</dd></div>${fly(C, dest)}</dl>
       <p class="small">${T(C, I.t('prog.waitNote'))}</p>
       ${leadForm(C, { type:'waitlist', id:p.id, title:p.title.replace(/\*/g, ''), submit:I.t('prog.waitCta') })}
       <button class="btn btn-ghost btn-block" type="button" data-plan="${p.id}" aria-pressed="false">${icon('plus')}<span>${esc(I.t('plan.add'))}</span></button>
@@ -402,7 +404,7 @@ export function tour(C, t){
       <span class="stat">${esc(I.t('tag.live'))}</span>
       ${price(C, t.price, 'THB', t.perLabel)}
       <dl><div><dt>${esc(I.t('prog.dur'))}</dt><dd>${esc(t.durLabel)}</dd></div><div><dt>${esc(I.t('tour.group'))}</dt><dd>${esc(t.groupLabel)}</dd></div><div><dt>${esc(I.t('tour.deposit'))}</dt><dd>30%</dd></div><div><dt>${esc(I.t('tour.cancel'))}</dt><dd>${esc(I.t('tour.cancelVal'))}</dd></div></dl>
-      ${leadForm(C, { type:'tour', id:t.id, title:t.title, submit:I.t('tour.cta') })}
+      ${leadForm(C, { type:'tour', id:t.id, title:t.title, submit:I.t('tour.cta'), pay:C.SITE.payments.stripe && t.per !== 'group' })}
       <button class="btn btn-ghost btn-block" type="button" data-plan="${t.id}" aria-pressed="false">${icon('plus')}<span>${esc(I.t('plan.add'))}</span></button>
     </aside>
   </div>
@@ -524,4 +526,15 @@ export function legal(C, which){
 <section class="phero"><div class="wrap single"><div class="phero-copy">${crumbs(C, cr)}<h1 class="h1">${T(C, X.title)}</h1><p class="lede">${T(C, X.lede)}</p></div></div></section>
 <section class="sec sec-t"><div class="legal-t wrap">${X.draft ? `<p class="note">${T(C, X.draft)}</p>` : ''}${X.sections.map(([h, ...ps]) => `<h2>${T(C, h)}</h2>${ps.map(p => `<p>${T(C, p)}</p>`).join('')}`).join('')}<p class="small">${esc(I.t('legal.updated'))} ${esc(new Intl.DateTimeFormat(I.locale, { day:'numeric', month:'long', year:'numeric' }).format(new Date('2026-09-28')))}</p></div></section>`;
   return page(C, { key:which, title:`${X.title} | ERKAK`, desc:X.lede, body, lds:[crumbsLd(C, cr)] });
+}
+
+// ════ Оплата прошла (из Stripe Checkout) — служебная, не индексируется ══
+export function payDone(C){
+  const I = C.I, m = C.messengers[0];
+  const body = `
+<section class="phero"><div class="wrap single"><div class="phero-copy">
+  <h1 class="h1">${esc(I.t('pay.doneTitle'))}</h1><p class="lede">${esc(I.t('pay.doneText'))}</p>
+  <div class="btns">${m ? btn(m.label, m.href, 'btn-primary', 'target="_blank" rel="noopener"') : ''}${btn(I.t('pay.doneBack'), C.path('dir:fishing'), 'btn-ghost')}</div>
+</div></div></section>`;
+  return page(C, { key:'paydone', title:I.t('pay.doneTitle') + ' | ERKAK', desc:I.t('pay.doneText'), body, noindex:true, nav:'fish' });
 }

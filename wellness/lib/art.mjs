@@ -39,6 +39,7 @@ const GLYPH = {
 // ── Иконки интерфейса (24×24, линия) ───────────────────────────────────
 const ICON = {
   arrow:'<path d="M4 12h16M14 6l6 6-6 6"/>',
+  card:'<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h4"/>',
   'arrow-up':'<path d="M7 17L17 7M9 7h8v8"/>',
   chevron:'<path d="M6 9l6 6 6-6"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',

@@ -21,6 +21,8 @@ export const nouns = {
 };
 
 export const ui = {
+  pay:{ cta:'Pay a {p}% deposit by card', note:'Secure payment via Stripe. The balance is paid on the day of the trip.', doneTitle:'Deposit received', doneText:'Thank you! Your concierge will confirm the date and send the trip details within 15 minutes during working hours.', doneBack:'Back to fishing' },
+  time:{ min:'{n} min', h:'{n} h' },
   from:'from', allYear:'Year-round', notFound:'Page not found',
   suggest:['This site is available in English', 'Switch'],
   brand:{ tag:'Men’s wellness · worldwide' },
@@ -45,7 +47,7 @@ export const ui = {
     progTitle:'{title} — {where}, from {price} | ERKAK', progDesc:'{short} {dur}. From {price}. English-speaking concierge, vetted partners, early access.',
     tourTitle:'{title} — fishing trip, {where}, from {price} | ERKAK', tourDesc:'{short} {dur}, {group}. From {price}. Licensed guide, transfers, tackle and insurance.',
     destTitle:'{title} | ERKAK', destDesc:'{name}: {np} for men — sport, health, recovery and adventure. English-speaking concierge.' },
-  prog:{ where:'Where', dur:'Duration', when:'Best time', price:'Price', about:'About the program', plan:'How it runs', stage:'Stage {n}', incl:'What’s included', inclNote:'We confirm the exact inclusions and partners in a proposal for your dates. Flights are not included.',
+  prog:{ fly:'Arrival', flyVal:'{a} · ~{t} to the venue', where:'Where', dur:'Duration', when:'Best time', price:'Price', about:'About the program', plan:'How it runs', stage:'Stage {n}', incl:'What’s included', inclNote:'We confirm the exact inclusions and partners in a proposal for your dates. Flights are not included.',
     best:'Best time to go', bestNote:'We choose dates around the weather, the season and partner availability.', who:'Who it’s for', how:'How it works', combine:'Pairs well with', faq:'Frequently asked questions',
     waitNote:'This discipline is getting ready to launch. Leave a request to get priority on dates, an early-bird price and a program built around your group.', waitCta:'Get early access', more:'More in this *discipline*' },
   quiz:{ back:'Back', next:'Next' },
@@ -64,7 +66,8 @@ export const client = {
   failTitle:'One more step', failText:'Send your request by messenger — the text is ready.',
   planSummary:'Multi-program trip', planAdd:'Add to trip', planAdded:'In your trip', planRemove:'Remove from trip',
   livePeak:'peak season for {list}', liveGood:'good for {list}', liveFresh:'freshwater season', liveCalm:'calm seas', liveMonsoon:'monsoon, we fish the weather windows',
-  allowed:'Fishing allowed', banned:'Fishing prohibited', spotRun:'Getting there', spotFish:'Species', spotHow:'Method', spotCta:'I want to fish here'
+  allowed:'Fishing allowed', banned:'Fishing prohibited', spotRun:'Getting there', spotFish:'Species', spotHow:'Method', spotCta:'I want to fish here',
+  payCancel:'The payment didn’t go through or was cancelled. You can send a request instead — your concierge will send a payment link.', consentText:'Allow analytics cookies? They help us understand what to improve on the site.', consentOk:'Allow', consentNo:'Not now', consentLink:'Cookie settings'
 };
 
 export const goals = {
