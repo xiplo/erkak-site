@@ -205,9 +205,9 @@ export function direction(C, d){
     <div class="rv" style="--d:2">${ticks(C, d.incl)}${d.note ? `<p class="note" style="margin-block-start:30px">${T(C, d.note)}</p>` : ''}</div>
   </div>
 </section>
-${dests.length ? `<section class="sec"><div class="wrap">${sh(C, 2, I.t('dir.placesKicker'), T(C, I.t('dir.placesTitle')), '')}<div class="places">${dests.map(x => `<a class="place rv" href="${C.path('dest:' + x.id)}"><strong>${esc(x.name)}</strong><span>${I.num(list.filter(p => p.dest === x.id).length)}</span></a>`).join('')}</div></div></section>` : ''}
+${dests.length ? `<section class="sec"><div class="wrap">${sh(C, 2, I.t('dir.placesKicker'), T(C, I.t('dir.placesTitle')), '')}<div class="places">${dests.map(x => placeCard(C, x, list.filter(p => p.dest === x.id).length)).join('')}</div></div></section>` : ''}
 ${guides.length ? `<section class="sec stone"><div class="wrap">${sh(C, 3, I.t('guides.kicker'), T(C, I.t('dir.guidesTitle')), '')}<div class="gcards">${guides.map(g => gcard(C, g)).join('')}</div></div></section>` : ''}
-<section class="sec soft"><div class="wrap">${sh(C, 4, I.t('dir.othersKicker'), T(C, I.t('dir.othersTitle')), '')}<div class="dirs">${others.slice(0, 8).map((x, i) => dirTile(C, x, C.dirs.indexOf(x))).join('')}</div></div></section>`;
+<section class="sec soft"><div class="wrap">${sh(C, 4, I.t('dir.othersKicker'), T(C, I.t('dir.othersTitle')), '')}<div class="dirs">${others.slice(0, 7).map((x, i) => dirTile(C, x, C.dirs.indexOf(x))).join('')}</div></div></section>`;
   const lds = [crumbsLd(C, [[I.t('nav.dirs'), C.path('hub') + '#dirs'], [d.name, C.path('dir:' + d.id)]]),
     { '@context':'https://schema.org', '@type':'ItemList', name:d.name, itemListElement:list.map((p, i) => ({ '@type':'ListItem', position:i + 1, url:C.SITE.origin + p.href, name:p.title.replace(/\*/g, '') })) }];
   return page(C, { key:'dir:' + d.id, title:I.t('meta.dirTitle', { name:d.name, n:list.length, np:NP(C, list.length) }), desc:I.t('meta.dirDesc', { short:d.short, n:list.length, np:NP(C, list.length) }), body, lds, og:`/assets/og/${d.id}.jpg` });
@@ -502,7 +502,7 @@ export function about(C){
   const I = C.I, A = C.L.about;
   const cr = [[I.t('nav.about'), C.path('about')]];
   const body = `
-<section class="phero"><div class="wrap single"><div class="phero-copy">
+<section class="phero"><div class="wrap has-ph"><figure class="phero-ph">${photo('dir/adventure', { sizes:'(max-width:900px) 100vw, 560px', eager:true, max:1200 })}</figure><div class="phero-copy">
   ${crumbs(C, cr)}<h1 class="h1">${T(C, A.title)}</h1><p class="lede">${T(C, A.lede)}</p>
 </div></div></section>
 <section class="sec"><div class="wrap manifest"><div class="rv"><blockquote style="margin-block-start:26px">${T(C, A.story.quote)}</blockquote></div><aside class="rv" style="--d:2">${A.story.text.map(p => `<p>${T(C, p)}</p>`).join('')}</aside></div></section>

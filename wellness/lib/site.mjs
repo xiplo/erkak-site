@@ -67,8 +67,8 @@ export function dirTile(C, d, i){
 }
 
 // Место: фото и подпись под ним
-export function placeCard(C, d){
-  return `<a class="place rv" href="${C.path('dest:' + d.id)}"><span class="place-ph">${photo('dest/' + d.id, { sizes:'(max-width:760px) 70vw, 280px', max:800 })}</span><strong>${esc(d.name)}</strong><span>${esc(C.I.count(d.count, C.L.nouns.program))}</span></a>`;
+export function placeCard(C, d, n = d.count){
+  return `<a class="place rv" href="${C.path('dest:' + d.id)}"><span class="place-ph">${photo('dest/' + d.id, { sizes:'(max-width:760px) 70vw, 280px', max:800 })}</span><strong>${esc(d.name)}</strong><span>${esc(C.I.count(n, C.L.nouns.program))}</span></a>`;
 }
 
 export function row(C, p){
