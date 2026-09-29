@@ -4,12 +4,9 @@ import { use, icon, artId, isFish, placeShort } from './art.mjs';
 import { photo, usesCdn } from './photo.mjs';
 
 export const ld = obj => `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, '\\u003c')}</script>`;
-const ar = '';
 
 // ── Мелкие компоненты ─────────────────────────────────────────────────
-export const btn = (label, href, cls = 'btn-primary', attrs = '') => `<a class="btn ${cls}" href="${href}"${attrs ? ' ' + attrs : ''}>${esc(label)}${ar}</a>`;
-// Надзаголовки («Экосистема», «Топ-100»…) убраны из дизайна: функция оставлена, чтобы не трогать шаблоны
-export const kicker = () => '';
+export const btn = (label, href, cls = 'btn-primary', attrs = '') => `<a class="btn ${cls}" href="${href}"${attrs ? ' ' + attrs : ''}>${esc(label)}</a>`;
 export const T = (C, s) => inline(typo(s, C.code)); // строка контента → HTML с разметкой
 
 // Заголовок секции: заголовок и подзаголовок. Надписи-«надзаголовки» не выводим — это шум.
@@ -95,16 +92,19 @@ export function leadForm(C, { type, id = '', title = '', fields = ['date', 'gues
   return `<form class="lead-form${light ? ' light-form' : ''}" data-type="${type}" data-id="${esc(id)}" data-title="${esc(title)}" novalidate>
     ${fields.map(f => F[f]).join('')}
     <input class="hp" name="company" tabindex="-1" autocomplete="off" aria-hidden="true">
-    <button class="btn btn-primary btn-block" type="submit">${esc(submit || C.I.t('form.send'))}${ar}</button>
+    <button class="btn btn-primary btn-block" type="submit">${esc(submit || C.I.t('form.send'))}</button>
     <p class="small">${inline(C.I.t('form.consent', { privacy:C.path('privacy') }))}</p>
   </form>`;
 }
 
 // ── Каркас страницы ──────────────────────────────────────────────────
 function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [] }){
-  const desc = clip(rawDesc, C.code === 'zh' ? 90 : 158);
+  const desc = clip(rawDesc, C.code === 'zh' ? 84 : 158);
   // Длинный title: бренд в конце не помещается в выдаче — убираем его, а не обрезаем смысл
-  const title = rawTitle.length > (C.code === 'zh' ? 36 : 68) ? rawTitle.replace(/\s*[|｜]\s*ERKAK\s*$/, '') : rawTitle;
+  let title = rawTitle.length > (C.code === 'zh' ? 36 : 68) ? rawTitle.replace(/\s*[|｜]\s*ERKAK\s*$/, '') : rawTitle;
+  // Всё ещё длинный — отбрасываем последний хвост после запятой или тире (обычно цену), а не режем слово
+  const max = C.code === 'zh' ? 40 : 75;
+  while (title.length > max) { const m = /^(.*\S)(?:[,،]\s|，|\s[—–·]\s)(?:(?![,،]\s|，|\s[—–·]\s).)+$/.exec(title); if (!m || m[1].length < 20) break; title = m[1]; }
   const url = C.SITE.origin + C.path(key);
   const alts = C.langs.map(l => `<link rel="alternate" hreflang="${l.hreflang}" href="${C.SITE.origin + C.pathIn(l.code, key)}">`).join('');
   const xdef = key === 'hub' ? C.SITE.origin + '/' : C.SITE.origin + C.pathIn(C.SITE.defaultLang, key);
@@ -204,8 +204,12 @@ function chrome(C){
 </aside>`;
 }
 
+// Секция с aria-labelledby="h-…": id получает её первый заголовок h2 (sh() id не знает)
+const labelSections = html => html.replace(/(<section\b[^>]*aria-labelledby="(h-[\w-]+)"[^>]*>)((?:(?!<section\b)[\s\S])*?)<h2\b(?![^>]*\sid=)/g, (m, open, id, mid) => mid.includes(`id="${id}"`) ? m : `${open}${mid}<h2 id="${id}"`);
+
 export function page(C, { key, title, desc, body, lds = [], og, nav = 'eco', scripts = [], mbar }){
   const I = C.I;
+  body = labelSections(body);
   const mb = mbar || (nav === 'fish' ? [I.t('cta.pickTour'), C.path('dir:fishing') + '#pick'] : [I.t('cta.pick'), C.path('hub') + '#pick']);
   return `${head(C, { key, title, desc, og, ld:lds })}
 <body class="no-js">

@@ -19,10 +19,10 @@ Numbers, prices, IDs, months, coordinates and slugs live in `content/core.mjs` a
 2. **Technical values are never translated**: IDs and anchors such as `'solo'`, `'b1'`, `'tours'`, `'0-1000'` or `'all'` (first element of pairs in `filters` and quiz options, second element in `subnav`).
 3. **Placeholders** such as `{n}`, `{name}`, `{price}`, `{privacy}` stay exactly as they are (they can move within the sentence).
 4. **Markup:**
-   - `*italic*` is the gold accent in headings; keep it in titles, on the equivalent words.
+   - `*…*` marks the key words of a heading. The current design renders them as plain text, but keep the marks on the equivalent words so the accent can come back without re-translating.
    - `**bold**` is used in lists.
    - `[text](../../url/)` is a link: translate the text, never change the URL.
-5. **Numbers** in the data (e.g. `8`, `22` in `ladder.steps`) stay the same.
+5. **Numbers** in the data (e.g. `0`, `≤ 6`, `30%` in `fishing.proof`) stay the same.
 6. **JS strings are in single quotes.** Don't use the ASCII apostrophe `'` inside text; use the typographic `’` (U+2019).
    - Uzbek uses `oʻ` / `gʻ` with U+02BB `ʻ`, and the tutuq belgisi uses `’`.
    - If you really need an ASCII `'`, escape it as `\'`.

@@ -135,5 +135,3 @@ export function andamanMap(spots, names, I){
 </svg>`;
 }
 
-export const FISH_KINDS = Object.keys(FISH);
-export const GLYPHS = Object.keys(GLYPH);

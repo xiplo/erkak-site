@@ -4,8 +4,6 @@ import crypto from 'node:crypto';
 export const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 export const attr = esc;
 export const hash = s => crypto.createHash('sha1').update(s).digest('hex').slice(0, 10);
-export const pad2 = n => String(n).padStart(2, '0');
-export const uniq = a => [...new Set(a)];
 export const chunk = (a, n) => a.reduce((r, x, i) => (i % n ? r[r.length - 1].push(x) : r.push([x]), r), []);
 
 // Типограф: неразрывные пробелы после коротких слов и перед тире, «ёлочки» уже в текстах.

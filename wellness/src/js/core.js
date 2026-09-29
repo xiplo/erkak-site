@@ -102,7 +102,7 @@
     var text = [U.msgHello, lead.tourTitle && (U.msgProgram + ': ' + lead.tourTitle), lead.summary, lead.date && (U.msgDates + ': ' + lead.date), lead.guests && (U.msgGuests + ': ' + lead.guests)].filter(Boolean).join('\n');
     var t = encodeURIComponent(text);
     return (E.msg || []).slice(0, 2).map(function(m, i){ var href = m.icon === 'tg' ? m.href + '?text=' + t : m.icon === 'wa' ? m.href + '?text=' + t : m.href;
-      return '<a class="btn ' + (i ? 'btn-ghost' : 'btn-gold') + '" href="' + href + '" target="_blank" rel="noopener">' + esc(m.label) + '<span class="ar" aria-hidden="true"></span></a>'; }).join('');
+      return '<a class="btn ' + (i ? 'btn-ghost' : 'btn-primary') + '" href="' + href + '" target="_blank" rel="noopener">' + esc(m.label) + '</a>'; }).join('');
   };
   window.ERK_done = function(ok, lead, light){
     return '<div class="ok-msg"><h3>' + esc(ok ? U.okTitle : U.failTitle) + '</h3><p>' + esc(ok ? U.okText : U.failText) + '</p><div class="btns" style="justify-content:center">' + window.ERK_links(lead) + '</div></div>';

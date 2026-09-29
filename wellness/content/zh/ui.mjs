@@ -37,7 +37,7 @@ export const ui = {
   guides:{ kicker:'指南', by:'ERKAK 编辑部', updated:'更新于', toc:'目录', disclaimer:'价格和规定依据更新日期时的公开资料整理，可能发生变化。本文不构成医疗或法律建议。', relKicker:'相关项目', relTitle:'准备好*出发*了吗？' },
   form:{ name:'称呼', namePh:'怎么称呼您', date:'出行日期', datePh:'例如：2027 年 1 月', guests:'人数', guestsPh:'几位出行', contact:'WhatsApp、Telegram 或电话', contactPh:'@username 或 +86…', send:'提交需求',
     consent:'点击按钮即表示您同意[隐私政策]({privacy})。我们不会发送垃圾信息。' },
-  foot:{ kicker:'ERKAK 礼宾服务', title:'告诉我们目标，*其余由我们安排*', about:'“Erkak”在乌兹别克语中意为“男人”。ERKAK 是全球男士健康生态，涵盖运动、健康管理、身心恢复与探险。项目由严选合作伙伴执行，从提交需求到您回到家中，我们全程陪伴。',
+  foot:{ title:'告诉我们目标，*其余由我们安排*', about:'“Erkak”在乌兹别克语中意为“男人”。ERKAK 是全球男士健康生态，涵盖运动、健康管理、身心恢复与探险。项目由严选合作伙伴执行，从提交需求到您回到家中，我们全程陪伴。',
     dirs:'方向', places:'目的地', allPlaces:'全部目的地', contact:'联系方式', note:'价格为美元和泰铢参考价，最终以确认单为准。ERKAK 是礼宾服务机构，不是医疗机构。', tat:'TAT 执照编号 {n}' },
   hub:{ lede:'泰拳、体检、登山、海洋与大物海钓。一位礼宾顾问全程负责，从提交需求到您回到家中。',
     dirsTitle:'{n} 个*男士健康*方向', topLede:'起价参照 {date}的市场价格，不含机票。热门项目优先。', count:'显示 {n} 个，共 {m} 个' },

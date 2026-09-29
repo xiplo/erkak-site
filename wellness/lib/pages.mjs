@@ -1,7 +1,7 @@
 // ERKAK · страницы. Каждая функция возвращает готовый HTML для одного языка (контекст C).
 import { esc, inline } from './util.mjs';
-import { andamanMap, use, icon, artId, placeShort } from './art.mjs';
-import { page, btn, kicker, T, sh, price, crumbs, crumbsLd, faq, faqLd, monthsBar, ticks, card, iconTile, dirTile, placeCard, row, gcard, leadForm, photo } from './site.mjs';
+import { andamanMap, icon, placeShort } from './art.mjs';
+import { page, btn, T, sh, price, crumbs, crumbsLd, faq, faqLd, monthsBar, ticks, card, dirTile, placeCard, row, gcard, leadForm, photo } from './site.mjs';
 import { hasPhoto } from './photo.mjs';
 
 const ORG = C => ({ '@type':'Organization', '@id':C.SITE.origin + '/#org', name:'ERKAK', url:C.SITE.origin + '/' });
@@ -17,7 +17,7 @@ const NP = (C, n) => C.I.count(n, C.L.nouns.program);
 // Место для title: короткое («Пхукет»), и пустое, если оно уже есть в названии
 const whereFor = p => { const w = p.type === 't' ? String(p.where || '').split('·')[0].trim() : placeShort(p.where); const stem = w.toLowerCase().slice(0, Math.max(3, w.length - 2)); return stem && p.title.replace(/\*/g, '').toLowerCase().includes(stem) ? '' : w; };
 // Убрать «висящие» разделители, если подстановка оказалась пустой: «X — , от Y» → «X — от Y»
-const tidy = s => s.replace(/\s*([—–:|｜·])\s*[,，،、]\s*/g, ' $1 ').replace(/\s*[,，،]\s*([—–|｜])/g, ' $1').replace(/([—–])\s*([—–])/g, '$1').replace(/\(\s*\)|（\s*）/g, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.，。])/g, '$1').trim();
+const tidy = s => s.replace(/([,，،、])(?:\s*[,，،、])+/g, '$1').replace(/\s*([—–:|｜·])\s*[,，،、]\s*/g, ' $1 ').replace(/\s*[,，،]\s*([—–|｜])/g, ' $1').replace(/([—–])\s*([—–])/g, '$1').replace(/\(\s*\)|（\s*）/g, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.，。])/g, '$1').trim();
 const idOf = s => s.toLowerCase().replace(/<[^>]+>|\*/g, '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60);
 
 function tripLd(C, p, items, availability){
@@ -76,8 +76,8 @@ export function hub(C){
     </div>
     <p class="count" id="count" aria-live="polite">${esc(I.t('hub.count', { n:C.items.length, m:C.items.length }))}</p>
     <div class="grid" id="catalog">${C.items.map(p => card(C, p)).join('')}</div>
-    <div class="more"><button class="btn btn-line" type="button" id="more">${esc(H.top.more)}<span class="ar" aria-hidden="true"></span></button></div>
-    <div class="empty" id="empty" hidden><p class="h3">${esc(H.top.empty)}</p>${btn(I.t('cta.pick'), '#pick', 'btn-ink')}</div>
+    <div class="more"><button class="btn btn-ghost" type="button" id="more">${esc(H.top.more)}</button></div>
+    <div class="empty" id="empty" hidden><p class="h3">${esc(H.top.empty)}</p>${btn(I.t('cta.pick'), '#pick', 'btn-primary')}</div>
   </div>
 </section>
 
@@ -99,7 +99,7 @@ export function hub(C){
   <div class="wrap">
     ${sh(C, 5, H.routes.kicker, T(C, H.routes.title), H.routes.lede)}
     <div class="routes">${C.combos.map((r, i) => { const ps = r.items.map(id => byId[id]); const sum = ps.reduce((a, p) => a + p.usdEq, 0);
-      return `<article class="route rv" style="--d:${i}"><p class="card-k">${esc(H.routes.kickerOne)} ${i + 1}</p><h3>${T(C, H.routes.items[r.id][0])}</h3><p>${T(C, H.routes.items[r.id][1])}</p><ol>${ps.map(p => `<li><a href="${p.href}">${T(C, p.title)}</a><span>${esc(p.durLabel)}</span></li>`).join('')}</ol><div class="route-f">${price(C, Math.round(sum / 100) * 100, 'USD', H.routes.approx, { from:false })}<button class="btn btn-primary btn-sm" type="button" data-plan-many="${r.items.join(',')}">${esc(H.routes.add)}<span class="ar" aria-hidden="true"></span></button></div></article>`; }).join('')}</div>
+      return `<article class="route rv" style="--d:${i}"><p class="card-k">${esc(H.routes.kickerOne)} ${i + 1}</p><h3>${T(C, H.routes.items[r.id][0])}</h3><p>${T(C, H.routes.items[r.id][1])}</p><ol>${ps.map(p => `<li><a href="${p.href}">${T(C, p.title)}</a><span>${esc(p.durLabel)}</span></li>`).join('')}</ol><div class="route-f">${price(C, Math.round(sum / 100) * 100, 'USD', H.routes.approx, { from:false })}<button class="btn btn-primary btn-sm" type="button" data-plan-many="${r.items.join(',')}">${esc(H.routes.add)}</button></div></article>`; }).join('')}</div>
   </div>
 </section>
 
@@ -123,11 +123,11 @@ export function hub(C){
   <div class="wrap">
     ${sh(C, 8, H.places.kicker, T(C, H.places.title), H.places.lede)}
     <div class="places">${places.slice(0, 8).map(d => placeCard(C, d)).join('')}</div>
-    <div style="margin-block-start:36px">${btn(H.places.all, C.path('dests'), 'btn-line')}</div>
+    <div style="margin-block-start:36px">${btn(H.places.all, C.path('dests'), 'btn-ghost')}</div>
     <div style="margin-block-start:clamp(80px,9vw,140px)">
       ${sh(C, 9, H.guides.kicker, T(C, H.guides.title), '')}
       <div class="gcards strip">${C.guides.slice(0, 3).map(g => gcard(C, g)).join('')}</div>
-      <div style="margin-block-start:36px">${btn(H.guides.all, C.path('guides'), 'btn-line')}</div>
+      <div style="margin-block-start:36px">${btn(H.guides.all, C.path('guides'), 'btn-ghost')}</div>
     </div>
   </div>
 </section>
@@ -153,7 +153,7 @@ export function hub(C){
         <p class="small" style="margin-block-start:22px">${inline(I.t('form.consent', { privacy:C.path('privacy') }))}</p>
       </div>
       <div class="q-done" id="q-done" hidden></div>
-      <div class="q-nav"><button class="btn btn-ghost" type="button" id="q-back" disabled>${esc(I.t('quiz.back'))}</button><button class="btn btn-primary" type="button" id="q-next" disabled>${esc(I.t('quiz.next'))}<span class="ar" aria-hidden="true"></span></button></div>
+      <div class="q-nav"><button class="btn btn-ghost" type="button" id="q-back" disabled>${esc(I.t('quiz.back'))}</button><button class="btn btn-primary" type="button" id="q-next" disabled>${esc(I.t('quiz.next'))}</button></div>
     </form>
   </div>
 </section>
@@ -201,7 +201,7 @@ export function direction(C, d){
 </section>
 <section class="sec stone">
   <div class="wrap split" style="align-items:start">
-    <div class="rv">${kicker(I.t('dir.inclKicker'))}<h2 class="h2" style="margin-block:22px 30px">${T(C, I.t('dir.inclTitle'))}</h2><p class="lede">${T(C, I.t('dir.inclLede'))}</p></div>
+    <div class="rv"><h2 class="h2" style="margin-block:22px 30px">${T(C, I.t('dir.inclTitle'))}</h2><p class="lede">${T(C, I.t('dir.inclLede'))}</p></div>
     <div class="rv" style="--d:2">${ticks(C, d.incl)}${d.note ? `<p class="note" style="margin-block-start:30px">${T(C, d.note)}</p>` : ''}</div>
   </div>
 </section>
@@ -309,8 +309,8 @@ export function fishing(C){
   ${sh(C, 5, F.concierge.kicker, T(C, F.concierge.title), F.concierge.lede)}
   <div class="cgrid">${F.concierge.items.slice(0, 4).map(([ic, h, p], i) => `<div class="citem rv" style="--d:${i % 4}">${icon(ic)}<strong>${T(C, h)}</strong><span>${T(C, p)}</span></div>`).join('')}</div>
   <div class="split sigweek" style="margin-block-start:clamp(40px,5vw,72px)">
-    <div class="rv">${kicker(F.concierge.sigKicker)}<h3 class="h3" style="margin-block:10px 16px">${T(C, F.concierge.sigTitle)}</h3>${ticks(C, F.concierge.sigPoints)}</div>
-    <div class="rv" style="--d:2;display:grid;gap:22px;align-content:start">${price(C, C.item['signature-week'].price, 'THB', C.item['signature-week'].perLabel)}<p class="small">${T(C, F.concierge.fee)}</p><div class="btns">${btn(F.concierge.sigCta, C.item['signature-week'].href, 'btn-primary')}${btn(I.t('cta.ask'), '#pick', 'btn-line', 'data-seg="vip"')}</div></div>
+    <div class="rv"><h3 class="h3" style="margin-block:10px 16px">${T(C, F.concierge.sigTitle)}</h3>${ticks(C, F.concierge.sigPoints)}</div>
+    <div class="rv" style="--d:2;display:grid;gap:22px;align-content:start">${price(C, C.item['signature-week'].price, 'THB', C.item['signature-week'].perLabel)}<p class="small">${T(C, F.concierge.fee)}</p><div class="btns">${btn(F.concierge.sigCta, C.item['signature-week'].href, 'btn-primary')}${btn(I.t('cta.ask'), '#pick', 'btn-ghost', 'data-seg="vip"')}</div></div>
   </div>
 </div></section>
 
@@ -358,7 +358,7 @@ export function fishing(C){
       <p class="small" style="margin-block-start:22px">${inline(I.t('form.consent', { privacy:C.path('privacy') }))}</p>
     </div>
     <div class="q-done" id="q-done" hidden></div>
-    <div class="q-nav"><button class="btn btn-ghost" type="button" id="q-back" disabled>${esc(I.t('quiz.back'))}</button><button class="btn btn-primary" type="button" id="q-next" disabled>${esc(I.t('quiz.next'))}<span class="ar" aria-hidden="true"></span></button></div>
+    <div class="q-nav"><button class="btn btn-ghost" type="button" id="q-back" disabled>${esc(I.t('quiz.back'))}</button><button class="btn btn-primary" type="button" id="q-next" disabled>${esc(I.t('quiz.next'))}</button></div>
   </form>
 </div></section>
 
@@ -418,7 +418,7 @@ export function dests(C){
   const list = C.dests.filter(d => d.page);
   const body = `
 <section class="phero"><div class="wrap single"><div class="phero-copy">
-  ${crumbs(C, [[I.t('nav.places'), C.path('dests')]])}${kicker(P.kicker)}<h1 class="h1">${T(C, P.title)}</h1><p class="lede">${T(C, P.lede)}</p>
+  ${crumbs(C, [[I.t('nav.places'), C.path('dests')]])}<h1 class="h1">${T(C, P.title)}</h1><p class="lede">${T(C, P.lede)}</p>
 </div></div></section>
 <section class="sec"><div class="wrap">
   <div class="gcards">${list.map((d, i) => `<a class="gcard rv${hasPhoto('dest/' + d.id) ? ' has-ph' : ''}" href="${C.path('dest:' + d.id)}">${hasPhoto('dest/' + d.id) ? `<span class="gcard-ph">${photo('dest/' + d.id, { sizes:'(max-width:640px) 100vw, (max-width:1000px) 50vw, 380px', max:1200 })}</span>` : ''}<div class="card-top"><span class="card-k">${esc(C.L.regions[d.reg])}</span><span class="badge soft">${esc(I.count(d.count, C.L.nouns.program))}</span></div><h2 class="gcard-h">${T(C, d.title)}</h2><p class="card-s">${T(C, firstSentence(d.intro))}</p></a>`).join('')}</div>
@@ -437,8 +437,8 @@ export function dest(C, d){
     <dl class="facts"><div><dt>${esc(I.t('dest.programs'))}</dt><dd>${I.num(list.length)}</dd></div><div><dt>${esc(I.t('dest.dirs'))}</dt><dd>${I.num(dirs.length)}</dd></div><div><dt>${esc(I.t('dest.from'))}</dt><dd>${I.money(Math.min(...list.map(p => p.usdEq)), 'USD')}</dd></div><div><dt>${esc(I.t('dest.live'))}</dt><dd>${I.num(list.filter(p => p.live).length)}</dd></div></dl></div>
 </div></section>
 <section class="sec stone"><div class="wrap split" style="align-items:start">
-  <div class="rv">${kicker(I.t('dest.seasonKicker'))}<h2 class="h3" style="margin-block:20px 18px">${esc(I.t('dest.season'))}</h2><p style="color:var(--ink-2)">${T(C, d.season)}</p></div>
-  <div class="rv" style="--d:2">${kicker(I.t('dest.accessKicker'))}<h2 class="h3" style="margin-block:20px 18px">${esc(I.t('dest.access'))}</h2><p style="color:var(--ink-2)">${T(C, d.access)}</p></div>
+  <div class="rv"><h2 class="h3" style="margin-block:20px 18px">${esc(I.t('dest.season'))}</h2><p style="color:var(--ink-2)">${T(C, d.season)}</p></div>
+  <div class="rv" style="--d:2"><h2 class="h3" style="margin-block:20px 18px">${esc(I.t('dest.access'))}</h2><p style="color:var(--ink-2)">${T(C, d.access)}</p></div>
 </div></section>
 <section class="sec"><div class="wrap">
   ${sh(C, 1, I.t('dest.listKicker'), T(C, I.t('dest.listTitle', { name:d.name })), '')}
@@ -455,7 +455,7 @@ export function guides(C){
   const I = C.I, G = C.L.guidesPage;
   const body = `
 <section class="phero"><div class="wrap single"><div class="phero-copy">
-  ${crumbs(C, [[I.t('nav.guides'), C.path('guides')]])}${kicker(G.kicker)}<h1 class="h1">${T(C, G.title)}</h1><p class="lede">${T(C, G.lede)}</p>
+  ${crumbs(C, [[I.t('nav.guides'), C.path('guides')]])}<h1 class="h1">${T(C, G.title)}</h1><p class="lede">${T(C, G.lede)}</p>
 </div></div></section>
 <section class="sec"><div class="wrap"><div class="gcards">${C.guides.map(g => gcard(C, g, 'h2')).join('')}</div></div></section>`;
   return page(C, { key:'guides', title:G.metaTitle, desc:G.metaDesc, body, lds:[crumbsLd(C, [[I.t('nav.guides'), C.path('guides')]])] });
@@ -503,12 +503,12 @@ export function about(C){
   const cr = [[I.t('nav.about'), C.path('about')]];
   const body = `
 <section class="phero"><div class="wrap single"><div class="phero-copy">
-  ${crumbs(C, cr)}${kicker(A.kicker)}<h1 class="h1">${T(C, A.title)}</h1><p class="lede">${T(C, A.lede)}</p>
+  ${crumbs(C, cr)}<h1 class="h1">${T(C, A.title)}</h1><p class="lede">${T(C, A.lede)}</p>
 </div></div></section>
-<section class="sec"><div class="wrap manifest"><div class="rv">${kicker(A.story.kicker)}<blockquote style="margin-block-start:26px">${T(C, A.story.quote)}</blockquote></div><aside class="rv" style="--d:2">${A.story.text.map(p => `<p>${T(C, p)}</p>`).join('')}</aside></div></section>
+<section class="sec"><div class="wrap manifest"><div class="rv"><blockquote style="margin-block-start:26px">${T(C, A.story.quote)}</blockquote></div><aside class="rv" style="--d:2">${A.story.text.map(p => `<p>${T(C, p)}</p>`).join('')}</aside></div></section>
 <section class="sec stone"><div class="wrap">${sh(C, 2, A.principles.kicker, T(C, A.principles.title), '')}${stepsHtml(C, A.principles.items)}</div></section>
 <section class="sec soft" id="visa"><div class="wrap split" style="align-items:start">
-  <div class="rv">${kicker(A.visa.kicker)}<h2 class="h2" style="margin-block:22px 26px">${T(C, A.visa.title)}</h2><p class="lede">${T(C, A.visa.lede)}</p><div class="btns" style="margin-block-start:30px">${btn(A.visa.cta, C.path('guide:thailand-visa'), 'btn-primary')}</div></div>
+  <div class="rv"><h2 class="h2" style="margin-block:22px 26px">${T(C, A.visa.title)}</h2><p class="lede">${T(C, A.visa.lede)}</p><div class="btns" style="margin-block-start:30px">${btn(A.visa.cta, C.path('guide:thailand-visa'), 'btn-primary')}</div></div>
   <div class="rv" style="--d:2"><div class="rows">${A.visa.points.map(([h, p]) => `<div class="row" style="grid-template-columns:1fr"><div><strong>${T(C, h)}</strong><span>${T(C, p)}</span></div></div>`).join('')}</div><p class="small" style="margin-block-start:18px">${T(C, A.visa.note)}</p></div>
 </div></section>
 <section class="sec"><div class="wrap">${sh(C, 3, A.contact.kicker, T(C, A.contact.title), A.contact.lede)}
@@ -521,7 +521,7 @@ export function legal(C, which){
   const I = C.I, X = C.L.legal[which];
   const cr = [[X.title, C.path(which)]];
   const body = `
-<section class="phero"><div class="wrap single"><div class="phero-copy">${crumbs(C, cr)}${kicker(I.t('legal.kicker'))}<h1 class="h1">${T(C, X.title)}</h1><p class="lede">${T(C, X.lede)}</p></div></div></section>
+<section class="phero"><div class="wrap single"><div class="phero-copy">${crumbs(C, cr)}<h1 class="h1">${T(C, X.title)}</h1><p class="lede">${T(C, X.lede)}</p></div></div></section>
 <section class="sec sec-t"><div class="legal-t wrap">${X.draft ? `<p class="note">${T(C, X.draft)}</p>` : ''}${X.sections.map(([h, ...ps]) => `<h2>${T(C, h)}</h2>${ps.map(p => `<p>${T(C, p)}</p>`).join('')}`).join('')}<p class="small">${esc(I.t('legal.updated'))} ${esc(new Intl.DateTimeFormat(I.locale, { day:'numeric', month:'long', year:'numeric' }).format(new Date('2026-09-28')))}</p></div></section>`;
   return page(C, { key:which, title:`${X.title} | ERKAK`, desc:X.lede, body, lds:[crumbsLd(C, cr)] });
 }
