@@ -8,6 +8,11 @@
   var fill = function(s, v){ return String(s || '').replace(/\{(\w+)\}/g, function(m, k){ return v[k] != null ? v[k] : m; }); };
   document.body.classList.remove('no-js'); document.body.classList.add('js');
 
+  // ── Фото: если кадр не загрузился (CDN недоступен), оставляем размытую подложку без значка «битой» картинки ──
+  var broken = function(img){ img.classList.add('ph-x'); };
+  document.addEventListener('error', function(e){ var t = e.target; if (t && t.classList && t.classList.contains('ph')) broken(t); }, true);
+  $$('img.ph').forEach(function(img){ if (img.complete && !img.naturalWidth) broken(img); });
+
   // ── Деньги ──
   var NICE = function(v){ var a = Math.abs(v), st = a < 100 ? 1 : a < 1000 ? 10 : a < 10000 ? 100 : a < 100000 ? 1000 : a < 1000000 ? 5000 : 10000; return Math.round(v / st) * st; };
   var money = function(n, c){ try { return new Intl.NumberFormat(E.locale, { style:'currency', currency:c, currencyDisplay:'narrowSymbol', maximumFractionDigits:0 }).format(n); } catch (e) { return n + ' ' + c; } };
@@ -125,6 +130,7 @@
   function renderPlan(){
     var ids = plan();
     $$('.plan-n').forEach(function(n){ n.textContent = ids.length; n.hidden = !ids.length; });
+    $$('.plan-tool').forEach(function(b){ b.hidden = !ids.length; });
     $$('[data-plan]').forEach(function(b){ var on = ids.indexOf(b.getAttribute('data-plan')) > -1; b.setAttribute('aria-pressed', on); var s = $('span', b); if (s) s.textContent = on ? U.planAdded : U.planAdd; });
     var list = $('#plan-list'); if (!list) return;
     $('#plan-empty').hidden = ids.length > 0; $('#plan-sum').hidden = !ids.length;

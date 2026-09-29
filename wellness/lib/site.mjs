@@ -1,18 +1,20 @@
 // ERKAK · каркас страниц и компоненты. Все функции принимают контекст языка C (см. build.mjs → makeContext).
 import { esc, inline, typo, clip } from './util.mjs';
 import { use, icon, artId, isFish, placeShort } from './art.mjs';
+import { photo, usesCdn } from './photo.mjs';
 
 export const ld = obj => `<script type="application/ld+json">${JSON.stringify(obj).replace(/</g, '\\u003c')}</script>`;
 const ar = '';
 
 // ── Мелкие компоненты ─────────────────────────────────────────────────
-export const btn = (label, href, cls = 'btn-gold', attrs = '') => `<a class="btn ${cls}" href="${href}"${attrs ? ' ' + attrs : ''}>${esc(label)}${ar}</a>`;
-export const kicker = s => `<p class="kicker">${esc(s)}</p>`;
+export const btn = (label, href, cls = 'btn-primary', attrs = '') => `<a class="btn ${cls}" href="${href}"${attrs ? ' ' + attrs : ''}>${esc(label)}${ar}</a>`;
+// Надзаголовки («Экосистема», «Топ-100»…) убраны из дизайна: функция оставлена, чтобы не трогать шаблоны
+export const kicker = () => '';
 export const T = (C, s) => inline(typo(s, C.code)); // строка контента → HTML с разметкой
 
-// Заголовок секции: короткая подпись, заголовок, подзаголовок. Без номеров и декора.
+// Заголовок секции: заголовок и подзаголовок. Надписи-«надзаголовки» не выводим — это шум.
 export function sh(C, no, kick, title, lede, cls = ''){
-  return `<header class="sh ${cls} rv">${kick ? kicker(kick) : ''}<h2 class="h2">${title}</h2>${lede ? `<p class="lede">${T(C, lede)}</p>` : ''}</header>`;
+  return `<header class="sh ${cls} rv"><h2 class="h2">${title}</h2>${lede ? `<p class="lede">${T(C, lede)}</p>` : ''}</header>`;
 }
 
 // Цена: основная в валюте продукта + «≈» во вторичной валюте (клиент пересчитывает при смене валюты)
@@ -54,25 +56,32 @@ export function card(C, p){
   const d = C.dir[p.dir];
   return `<article class="card rv" data-d="${p.dir}" data-cat="${p.cat || ''}" data-goals="${d.goals.join(' ')}" data-reg="${p.reg}" data-hot="${p.hot ? 1 : 0}" data-usd="${p.usdEq}" data-m="${(p.months || []).join(' ')}" data-q="${esc((p.title + ' ' + p.where + ' ' + d.name + ' ' + (p.dest ? C.dest[p.dest].name : '')).toLowerCase())}">
   <a class="card-a" href="${p.href}">
-    <div class="card-top">${iconTile(p.tone, p.art)}<span class="card-k">${esc(d.name)}</span>${badge(C, p)}</div>
+    <div class="card-top"><span class="card-k">${esc(d.name)}</span>${badge(C, p)}</div>
     <h3>${T(C, p.title)}</h3><p class="card-s">${T(C, p.short)}</p>
     <ul class="meta"><li>${icon('clock')}${esc(p.durLabel)}</li><li>${icon('pin')}${esc(cardPlace(p))}</li></ul></a>
   <div class="card-f">${price(C, p.price, p.cur, p.perLabel)}<button class="card-add" type="button" data-plan="${p.id}" aria-pressed="false" aria-label="${esc(C.I.t('plan.add'))}">${icon('plus')}<span>${esc(C.I.t('plan.add'))}</span></button></div>
 </article>`;
 }
 
+// Направление: фото, поверх — название и число программ
 export function dirTile(C, d, i){
   const n = C.items.filter(p => p.dir === d.id).length;
-  return `<a class="dir rv" href="${C.path('dir:' + d.id)}">${iconTile(d.tone, d.art)}<span class="dir-t"><strong>${esc(d.name)}</strong><span>${esc(C.I.count(n, C.L.nouns.program))}</span></span>${d.status === 'live' ? `<span class="badge live">${esc(C.I.t('tag.live'))}</span>` : ''}</a>`;
+  return `<a class="dir rv" href="${C.path('dir:' + d.id)}">${photo('dir/' + d.id, { sizes:'(max-width:760px) 44vw, (max-width:1100px) 24vw, 170px', max:800 })}<span class="dir-t"><strong>${esc(d.name)}</strong><span>${esc(C.I.count(n, C.L.nouns.program))}</span></span></a>`;
+}
+
+// Место: фото и подпись под ним
+export function placeCard(C, d){
+  return `<a class="place rv" href="${C.path('dest:' + d.id)}"><span class="place-ph">${photo('dest/' + d.id, { sizes:'(max-width:760px) 70vw, 280px', max:800 })}</span><strong>${esc(d.name)}</strong><span>${esc(C.I.count(d.count, C.L.nouns.program))}</span></a>`;
 }
 
 export function row(C, p){
   return `<a class="row" href="${p.href}">${iconTile(p.tone, p.art, 'sm')}<div><strong>${T(C, p.title)}</strong><span>${esc(p.where)} · ${esc(p.durLabel)}</span></div>${price(C, p.price, p.cur, p.perLabel)}</a>`;
 }
 
-export function gcard(C, g){
+export function gcard(C, g, h = 'h3'){
   const G = C.L.guides[g.id];
-  return `<a class="gcard rv" href="${C.path('guide:' + g.id)}"><div class="card-top">${iconTile(g.tone, g.art)}<span class="card-k">${esc(G.kicker || (g.dir ? C.dir[g.dir].name : C.I.t('guides.kicker')))}</span><span class="badge soft">${esc(G.read)}</span></div><h3>${T(C, G.title)}</h3><p class="card-s">${T(C, G.desc)}</p></a>`;
+  const k = g.dir ? 'dir/' + g.dir : '';
+  return `<a class="gcard rv${k ? ' has-ph' : ''}" href="${C.path('guide:' + g.id)}">${k ? `<span class="gcard-ph">${photo(k, { sizes:'(max-width:640px) 100vw, (max-width:1000px) 50vw, 400px', max:1200 })}</span>` : ''}<div class="card-top"><span class="card-k">${esc(G.kicker || (g.dir ? C.dir[g.dir].name : C.I.t('guides.kicker')))}</span><span class="badge soft">${esc(G.read)}</span></div><${h} class="gcard-h">${T(C, G.title)}</${h}><p class="card-s">${T(C, G.desc)}</p></a>`;
 }
 
 // ── Формы ────────────────────────────────────────────────────────────
@@ -128,6 +137,7 @@ ${V.yandex ? `<meta name="yandex-verification" content="${esc(V.yandex)}">` : ''
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 ${C.fontPreload.map(f => `<link rel="preload" href="${f}" as="font" type="font/woff2" crossorigin>`).join('')}
+${usesCdn() ? '<link rel="preconnect" href="https://images.unsplash.com">' : ''}
 <link rel="stylesheet" href="${C.asset('css')}">
 ${lds.map(ld).join('\n')}
 ${A.metrika ? `<script>(function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})(window,document,"script","https://mc.yandex.ru/metrika/tag.js","ym");ym(${+A.metrika},"init",{clickmap:true,trackLinks:true,accurateTrackBounce:true,webvisor:true});</script>` : ''}
@@ -136,7 +146,7 @@ ${A.ga4 ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(
 }
 
 function header(C, key, navSet){
-  const I = C.I, items = navSet === 'fish' ? C.navFish : C.nav;
+  const I = C.I, items = C.nav.slice(1, 5);
   const active = h => key && C.path(key) === h.split('#')[0] && !h.includes('#') ? ' aria-current="page"' : '';
   const langs = C.langs.map(l => `<a href="${C.pathIn(l.code, key)}" hreflang="${l.hreflang}" lang="${l.htmlLang}"${l.code === C.code ? ' aria-current="true"' : ''}>${esc(l.name)}<small>${esc(l.code)}</small></a>`).join('');
   const curs = C.SITE.currencies.map(c => `<button type="button" data-cur="${c}" aria-pressed="${c === C.cur}">${c}<small>${esc(I.money(0, c).replace(/[\d\s.,\u00A0\u202F\u200F]/g, '') || c)}</small></button>`).join('');
@@ -146,17 +156,17 @@ function header(C, key, navSet){
   <a class="brand" href="${C.path('hub')}" aria-label="ERKAK — ${esc(I.t('nav.home'))}">${use('logo', 'mark')}<span class="word">ERKAK</span></a>
   <nav class="nav" aria-label="${esc(I.t('a11y.nav'))}">${items.map(([n, h]) => `<a href="${h}"${active(h)}>${esc(n)}</a>`).join('')}</nav>
   <div class="hdr-tools">
-    <div class="pop-wrap" style="position:relative"><button class="tool lang-tool" type="button" aria-expanded="false" aria-controls="pop-lang" aria-label="${esc(I.t('a11y.langCur'))}">${icon('globe')}<span class="lbl">${esc(C.code.toUpperCase())}&nbsp;·&nbsp;<span data-cur-label>${esc(C.cur)}</span></span></button>
+    <div class="pop-wrap" style="position:relative"><button class="tool lang-tool" type="button" aria-expanded="false" aria-controls="pop-lang" aria-label="${esc(I.t('a11y.langCur'))}">${icon('globe')}<span class="lbl">${esc(C.code.toUpperCase())}</span><span class="cur-lbl" hidden>&nbsp;<span data-cur-label>${esc(C.cur)}</span></span></button>
       <div class="menu-pop" id="pop-lang"><p class="small" style="padding:8px 14px 4px">${esc(I.t('a11y.lang'))}</p>${langs}<p class="small" style="padding:14px 14px 4px">${esc(I.t('a11y.cur'))}</p>${curs}</div></div>
-    <button class="tool plan-tool" type="button" data-plan-open aria-label="${esc(I.t('plan.title'))}">${icon('plan')}<span class="plan-n" hidden>0</span></button>
-    <a class="btn btn-gold btn-sm" href="${cta[1]}">${esc(cta[0])}</a>
+    <button class="tool plan-tool" type="button" hidden data-plan-open aria-label="${esc(I.t('plan.title'))}">${icon('plan')}<span class="plan-n" hidden>0</span></button>
+    <a class="btn btn-primary btn-sm" href="${cta[1]}">${esc(cta[0])}</a>
     <button class="tool burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="${esc(I.t('a11y.menu'))}">${icon('menu')}</button>
   </div>
 </div></header>
 <div class="menu" id="menu" role="dialog" aria-modal="true" aria-label="${esc(I.t('a11y.menu'))}">
   <div class="menu-top"><a class="brand" href="${C.path('hub')}">${use('logo', 'mark')}<span class="word">ERKAK</span></a><button class="tool" type="button" data-menu-close aria-label="${esc(I.t('a11y.close'))}">${icon('close')}</button></div>
-  <nav>${items.map(([n, h]) => `<a href="${h}">${esc(n)}</a>`).join('')}</nav>
-  <div class="menu-foot">${btn(cta[0], cta[1], 'btn-gold btn-block')}<div class="menu-langs">${C.langs.map(l => `<a href="${C.pathIn(l.code, key)}" hreflang="${l.hreflang}"${l.code === C.code ? ' aria-current="true"' : ''}>${esc(l.name)}</a>`).join('')}</div></div>
+  <nav>${C.nav.map(([n, h]) => `<a href="${h}">${esc(n)}</a>`).join('')}</nav>
+  <div class="menu-foot">${btn(cta[0], cta[1], 'btn-primary btn-block')}<div class="menu-langs">${C.langs.map(l => `<a href="${C.pathIn(l.code, key)}" hreflang="${l.hreflang}"${l.code === C.code ? ' aria-current="true"' : ''}>${esc(l.name)}</a>`).join('')}</div></div>
 </div>`;
 }
 
@@ -166,9 +176,9 @@ function footer(C, key){
   const m = C.messengers;
   return `<footer class="foot">
   <div class="wrap">
-    <div class="foot-cta rv"><div><h2 class="h2">${T(C, I.t('foot.title'))}</h2></div><div class="btns">${btn(I.t('cta.pick'), C.path('hub') + '#pick', 'btn-gold')}${m[0] ? btn(m[0].label, m[0].href, 'btn-ghost', 'target="_blank" rel="noopener"') : ''}</div></div>
+    <div class="foot-cta rv">${photo('club', { sizes:'(max-width:1240px) 100vw, 1200px', cls:'foot-ph' })}<div><h2 class="h2">${T(C, I.t('foot.title'))}</h2></div><div class="btns">${btn(I.t('cta.pick'), C.path('hub') + '#pick', 'btn-light')}${m[0] ? btn(m[0].label, m[0].href, 'btn-glass', 'target="_blank" rel="noopener"') : ''}</div></div>
     <div class="foot-cols">
-      <div class="foot-brand"><a class="brand" href="${C.path('hub')}">${use('logo', 'mark')}<span><span class="word">ERKAK</span><small>${esc(I.t('brand.tag'))}</small></span></a><p>${T(C, I.t('foot.about'))}</p>
+      <div class="foot-brand"><a class="brand" href="${C.path('hub')}">${use('logo', 'mark')}<span class="word">ERKAK</span></a><p>${T(C, I.t('foot.about'))}</p>
         <div class="foot-langs">${C.langs.map(l => `<a href="${C.pathIn(l.code, key)}" hreflang="${l.hreflang}" lang="${l.htmlLang}"${l.code === C.code ? ' aria-current="true"' : ''}>${esc(l.name)}</a>`).join('')}</div></div>
       <div><h3>${esc(I.t('foot.dirs'))}</h3>${C.dirs.map(d => `<a href="${C.path('dir:' + d.id)}">${esc(d.name)}</a>`).join('')}</div>
       <div><h3>${esc(I.t('foot.places'))}</h3>${C.dests.filter(d => d.page).map(d => `<a href="${C.path('dest:' + d.id)}">${esc(d.name)}</a>`).join('')}<a href="${C.path('dests')}">${esc(I.t('foot.allPlaces'))} →</a></div>
@@ -205,7 +215,7 @@ ${body}
 </main>
 ${footer(C, key)}
 ${chrome(C)}
-<div class="mbar" id="mbar">${btn(mb[0], mb[1], 'btn-gold')}${C.messengers[0] ? `<a class="btn btn-ghost mb-ico" href="${C.messengers[0].href}" target="_blank" rel="noopener" aria-label="${esc(C.messengers[0].label)}">${icon(C.messengers[0].icon)}</a>` : ''}<button class="btn btn-ghost mb-ico" type="button" data-plan-open aria-label="${esc(I.t('plan.title'))}">${icon('plan')}<span class="plan-n" hidden>0</span></button></div>
+<div class="mbar" id="mbar">${btn(mb[0], mb[1], 'btn-primary')}${C.messengers[0] ? `<a class="btn btn-ghost mb-ico" href="${C.messengers[0].href}" target="_blank" rel="noopener" aria-label="${esc(C.messengers[0].label)}">${icon(C.messengers[0].icon)}</a>` : ''}<button class="btn btn-ghost mb-ico plan-tool" type="button" hidden data-plan-open aria-label="${esc(I.t('plan.title'))}">${icon('plan')}<span class="plan-n" hidden>0</span></button></div>
 <script src="${C.asset('data')}" defer></script>
 <script src="${C.asset('core')}" defer></script>
 ${scripts.map(s => `<script src="${C.asset(s)}" defer></script>`).join('\n')}
@@ -214,4 +224,4 @@ ${scripts.map(s => `<script src="${C.asset(s)}" defer></script>`).join('\n')}
 `;
 }
 
-export { use, icon, artId, isFish };
+export { use, icon, artId, isFish, photo };

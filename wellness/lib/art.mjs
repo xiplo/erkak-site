@@ -73,10 +73,12 @@ const ICON = {
 
 const VE = s => s.replace(/<(path|circle|rect|line|polyline|ellipse)(?![^>]*vector-effect)/g, '<$1 vector-effect="non-scaling-stroke"');
 
+export const LOGO_D = 'M9 0h14a9 9 0 0 1 9 9v14a9 9 0 0 1-9 9H9a9 9 0 0 1-9-9V9a9 9 0 0 1 9-9ZM7 23.5h4.3L16 14.6l4.7 8.9H25L16 6.8Z';
 export function sprite(){
   const sym = (id, vb, inner) => `<symbol id="${id}" viewBox="${vb}">${inner}</symbol>`;
   const out = [];
-  out.push(sym('logo', '0 0 40 40', VE('<g fill="none" stroke="currentColor"><circle cx="20" cy="20" r="18.5"/><path d="M11 14.5h18M11 20h18M11 25.5h18"/></g>') + '<circle cx="24.5" cy="20" r="3.3" fill="currentColor"/>'));
+  // Знак ERKAK: скруглённый квадрат с вырезанной вершиной «Λ» — буква A и образ «выше, дальше»
+  out.push(sym('logo', '0 0 32 32', `<path fill="currentColor" fill-rule="evenodd" d="${LOGO_D}"/>`));
   for (const [k, [body, eyes, lines]] of Object.entries(FISH)) {
     out.push(sym(`fish-${k}`, '0 0 240 100',
       `<path d="${body}" fill="currentColor" fill-opacity=".07" stroke="currentColor" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>` +

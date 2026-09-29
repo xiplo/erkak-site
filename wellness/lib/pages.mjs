@@ -1,7 +1,8 @@
 // ERKAK · страницы. Каждая функция возвращает готовый HTML для одного языка (контекст C).
 import { esc, inline } from './util.mjs';
 import { andamanMap, use, icon, artId, placeShort } from './art.mjs';
-import { page, btn, kicker, T, sh, price, crumbs, crumbsLd, faq, faqLd, monthsBar, ticks, card, iconTile, dirTile, row, gcard, leadForm } from './site.mjs';
+import { page, btn, kicker, T, sh, price, crumbs, crumbsLd, faq, faqLd, monthsBar, ticks, card, iconTile, dirTile, placeCard, row, gcard, leadForm, photo } from './site.mjs';
+import { hasPhoto } from './photo.mjs';
 
 const ORG = C => ({ '@type':'Organization', '@id':C.SITE.origin + '/#org', name:'ERKAK', url:C.SITE.origin + '/' });
 const opt = (name, val, label, sub, n) => `<div class="opt"><input type="radio" name="${name}" id="q-${name}-${val}" value="${val}"><label for="q-${name}-${val}"><i>${n != null ? String(n).padStart(2, '0') : ''}</i><span><strong>${esc(label)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</span></label></div>`;
@@ -38,26 +39,24 @@ export function hub(C){
   const body = `
 <section class="hero">
   <div class="wrap">
+    <div class="hero-media">
+    ${photo('hero', { sizes:'(max-width:1240px) 100vw, 1200px', eager:true })}
     <div class="hero-copy">
-      <p class="chip"><i></i>${esc(H.chip)}</p>
       <h1 class="display">${C.code === 'zh' ? T(C, H.title).replace(/。(?!<\/em>)/g, '。<br>') : T(C, H.title)}</h1>
       <p class="lede">${T(C, I.t('hub.lede', { n:C.items.length, d:C.dirs.length }))}</p>
-      <div class="btns">${btn(I.t('cta.pick'), '#pick', 'btn-primary')}${btn(H.ctaAll, '#top', 'btn-ghost')}</div>
-      <div class="goal-chips" role="group" aria-label="${esc(H.goals.kicker)}">${C.goals.map(g => `<button class="gchip" type="button" data-goal="${g}">${esc(goals[g][0])}</button>`).join('')}</div>
+      <div class="btns">${btn(I.t('cta.pick'), '#pick', 'btn-light btn-lg')}${btn(H.ctaAll, '#top', 'btn-glass btn-lg')}</div>
     </div>
-    <aside class="hero-panel" aria-label="${esc(I.t('tag.hot'))}">
-      <p class="panel-t">${esc(I.t('tag.hot'))}</p>
-      <div class="rows">${C.items.filter(p => p.hot).slice(0, 4).map(p => row(C, p)).join('')}</div>
-      <dl class="stats">
-        <div><dt>${esc(H.stat.programs)}</dt><dd>${C.items.length}</dd></div>
-        <div><dt>${esc(H.stat.dirs)}</dt><dd>${C.dirs.length}</dd></div>
-        <div><dt>${esc(H.stat.countries)}</dt><dd>${C.SITE.countries}</dd></div>
-      </dl>
-    </aside>
+    <dl class="hero-stats">
+      <div><dd>${C.items.length}</dd><dt>${esc(H.stat.programs)}</dt></div>
+      <div><dd>${C.dirs.length}</dd><dt>${esc(H.stat.dirs)}</dt></div>
+      <div><dd>${C.SITE.countries}</dd><dt>${esc(H.stat.countries)}</dt></div>
+    </dl>
+    </div>
+    <div class="goal-chips" role="group" aria-label="${esc(H.goals.kicker)}">${C.goals.map(g => `<button class="gchip" type="button" data-goal="${g}">${esc(goals[g][0])}</button>`).join('')}</div>
   </div>
 </section>
 
-<section class="sec soft cv" id="dirs" aria-labelledby="h-dirs">
+<section class="sec cv" id="dirs" aria-labelledby="h-dirs">
   <div class="wrap">
     ${sh(C, 3, H.dirs.kicker, T(C, I.t('hub.dirsTitle', { n:C.dirs.length })), H.dirs.lede)}
     <div class="dirs">${C.dirs.map((d, i) => dirTile(C, d, i)).join('')}</div>
@@ -86,13 +85,13 @@ export function hub(C){
 <section class="sec" aria-labelledby="h-fish">
   <div class="wrap">
     <div class="feature rv">
+      <div class="feature-ph">${photo('fishing-hero', { sizes:'(max-width:900px) 100vw, 600px' })}</div>
       <div class="feature-copy">
-        <span class="badge live">${esc(H.fish.kicker)}</span>
         <h2 class="h2" id="h-fish">${T(C, H.fish.title)}</h2>
         <p class="lede">${T(C, H.fish.lede)}</p>
         <div class="btns">${btn(H.fish.cta, C.path('dir:fishing'), 'btn-primary')}${btn(I.t('cta.pickTour'), C.path('dir:fishing') + '#pick', 'btn-ghost')}</div>
+        <div class="rows">${['pro-gt', 'bigame-day', 'family-half'].map(id => row(C, byId[id])).join('')}</div>
       </div>
-      <div class="rows">${['pro-gt', 'bigame-day', 'family-half', 'bangkok-monsters'].map(id => row(C, byId[id])).join('')}</div>
     </div>
   </div>
 </section>
@@ -124,7 +123,7 @@ export function hub(C){
 <section class="sec stone" aria-labelledby="h-places">
   <div class="wrap">
     ${sh(C, 8, H.places.kicker, T(C, H.places.title), H.places.lede)}
-    <div class="places">${places.map(d => `<a class="place rv" href="${C.path('dest:' + d.id)}"><strong>${esc(d.name)}</strong><span>${I.num(d.count)}</span></a>`).join('')}</div>
+    <div class="places">${places.slice(0, 8).map(d => placeCard(C, d)).join('')}</div>
     <div style="margin-block-start:36px">${btn(H.places.all, C.path('dests'), 'btn-line')}</div>
     <div style="margin-block-start:clamp(80px,9vw,140px)">
       ${sh(C, 9, H.guides.kicker, T(C, H.guides.title), '')}
@@ -185,10 +184,9 @@ export function direction(C, d){
   const others = C.dirs.filter(x => x.id !== d.id);
   const body = `
 <section class="phero">
-  <div class="wrap">
+  <div class="wrap${hasPhoto('dir/' + d.id) ? ' has-ph' : ''}">${hasPhoto('dir/' + d.id) ? `<figure class="phero-ph">${photo('dir/' + d.id, { sizes:'(max-width:900px) 100vw, 560px', eager:true, max:1200 })}</figure>` : ''}
     <div class="phero-copy">
       ${crumbs(C, [[I.t('nav.dirs'), C.path('hub') + '#dirs'], [d.name, C.path('dir:' + d.id)]])}
-      <div class="phero-k">${iconTile(d.tone, d.art)}${kicker(I.t(d.status === 'live' ? 'dir.kickerLive' : 'dir.kickerSoon'))}</div>
       <h1 class="h1">${T(C, d.name)}</h1>
       <p class="lede">${T(C, d.intro)}</p>
       <dl class="facts"><div><dt>${esc(I.t('dir.programs'))}</dt><dd>${I.num(list.length)}</dd></div><div><dt>${esc(I.t('dir.from'))}</dt><dd>${I.money(minP, 'USD')}</dd></div><div><dt>${esc(I.t('dir.where'))}</dt><dd>${esc(listOf(C, dests.slice(0, 2).map(x => x.name)) || C.L.regions[list[0].reg])}</dd></div><div><dt>${esc(I.t('dir.status'))}</dt><dd>${esc(I.t(d.status === 'live' ? 'tag.live' : 'tag.soon'))}</dd></div></dl>
@@ -224,10 +222,9 @@ export function program(C, p){
   const cr = [[d.name, C.path('dir:' + d.id)], [p.title.replace(/\*/g, ''), p.href]];
   const body = `
 <section class="phero">
-  <div class="wrap">
+  <div class="wrap${hasPhoto('dir/' + p.dir) ? ' has-ph' : ''}">${hasPhoto('dir/' + p.dir) ? `<figure class="phero-ph">${photo('dir/' + p.dir, { sizes:'(max-width:900px) 100vw, 560px', eager:true, max:1200 })}</figure>` : ''}
     <div class="phero-copy">
       ${crumbs(C, cr)}
-      <div class="phero-k">${iconTile(p.tone, p.art)}${kicker(`${d.name} · ${dest ? dest.name : C.L.regions[p.reg]}`)}</div>
       <h1 class="h1">${T(C, p.title)}</h1>
       <p class="lede">${T(C, p.short)}</p>
       <dl class="facts"><div><dt>${esc(I.t('prog.where'))}</dt><dd>${esc(p.where)}</dd></div><div><dt>${esc(I.t('prog.dur'))}</dt><dd>${esc(p.durLabel)}</dd></div><div><dt>${esc(I.t('prog.when'))}</dt><dd>${esc(I.monthsRange(p.months))}</dd></div><div><dt>${esc(I.t('prog.price'))}</dt><dd>${I.t('from')} ${I.money(p.price, p.cur)}</dd></div></dl>
@@ -268,26 +265,26 @@ export function fishing(C){
   const segTabs = F.segments.map((s, i) => `<button type="button" role="tab" id="tab-${s.id}" aria-controls="seg-${s.id}" aria-selected="${i === 0}" tabindex="${i ? -1 : 0}">${esc(s.label)}</button>`).join('');
   const segPanels = F.segments.map((s, i) => `<div class="seg" role="tabpanel" id="seg-${s.id}" aria-labelledby="tab-${s.id}"${i ? ' hidden' : ''}>
     <div><h3>${T(C, s.title)}</h3><blockquote>${T(C, s.quote)}</blockquote><ul>${s.points.map(x => `<li>${T(C, x)}</li>`).join('')}</ul></div>
-    <div><div class="rows">${s.picks.map(id => row(C, C.item[id])).join('')}</div><div class="btns" style="margin-block-start:30px">${btn(I.t('fishing.segCta'), '#pick', 'btn-gold', `data-seg="${s.id}"`)}</div></div></div>`).join('');
+    <div><div class="rows">${s.picks.map(id => row(C, C.item[id])).join('')}</div><div class="btns" style="margin-block-start:30px">${btn(I.t('fishing.segCta'), '#pick', 'btn-primary', `data-seg="${s.id}"`)}</div></div></div>`).join('');
   const cal = `<table><thead><tr><th></th>${I.months.map((m, i) => `<th scope="col" class="${i === nowM ? 'now' : ''}" title="${esc(I.monthsLong[i])}"><span class="ml">${esc(m)}</span><span class="ms" aria-hidden="true">${i + 1}</span></th>`).join('')}</tr></thead><tbody>
     ${C.SEASON.map(([k, v]) => `<tr><th scope="row">${esc(F.season[k][0])}<small>${esc(F.season[k][1])}</small></th>${v.map((x, i) => `<td class="l${x}${i === nowM ? ' now' : ''}" title="${esc(F.season[k][0])} · ${esc(I.monthsLong[i])}: ${esc(F.levels[x])}"><i></i></td>`).join('')}</tr>`).join('')}
     <tr><th scope="row">${esc(F.sea[0])}<small>${esc(F.sea[1])}</small></th>${C.SEA_STATE.map((x, i) => `<td class="l${x}${i === nowM ? ' now' : ''}" title="${esc(I.monthsLong[i])}: ${esc(F.levels[x])}"><i></i></td>`).join('')}</tr></tbody></table>`;
   const q = F.quiz;
   const optsOf = (name, arr) => arr.map(([v, n, s], i) => opt(name, v, n, s, i + 1)).join('');
   const body = `
-<section class="hero">
+<section class="hero hero-fish">
   <div class="wrap">
+    ${crumbs(C, [[d.name, C.path('dir:fishing')]])}
+    <div class="hero-media">
+    ${photo('fishing-hero', { sizes:'(max-width:1240px) 100vw, 1200px', eager:true })}
     <div class="hero-copy">
-      ${crumbs(C, [[d.name, C.path('dir:fishing')]])}
-      <p class="chip" id="live"><i></i><span>${esc(F.chip)}</span></p>
       <h1 class="display">${T(C, F.title)}</h1>
       <p class="lede">${T(C, F.lede)}</p>
-      <div class="btns">${btn(I.t('cta.pickTour'), '#pick', 'btn-primary')}${C.messengers[0] ? btn(C.messengers[0].label, C.messengers[0].href, 'btn-ghost', 'target="_blank" rel="noopener"') : ''}</div>
+      <div class="btns">${btn(I.t('cta.pickTour'), '#pick', 'btn-light btn-lg')}${C.messengers[0] ? btn(C.messengers[0].label, C.messengers[0].href, 'btn-glass btn-lg', 'target="_blank" rel="noopener"') : ''}</div>
+      <p class="hero-note" id="live"><span>${esc(F.chip)}</span></p>
     </div>
-    <aside class="hero-panel">
-      <div class="panel-cover t-navy">${use('fish-sailfish', 'art')}</div>
-      <dl class="stats two">${F.proof.map(([b, x]) => `<div><dt>${esc(x)}</dt><dd>${esc(b)}</dd></div>`).join('')}</dl>
-    </aside>
+    <dl class="hero-stats">${F.proof.map(([b, x]) => `<div><dd>${esc(b)}</dd><dt>${esc(x)}</dt></div>`).join('')}</dl>
+    </div>
   </div>
 </section>
 <nav class="subnav" aria-label="${esc(d.name)}"><div class="wrap">${F.subnav.map(([n, h]) => `<a href="#${h}">${esc(n)}</a>`).join('')}</div></nav>
@@ -384,13 +381,12 @@ export function tour(C, t){
   const cr = [[d.name, C.path('dir:fishing')], [t.title, t.href]];
   const body = `
 <section class="phero">
-  <div class="wrap">
+  <div class="wrap${hasPhoto('fishing-hero') ? ' has-ph' : ''}">${hasPhoto('fishing-hero') ? `<figure class="phero-ph">${photo('fishing-hero', { sizes:'(max-width:900px) 100vw, 560px', eager:true, max:1200 })}</figure>` : ''}
     <div class="phero-copy">
       ${crumbs(C, cr)}
-      <div class="phero-k">${iconTile(t.tone, t.art)}${kicker(t.where)}</div>
       <h1 class="h1">${T(C, t.title)}</h1>
       <p class="lede">${T(C, t.short)}</p>
-      <dl class="facts"><div><dt>${esc(I.t('prog.dur'))}</dt><dd>${esc(t.durLabel)}</dd></div><div><dt>${esc(I.t('tour.group'))}</dt><dd>${esc(t.groupLabel)}</dd></div><div><dt>${esc(I.t('tour.format'))}</dt><dd>${esc(t.kind)}</dd></div><div><dt>${esc(I.t('prog.price'))}</dt><dd>${I.t('from')} ${I.money(t.price, 'THB')}</dd></div></dl>
+      <dl class="facts"><div><dt>${esc(I.t('prog.where'))}</dt><dd>${esc(t.where)}</dd></div><div><dt>${esc(I.t('prog.dur'))}</dt><dd>${esc(t.durLabel)}</dd></div><div><dt>${esc(I.t('tour.group'))}</dt><dd>${esc(t.groupLabel)}</dd></div><div><dt>${esc(I.t('tour.format'))}</dt><dd>${esc(t.kind)}</dd></div><div><dt>${esc(I.t('prog.price'))}</dt><dd>${I.t('from')} ${I.money(t.price, 'THB')}</dd></div></dl>
     </div>
   </div>
 </section>
@@ -428,7 +424,7 @@ export function dests(C){
   ${crumbs(C, [[I.t('nav.places'), C.path('dests')]])}${kicker(P.kicker)}<h1 class="h1">${T(C, P.title)}</h1><p class="lede">${T(C, P.lede)}</p>
 </div></div></section>
 <section class="sec"><div class="wrap">
-  <div class="gcards">${list.map((d, i) => `<a class="gcard rv" href="${C.path('dest:' + d.id)}"><div class="card-top">${iconTile(d.tone, d.art)}<span class="card-k">${esc(C.L.regions[d.reg])}</span><span class="badge soft">${esc(I.count(d.count, C.L.nouns.program))}</span></div><h3>${T(C, d.title)}</h3><p class="card-s">${T(C, firstSentence(d.intro))}</p></a>`).join('')}</div>
+  <div class="gcards">${list.map((d, i) => `<a class="gcard rv${hasPhoto('dest/' + d.id) ? ' has-ph' : ''}" href="${C.path('dest:' + d.id)}">${hasPhoto('dest/' + d.id) ? `<span class="gcard-ph">${photo('dest/' + d.id, { sizes:'(max-width:640px) 100vw, (max-width:1000px) 50vw, 380px', max:1200 })}</span>` : ''}<div class="card-top"><span class="card-k">${esc(C.L.regions[d.reg])}</span><span class="badge soft">${esc(I.count(d.count, C.L.nouns.program))}</span></div><h2 class="gcard-h">${T(C, d.title)}</h2><p class="card-s">${T(C, firstSentence(d.intro))}</p></a>`).join('')}</div>
 </div></section>`;
   return page(C, { key:'dests', title:P.metaTitle, desc:P.metaDesc, body, lds:[crumbsLd(C, [[I.t('nav.places'), C.path('dests')]])] });
 }
@@ -439,8 +435,8 @@ export function dest(C, d){
   const guides = C.guides.filter(g => g.related.some(id => list.find(p => p.id === id)));
   const cr = [[I.t('nav.places'), C.path('dests')], [d.name, C.path('dest:' + d.id)]];
   const body = `
-<section class="phero"><div class="wrap">
-  <div class="phero-copy">${crumbs(C, cr)}<div class="phero-k">${iconTile(d.tone, d.art)}${kicker(C.L.regions[d.reg])}</div><h1 class="h1">${T(C, d.title)}</h1><p class="lede">${T(C, d.intro)}</p>
+<section class="phero"><div class="wrap${hasPhoto('dest/' + d.id) ? ' has-ph' : ''}">${hasPhoto('dest/' + d.id) ? `<figure class="phero-ph">${photo('dest/' + d.id, { sizes:'(max-width:900px) 100vw, 560px', eager:true, max:1200 })}</figure>` : ''}
+  <div class="phero-copy">${crumbs(C, cr)}<h1 class="h1">${T(C, d.title)}</h1><p class="lede">${T(C, d.intro)}</p>
     <dl class="facts"><div><dt>${esc(I.t('dest.programs'))}</dt><dd>${I.num(list.length)}</dd></div><div><dt>${esc(I.t('dest.dirs'))}</dt><dd>${I.num(dirs.length)}</dd></div><div><dt>${esc(I.t('dest.from'))}</dt><dd>${I.money(Math.min(...list.map(p => p.usdEq)), 'USD')}</dd></div><div><dt>${esc(I.t('dest.live'))}</dt><dd>${I.num(list.filter(p => p.live).length)}</dd></div></dl></div>
 </div></section>
 <section class="sec stone"><div class="wrap split" style="align-items:start">
@@ -464,7 +460,7 @@ export function guides(C){
 <section class="phero"><div class="wrap single"><div class="phero-copy">
   ${crumbs(C, [[I.t('nav.guides'), C.path('guides')]])}${kicker(G.kicker)}<h1 class="h1">${T(C, G.title)}</h1><p class="lede">${T(C, G.lede)}</p>
 </div></div></section>
-<section class="sec"><div class="wrap"><div class="gcards">${C.guides.map(g => gcard(C, g)).join('')}</div></div></section>`;
+<section class="sec"><div class="wrap"><div class="gcards">${C.guides.map(g => gcard(C, g, 'h2')).join('')}</div></div></section>`;
   return page(C, { key:'guides', title:G.metaTitle, desc:G.metaDesc, body, lds:[crumbsLd(C, [[I.t('nav.guides'), C.path('guides')]])] });
 }
 
@@ -487,8 +483,8 @@ export function guide(C, g){
   const rel = g.related.map(id => C.item[id]).filter(Boolean);
   const upd = new Intl.DateTimeFormat(C.I.locale, { day:'numeric', month:'long', year:'numeric' }).format(new Date(g.updated));
   const body = `
-<section class="phero"><div class="wrap">
-  <div class="phero-copy">${crumbs(C, cr)}<div class="phero-k">${iconTile(g.tone, g.art)}${kicker(G.kicker || (g.dir ? C.dir[g.dir].name : I.t('guides.kicker')))}</div><h1 class="h1">${T(C, G.title)}</h1><p class="lede">${T(C, G.desc)}</p>
+<section class="phero"><div class="wrap${hasPhoto(g.dir ? 'dir/' + g.dir : '') ? ' has-ph' : ''}">${hasPhoto(g.dir ? 'dir/' + g.dir : '') ? `<figure class="phero-ph">${photo(g.dir ? 'dir/' + g.dir : '', { sizes:'(max-width:900px) 100vw, 560px', eager:true, max:1200 })}</figure>` : ''}
+  <div class="phero-copy">${crumbs(C, cr)}<h1 class="h1">${T(C, G.title)}</h1><p class="lede">${T(C, G.desc)}</p>
     <p class="byline"><span>${esc(I.t('guides.by'))}</span><span>${esc(I.t('guides.updated'))} ${esc(upd)}</span><span>${esc(G.read)}</span></p></div>
 </div></section>
 <section class="sec sec-t"><div class="wrap article">
@@ -515,7 +511,7 @@ export function about(C){
 <section class="sec"><div class="wrap manifest"><div class="rv">${kicker(A.story.kicker)}<blockquote style="margin-block-start:26px">${T(C, A.story.quote)}</blockquote></div><aside class="rv" style="--d:2">${A.story.text.map(p => `<p>${T(C, p)}</p>`).join('')}</aside></div></section>
 <section class="sec stone"><div class="wrap">${sh(C, 2, A.principles.kicker, T(C, A.principles.title), '')}${stepsHtml(C, A.principles.items)}</div></section>
 <section class="sec soft" id="visa"><div class="wrap split" style="align-items:start">
-  <div class="rv">${kicker(A.visa.kicker)}<h2 class="h2" style="margin-block:22px 26px">${T(C, A.visa.title)}</h2><p class="lede">${T(C, A.visa.lede)}</p><div class="btns" style="margin-block-start:30px">${btn(A.visa.cta, C.path('guide:thailand-visa'), 'btn-gold')}</div></div>
+  <div class="rv">${kicker(A.visa.kicker)}<h2 class="h2" style="margin-block:22px 26px">${T(C, A.visa.title)}</h2><p class="lede">${T(C, A.visa.lede)}</p><div class="btns" style="margin-block-start:30px">${btn(A.visa.cta, C.path('guide:thailand-visa'), 'btn-primary')}</div></div>
   <div class="rv" style="--d:2"><div class="rows">${A.visa.points.map(([h, p]) => `<div class="row" style="grid-template-columns:1fr"><div><strong>${T(C, h)}</strong><span>${T(C, p)}</span></div></div>`).join('')}</div><p class="small" style="margin-block-start:18px">${T(C, A.visa.note)}</p></div>
 </div></section>
 <section class="sec"><div class="wrap">${sh(C, 3, A.contact.kicker, T(C, A.contact.title), A.contact.lede)}
