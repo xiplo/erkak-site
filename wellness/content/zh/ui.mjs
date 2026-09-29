@@ -15,12 +15,14 @@ export const units = {
   session:{ other:'次咨询' }
 };
 export const nouns = {
+  spot:{ other:'个钓点' },
   angler:{ other:'位钓手' },
   guest:{ other:'位宾客' },
   program:{ other:'个项目' }
 };
 
 export const ui = {
+  fishmap:{ aria:'泰国地图：钓鱼区域与钓点' },
   pay:{ cta:'刷卡支付 {p}% 定金', note:'通过 Stripe 安全支付，尾款在出海当天支付。', doneTitle:'定金已收到', doneText:'谢谢！工作时间内，礼宾顾问会在 15 分钟内确认日期并发送行程细节。', doneBack:'返回海钓' },
   time:{ min:'{n} 分钟', h:'{n} 小时' },
   from:'起价', allYear:'全年', notFound:'页面不存在',

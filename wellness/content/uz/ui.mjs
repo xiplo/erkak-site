@@ -15,12 +15,14 @@ export const units = {
   session:{ one:'seans', other:'seans' }
 };
 export const nouns = {
+  spot:{ one:'nuqta', other:'nuqta' },
   angler:{ one:'baliqchi', other:'baliqchi' },
   guest:{ one:'mehmon', other:'mehmon' },
   program:{ one:'dastur', other:'dastur' }
 };
 
 export const ui = {
+  fishmap:{ aria:'Tailand xaritasi: baliq ovi hududlari va nuqtalari' },
   pay:{ cta:'Karta bilan {p}% oldindan toʻlash', note:'Stripe orqali xavfsiz toʻlov. Qolgan qismi chiqish kuni toʻlanadi.', doneTitle:'Oldindan toʻlov qabul qilindi', doneText:'Rahmat! Ish vaqtida konsyerj 15 daqiqa ichida sanani tasdiqlaydi va tafsilotlarni yuboradi.', doneBack:'Baliq oviga qaytish' },
   time:{ min:'{n} daq', h:'{n} soat' },
   from:'kamida', allYear:'Yil boʻyi', notFound:'Sahifa topilmadi',

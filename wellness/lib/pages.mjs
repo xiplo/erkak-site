@@ -1,6 +1,6 @@
 // ERKAK · страницы. Каждая функция возвращает готовый HTML для одного языка (контекст C).
 import { esc, inline } from './util.mjs';
-import { andamanMap, icon, placeShort } from './art.mjs';
+import { andamanMap, thaiMap, icon, placeShort } from './art.mjs';
 import { page, btn, T, sh, price, crumbs, crumbsLd, faq, faqLd, monthsBar, ticks, card, dirTile, placeCard, row, gcard, leadForm, photo } from './site.mjs';
 import { hasPhoto } from './photo.mjs';
 
@@ -322,7 +322,8 @@ export function fishing(C){
     <div class="chart rv">${andamanMap(C.SPOTS, F.spots, I)}</div>
     <div><div class="spot" id="spot" aria-live="polite"></div>
       <div class="legend"><span class="status ok">${esc(I.t('fishing.map.allowed'))}</span><span class="status no">${esc(I.t('fishing.map.banned'))}</span></div>
-      <div class="spot-list">${C.SPOTS.map(s => `<button type="button" data-spot="${s.id}">${esc(F.spots[s.id].name)}</button>`).join('')}</div></div>
+      <div class="spot-list">${C.SPOTS.filter(s => s.reg === 'andaman' || s.reg === 'khaosok').map(s => `<button type="button" data-spot="${s.id}">${esc(F.spots[s.id].name)}</button>`).join('')}</div>
+      <p style="margin-block-start:18px"><a class="link" href="${C.path('fishmap')}">${esc(C.L.fishing.mapPage.link)}</a></p></div>
   </div>
 </div></section>
 
@@ -538,3 +539,36 @@ export function payDone(C){
 </div></div></section>`;
   return page(C, { key:'paydone', title:I.t('pay.doneTitle') + ' | ERKAK', desc:I.t('pay.doneText'), body, noindex:true, nav:'fish' });
 }
+
+// ════ Где можно рыбачить в Таиланде: карта районов и точек ═══════════
+export function fishMap(C){
+  const I = C.I, F = C.L.fishing, M = F.mapPage;
+  const cr = [[C.dir.fishing.name, C.path('dir:fishing')], [M.crumb, C.path('fishmap')]];
+  const spotsOf = r => C.SPOTS.filter(s => s.reg === r);
+  const row = s => { const x = F.spots[s.id];
+    return `<article class="spot-row rv"><span class="status ${s.ok ? 'ok' : 'no'}">${esc(I.t(s.ok ? 'fishing.map.allowed' : 'fishing.map.banned'))}</span><h3>${esc(x.name)}</h3>
+      ${s.ok ? `<dl><div><dt>${esc(C.L.client.spotRun)}</dt><dd>${esc(x.run)}</dd></div><div><dt>${esc(C.L.client.spotFish)}</dt><dd>${esc(x.fish)}</dd></div><div><dt>${esc(C.L.client.spotHow)}</dt><dd>${esc(x.how)}</dd></div></dl>` : ''}<p>${T(C, x.note)}</p></article>`; };
+  const regions = C.FISH_REGIONS.map(r => { const [name, sub] = M.regions[r.id], t = C.item[r.tour], sp = spotsOf(r.id);
+    return `<section class="sec${r.id === 'gulf' || r.id === 'khaosok' ? ' soft' : ''}" id="reg-${r.id}"><div class="wrap">
+  <header class="sh rv"><h2 class="h2">${esc(name)}</h2><p class="lede">${T(C, sub)}</p></header>
+  ${r.id === 'andaman' ? `<div class="map-wrap"><div class="chart rv">${andamanMap(C.SPOTS, F.spots, I)}</div><div><div class="spot" id="spot" data-cta="${t.href}" aria-live="polite"></div>
+    <div class="legend"><span class="status ok">${esc(I.t('fishing.map.allowed'))}</span><span class="status no">${esc(I.t('fishing.map.banned'))}</span></div>
+    <div class="spot-list">${sp.map(s => `<button type="button" data-spot="${s.id}">${esc(F.spots[s.id].name)}</button>`).join('')}</div></div></div>`
+    : `<div class="spot-rows">${sp.map(row).join('')}</div>`}
+  <p style="margin-block-start:24px">${btn(M.tourCta.replace('{tour}', t.title.replace(/\*/g, '')), t.href, 'btn-ghost')}</p>
+</div></section>`; }).join('\n');
+  const body = `
+<section class="phero"><div class="wrap has-ph"><figure class="phero-ph phero-map">${thaiMap(C.FISH_REGIONS, M.regions, C.SPOTS, I)}</figure><div class="phero-copy">
+  ${crumbs(C, cr)}<h1 class="h1">${T(C, M.title)}</h1><p class="lede">${T(C, M.lede)}</p>
+  <div class="reg-links">${C.FISH_REGIONS.map(r => `<a href="#reg-${r.id}"><strong>${esc(M.regions[r.id][0])}</strong><span>${esc(I.count(spotsOf(r.id).filter(s => s.ok).length, C.L.nouns.spot))}</span></a>`).join('')}</div>
+</div></div></section>
+${regions}
+<section class="sec" id="rules"><div class="wrap split">
+  <div class="rv"><h2 class="h2">${T(C, M.rulesTitle)}</h2></div>
+  <div class="rv">${ticks(C, M.rules)}<div class="btns" style="margin-block-start:24px">${btn(I.t('cta.pickTour'), C.path('dir:fishing') + '#pick', 'btn-primary')}${btn(M.allTours, C.path('dir:fishing') + '#tours', 'btn-ghost')}</div></div>
+</div></section>`;
+  const lds = [crumbsLd(C, cr), { '@context':'https://schema.org', '@type':'ItemList', name:M.title.replace(/\*/g, ''),
+    itemListElement:C.SPOTS.filter(s => s.ok).map((s, i) => ({ '@type':'ListItem', position:i + 1, item:{ '@type':'Place', name:F.spots[s.id].name, geo:{ '@type':'GeoCoordinates', latitude:s.lat, longitude:s.lon } } })) }];
+  return page(C, { key:'fishmap', title:M.metaTitle, desc:M.metaDesc, body, lds, nav:'fish', scripts:['fishing'], og:'/assets/og/fishing.jpg' });
+}
+

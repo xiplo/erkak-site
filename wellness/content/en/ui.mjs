@@ -15,12 +15,14 @@ export const units = {
   session:{ one:'session', other:'sessions' }
 };
 export const nouns = {
+  spot:{ one:'spot', other:'spots' },
   angler:{ one:'angler', other:'anglers' },
   guest:{ one:'guest', other:'guests' },
   program:{ one:'program', other:'programs' }
 };
 
 export const ui = {
+  fishmap:{ aria:'Map of Thailand: fishing areas and spots' },
   pay:{ cta:'Pay a {p}% deposit by card', note:'Secure payment via Stripe. The balance is paid on the day of the trip.', doneTitle:'Deposit received', doneText:'Thank you! Your concierge will confirm the date and send the trip details within 15 minutes during working hours.', doneBack:'Back to fishing' },
   time:{ min:'{n} min', h:'{n} h' },
   from:'from', allYear:'Year-round', notFound:'Page not found',

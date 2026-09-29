@@ -15,12 +15,14 @@ export const units = {
   session:{ one:'Sitzung', other:'Sitzungen' }
 };
 export const nouns = {
+  spot:{ one:'Spot', other:'Spots' },
   angler:{ one:'Angler', other:'Angler' },
   guest:{ one:'Gast', other:'Gäste' },
   program:{ one:'Programm', other:'Programme' }
 };
 
 export const ui = {
+  fishmap:{ aria:'Karte von Thailand: Angelgebiete und Spots' },
   pay:{ cta:'{p} % Anzahlung per Karte', note:'Sichere Zahlung über Stripe. Der Rest wird am Tag der Ausfahrt bezahlt.', doneTitle:'Anzahlung erhalten', doneText:'Vielen Dank! Ihr Concierge bestätigt den Termin und sendet die Details innerhalb von 15 Minuten während der Geschäftszeiten.', doneBack:'Zurück zum Angeln' },
   time:{ min:'{n} Min.', h:'{n} Std.' },
   from:'ab', allYear:'Ganzjährig', notFound:'Seite nicht gefunden',

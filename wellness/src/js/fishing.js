@@ -42,7 +42,7 @@
     var s = (E.spots || {})[id]; if (!s || !card) return;
     card.innerHTML = '<span class="status ' + (s.ok ? 'ok' : 'no') + '">' + esc(s.ok ? U.allowed : U.banned) + '</span><h3>' + esc(s.name) + '</h3>' +
       '<dl><dt>' + esc(U.spotRun) + '</dt><dd>' + esc(s.run) + '</dd><dt>' + esc(U.spotFish) + '</dt><dd>' + esc(s.fish) + '</dd><dt>' + esc(U.spotHow) + '</dt><dd>' + esc(s.how) + '</dd></dl><p>' + esc(s.note) + '</p>' +
-      (s.ok ? '<a class="btn btn-primary" href="#pick">' + esc(U.spotCta) + '</a>' : '');
+      (s.ok ? '<a class="btn btn-primary" href="' + esc(card.getAttribute('data-cta') || '#pick') + '">' + esc(U.spotCta) + '</a>' : '');
     $$('.pin').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-spot') === id); });
     $$('.spot-list button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-spot') === id); });
   }

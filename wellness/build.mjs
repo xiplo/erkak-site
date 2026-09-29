@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SITE, GOALS, DIRECTIONS, DESTINATIONS, PROGRAMS, TOURS, SPOTS, SEASON, SEA_STATE, GUIDES, COMBOS } from './content/core.mjs';
+import { SITE, GOALS, DIRECTIONS, DESTINATIONS, PROGRAMS, TOURS, SPOTS, FISH_REGIONS, SEASON, SEA_STATE, GUIDES, COMBOS } from './content/core.mjs';
 import { makeI18n } from './lib/i18n.mjs';
 import { sprite, setSprite } from './lib/art.mjs';
 import { esc, hash } from './lib/util.mjs';
@@ -42,6 +42,7 @@ export function route(code, key){
     case 'dir': return b + DIRS[id].slug + '/';
     case 'prog': { const p = PROGS[id]; return b + DIRS[p.dir].slug + '/' + p.slug + '/'; }
     case 'tour': return b + 'fishing/' + id + '/';
+    case 'fishmap': return b + 'fishing/map/';
     case 'dests': return b + 'destinations/';
     case 'dest': return b + 'destinations/' + DESTS[id].slug + '/';
     case 'guides': return b + 'guides/';
@@ -93,7 +94,7 @@ function messengers(L){
 
 function makeContext(code){
   const L = CONTENT[code], I = makeI18n(L, SITE);
-  const C = { code, L, I, SITE, langs:LANGMETA, cur:L.meta.currency, goals:GOALS, combos:COMBOS, SEASON, SEA_STATE, SPOTS };
+  const C = { code, L, I, SITE, langs:LANGMETA, cur:L.meta.currency, goals:GOALS, combos:COMBOS, SEASON, SEA_STATE, SPOTS, FISH_REGIONS };
   C.path = key => route(code, key);
   C.pathIn = (c, key) => route(c, key);
   C.asset = name => name === 'data' ? ASSETS['data:' + code] : ASSETS[name];
@@ -165,6 +166,7 @@ for (const code of LANGS) {
   const add = (key, html) => { write(C.path(key), html); if (code === LANGS[0]) urls.push(key); pages++; };
   add('hub', Pages.hub(C));
   add('dir:fishing', Pages.fishing(C));
+  add('fishmap', Pages.fishMap(C));
   for (const t of C.tours) add('tour:' + t.id, Pages.tour(C, t));
   for (const d of C.dirs) if (d.id !== 'fishing') add('dir:' + d.id, Pages.direction(C, d));
   for (const p of C.items) if (p.type === 'p') add('prog:' + p.id, Pages.program(C, p));

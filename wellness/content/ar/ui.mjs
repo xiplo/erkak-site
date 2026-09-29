@@ -16,12 +16,14 @@ export const units = {
   session:{ zero:'جلسة', one:'جلسة', two:'جلستان', few:'جلسات', many:'جلسة', other:'جلسة' }
 };
 export const nouns = {
+  spot:{ zero:'نقطة', one:'نقطة', two:'نقطتان', few:'نقاط', many:'نقطة', other:'نقطة' },
   angler:{ zero:'صياد', one:'صياد', two:'صيادان', few:'صيادين', many:'صيادًا', other:'صياد' },
   guest:{ zero:'ضيف', one:'ضيف', two:'ضيفان', few:'ضيوف', many:'ضيفًا', other:'ضيف' },
   program:{ zero:'برنامج', one:'برنامج', two:'برنامجان', few:'برامج', many:'برنامجًا', other:'برنامج' }
 };
 
 export const ui = {
+  fishmap:{ aria:'خريطة تايلاند: مناطق الصيد ومواقعه' },
   pay:{ cta:'ادفع عربون {p}% بالبطاقة', note:'دفع آمن عبر Stripe، ويُدفع الباقي يوم الرحلة.', doneTitle:'تم استلام العربون', doneText:'شكرًا لك! سيؤكد الكونسيرج الموعد ويرسل تفاصيل الرحلة خلال 15 دقيقة في ساعات العمل.', doneBack:'العودة إلى الصيد' },
   time:{ min:'{n} دقيقة', h:'{n} ساعة' },
   from:'ابتداءً من', allYear:'طوال العام', notFound:'الصفحة غير موجودة',

@@ -204,17 +204,29 @@ export const TOURS = [
 
 // ── Споты карты (координаты ориентировочные). ok:false — рыбалка запрещена ──
 export const SPOTS = [
-  { id:'racha-yai',   lat:7.60, lon:98.37, ok:true },
-  { id:'racha-noi',   lat:7.49, lon:98.32, ok:true },
-  { id:'shelf',       lat:7.40, lon:97.95, ok:true },
-  { id:'khaolak-fad', lat:8.62, lon:98.08, ok:true },
-  { id:'phangnga',    lat:8.10, lon:98.52, ok:true },
-  { id:'similan',     lat:8.65, lon:97.64, ok:false },
-  { id:'surin',       lat:9.40, lon:97.90, ok:false },
-  { id:'phiphi',      lat:7.74, lon:98.77, ok:false },
-  { id:'shark',       lat:7.81, lon:98.51, ok:false, la:'t' },
-  { id:'lanta',       lat:7.20, lon:98.90, ok:false, la:'l' },
-  { id:'khaosok',     lat:8.96, lon:98.78, ok:true,  la:'l' }
+  { id:'racha-yai',   reg:'andaman', lat:7.60, lon:98.37, ok:true },
+  { id:'racha-noi',   reg:'andaman', lat:7.49, lon:98.32, ok:true },
+  { id:'shelf',       reg:'andaman', lat:7.40, lon:97.95, ok:true },
+  { id:'khaolak-fad', reg:'andaman', lat:8.62, lon:98.08, ok:true },
+  { id:'phangnga',    reg:'andaman', lat:8.10, lon:98.52, ok:true },
+  { id:'similan',     reg:'andaman', lat:8.65, lon:97.64, ok:false },
+  { id:'surin',       reg:'andaman', lat:9.40, lon:97.90, ok:false },
+  { id:'phiphi',      reg:'andaman', lat:7.74, lon:98.77, ok:false },
+  { id:'shark',       reg:'andaman', lat:7.81, lon:98.51, ok:false, la:'t' },
+  { id:'lanta',       reg:'andaman', lat:7.20, lon:98.90, ok:false, la:'l' },
+  { id:'khaosok',     reg:'khaosok', lat:8.96, lon:98.78, ok:true,  la:'l' },
+  { id:'pattaya',     reg:'gulf',    lat:12.93, lon:100.78, ok:true },
+  { id:'samui-south', reg:'gulf',    lat:9.40, lon:99.95, ok:true },
+  { id:'angthong',    reg:'gulf',    lat:9.63, lon:99.67, ok:false },
+  { id:'bungsamran',  reg:'bangkok', lat:13.84, lon:100.70, ok:true },
+  { id:'maeklong',    reg:'bangkok', lat:13.41, lon:99.99, ok:true }
+];
+// Районы на общей карте Таиланда (страница /fishing/map/). tour — ближайший тур для кнопки
+export const FISH_REGIONS = [
+  { id:'andaman', lat:8.0,  lon:98.25, tour:'first-strike' },
+  { id:'gulf',    lat:11.2, lon:100.3, tour:'gulf-private' },
+  { id:'bangkok', lat:13.75, lon:100.5, tour:'bangkok-monsters' },
+  { id:'khaosok', lat:8.95, lon:98.8,  tour:'khaosok-jungle' }
 ];
 
 // ── Календарь клёва: 0 нет · 1 бывает · 2 хорошо · 3 пик (янв…дек) ──

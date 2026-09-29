@@ -103,7 +103,8 @@ export const isFish = a => artId(a).startsWith('fish-');
 export const placeShort = where => String(where || '').split(/\s*[,·(（、،/]\s*|\s+(?:or|and|oder|und|или|и|yoki|va|أو)\s+|[或和]/)[0].trim();
 
 // ── Схема Андаманского моря ─────────────────────────────────────────────
-export function andamanMap(spots, names, I){
+export function andamanMap(allSpots, names, I){
+  const spots = allSpots.filter(s => s.reg === 'andaman' || s.reg === 'khaosok');
   // Подписи на карте (карта всегда LTR): арабский текст — отдельным RTL-фрагментом, чтобы «… وFAD» не переставлялось
   const iso = s => I.dir === 'rtl' ? '\u2067' + esc(s) + '\u2069' : esc(s);
   const B = { w0:97.45, w1:99.25, n:9.55, s:6.95 }, K = 300;
@@ -134,5 +135,22 @@ export function andamanMap(spots, names, I){
   ${pins}
   <g transform="translate(${W - 60},62)" class="rose"><circle r="24"/><path d="M0,-32V32M-32,0H32"/><path d="M0,-24L5,0 0,24 -5,0Z" class="needle"/><text y="-38" text-anchor="middle">N</text></g>
 </svg>`;
+}
+
+// ── Схема Таиланда: районы рыбалки (страница «Где можно рыбачить») ──
+// Контур упрощённый, масштаб условный — это навигация по районам, а не навигационная карта.
+const TH = [[20.45,99.9],[20.35,100.1],[19.6,100.5],[19.65,101.2],[18.4,101.1],[17.9,102.0],[17.88,102.75],[18.2,103.3],[18.4,103.95],[17.45,104.8],[16.5,104.75],[15.4,105.6],[14.35,105.2],[14.4,103.5],[14.25,102.4],[13.6,102.4],[12.7,102.35],[11.65,102.9],[12.2,102.3],[12.6,101.9],[12.65,101.3],[12.7,100.9],[13.1,100.9],[13.45,100.95],[13.5,100.6],[13.4,100.1],[12.8,99.97],[12.55,99.95],[11.8,99.8],[11.2,99.55],[10.5,99.2],[9.9,99.1],[9.3,99.3],[9.2,99.8],[8.6,100.0],[8.4,100.2],[7.6,100.4],[7.2,100.6],[6.9,101.2],[6.4,101.8],[6.1,102.1],[5.9,101.3],[6.4,100.9],[6.5,100.2],[6.8,99.8],[7.3,99.4],[7.8,99.05],[8.3,98.6],[8.1,98.3],[8.6,98.25],[9.4,98.4],[10.0,98.6],[10.9,99.4],[11.6,99.6],[12.2,99.3],[13.0,99.1],[13.9,99.0],[15.3,98.4],[16.0,98.6],[16.7,98.55],[17.5,97.8],[18.3,97.5],[19.2,97.8],[19.8,97.9],[20.1,98.8],[20.35,99.5]];
+export function thaiMap(regions, names, spots, I){
+  const B = { w0:96.2, w1:105.9, n:20.7, s:5.2 }, K = 44;
+  const W = (B.w1 - B.w0) * K, H = (B.n - B.s) * K;
+  const P = (lat, lon) => [((lon - B.w0) * K).toFixed(1), ((B.n - lat) * K).toFixed(1)];
+  const path = 'M' + TH.map(([a, o]) => P(a, o).join(',')).join('L') + 'Z';
+  const dots = spots.map(s => { const [x, y] = P(s.lat, s.lon); return `<circle class="${s.ok ? 'ok' : 'no'}" cx="${x}" cy="${y}" r="3"/>`; }).join('');
+  const regs = regions.map(r => { const [x, y] = P(r.lat, r.lon), n = names[r.id]; const left = r.id === 'andaman' || r.id === 'khaosok';
+    const below = r.id === 'andaman'; // длинная подпись у левого края — под меткой
+    return `<a class="reg" href="#reg-${r.id}"><circle cx="${x}" cy="${y}" r="15"/><text x="${below ? x : left ? +x - 22 : +x + 22}" y="${below ? +y + 38 : +y + 5}" text-anchor="${below ? 'middle' : left ? 'end' : 'start'}">${esc(n[0])}</text></a>`; }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(I.t('fishmap.aria'))}"><rect width="${W}" height="${H}" fill="#EAF4F8"/>
+  <path d="${path}" fill="#FBFAF7" stroke="#C9D3DC" stroke-width="1.2" stroke-linejoin="round"/>
+  <g class="dots">${dots}</g><g class="regs">${regs}</g></svg>`;
 }
 

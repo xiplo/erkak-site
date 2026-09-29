@@ -660,3 +660,28 @@ em,i{font-style:normal}
 .pay-note{margin-block-start:-4px}
 [data-pay] .ico{inline-size:18px;block-size:18px}
 @media(max-width:760px){.consent{inset-inline:12px;inset-block-end:82px;max-inline-size:none}}
+/* Карта рыбалки Таиланда */
+.phero-map,.phero .phero-map{aspect-ratio:auto;background:#EAF4F8}
+.phero-map svg{inline-size:100%;block-size:auto;max-block-size:620px}
+.phero-map .dots circle{stroke:#fff;stroke-width:1}
+.phero-map .dots .ok{fill:var(--ok)}
+.phero-map .dots .no{fill:var(--no)}
+.phero-map .reg circle{fill:rgba(29,32,37,.08);stroke:var(--ink);stroke-width:1.2}
+.phero-map .reg text{font:600 15px var(--sans);fill:var(--ink);paint-order:stroke;stroke:#EAF4F8;stroke-width:4px}
+.phero-map .reg:hover circle,.phero-map .reg:focus circle{fill:rgba(29,32,37,.18)}
+[dir=rtl] .phero-map svg{direction:ltr}
+.reg-links{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.reg-links a{display:grid;gap:2px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:#fff;transition:border-color .2s}
+.reg-links a:hover{border-color:var(--ink)}
+.reg-links strong{font-size:15px}
+.reg-links span{font-size:13px;color:var(--ink-3)}
+.spot-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.spot-row{display:grid;gap:10px;align-content:start;padding:20px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg)}
+.spot-row h3{font-size:18px}
+.spot-row dl{margin:0;display:grid;gap:6px;font-size:14px}
+.spot-row dl div{display:grid;grid-template-columns:70px 1fr;gap:10px}
+.spot-row dt{color:var(--ink-3)}
+.spot-row dd{margin:0}
+.spot-row p{font-size:14px;color:var(--ink-2)}
+@media(max-width:900px){.phero .phero-map{order:2;max-inline-size:520px;margin-inline:auto}}
+@media(max-width:560px){.btn{white-space:normal;max-inline-size:100%}}
