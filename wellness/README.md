@@ -61,6 +61,7 @@ node tools/check.mjs           # собранный сайт: ссылки, як
 STATIC_DIR=public node server/leads.mjs   # http://localhost:8796: сайт и API заявок
 node tools/og.mjs              # перерисовать OG-картинки и иконки (нужен Playwright)
 node tools/fonts.mjs           # перекачать шрифты (нужен интернет)
+node tools/generate.mjs        # сгенерировать кадры по content/PHOTO-PROMPTS.md → photos-src/ (Pollinations или Gemini)
 node tools/photos.mjs          # свои кадры из photos-src/ и фото из content/photos.mjs → src/img/photos/*.webp
 ```
 
@@ -136,7 +137,7 @@ DATA_DIR=data node leads.mjs export 90 > leads.csv
 Сейчас в данных стоят заглушки и черновики.
 
 - **Фото.** Сейчас это временная подборка из Unsplash: лицензия разрешает коммерческое использование без подписи, кадры грузятся с CDN Unsplash. Перед запуском:
-  1. Сгенерируйте свои кадры по `content/PHOTO-PROMPTS.md` и положите их в `photos-src/` с именем слота (`hero.jpg`, `dir-fishing.png`…).
+  1. Сгенерируйте свои кадры по `content/PHOTO-PROMPTS.md`: одной командой `./wellness/photos.sh` (бесплатно через Pollinations или через Gemini при заданном `GEMINI_API_KEY`) или вручную, положив файлы в `photos-src/` с именем слота (`hero.jpg`, `dir-fishing.png`…).
   2. Выполните `node tools/photos.mjs`. Скрипт нарежет свои кадры, а остальные скачает с Unsplash, чтобы всё раздавалось с erkak.com. Это важно для GDPR (немецкая версия) и для Китая.
   3. Выполните `node tools/og.mjs`: картинки для соцсетей перерисуются с настоящими фото.
 - **Контакты в `content/core.mjs` → `SITE.contacts`.** Telegram `erkak_world` и WhatsApp `66000000000` — заглушки. WeChat пустой, поэтому нигде не показывается.
