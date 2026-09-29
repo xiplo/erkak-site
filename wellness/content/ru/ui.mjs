@@ -2,7 +2,7 @@
 export const meta = {
   code:'ru', name:'Русский', locale:'ru-RU', htmlLang:'ru', hreflang:'ru', ogLocale:'ru_RU', dir:'ltr',
   currency:'RUB', messengers:['telegram', 'whatsapp'],
-  preload:['cormorant-garamond-cyrillic-normal-400', 'manrope-cyrillic-normal-400']
+  preload:['golos-text-cyrillic-normal-400']
 };
 
 export const units = {

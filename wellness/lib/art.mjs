@@ -96,66 +96,8 @@ export const icon = (name, cls = 'ico') => use(`i-${name}`, cls);
 export const artId = a => a.startsWith('fish-') || a.startsWith('g-') ? a : (FISH[a] ? `fish-${a}` : `g-${a}`);
 export const isFish = a => artId(a).startsWith('fish-');
 
-// Постер: тональная плашка, линейный рисунок, подписи по углам.
-// seed — строка (обычно id), от неё зависит центр колец и блик: соседние карточки не повторяют друг друга.
-export function poster({ tone, art, tl = '', tr = '', bl = '', br = '', mid = '', seed = '', cls = '', img = '', alt = '' }){
-  const id = artId(art);
-  let st = '';
-  if (seed) { let h = 0; for (const ch of String(seed)) h = (h * 31 + ch.codePointAt(0)) >>> 0; st = ` style="--ox:${12 + h % 77}%;--oy:${h % 2 ? 108 + (h >> 3) % 22 : -8 - (h >> 3) % 22}%"`; }
-  return `<div class="poster t-${tone} ${isFish(art) ? 'is-fish' : 'is-glyph'}${mid ? ' has-mid' : ''} ${cls}"${st}>${img ? `<img src="${img}" alt="${esc(alt)}" loading="lazy" decoding="async">` : ''}${use(id, 'art')}<span class="p-frame" aria-hidden="true"></span>${tl ? `<span class="p-tl">${tl}</span>` : ''}${tr ? `<span class="p-tr">${tr}</span>` : ''}${mid ? `<span class="p-mid">${mid}</span>` : ''}${bl ? `<span class="p-bl">${bl}</span>` : ''}${br ? `<span class="p-br">${br}</span>` : ''}</div>`;
-}
-// Короткое место для постера: «Пхукет, Сой Та-Иад» → «Пхукет»
+// Короткое место для карточки: «Пхукет, Сой Та-Иад» → «Пхукет»
 export const placeShort = where => String(where || '').split(/\s*[,·(（、،/]\s*|\s+(?:or|and|oder|und|или|и|yoki|va|أو)\s+|[或和]/)[0].trim();
-
-// ── Циферблат ERKAK: 14 направлений на безеле, стрелка — открытое направление ──
-export function dial(items, center){
-  const S = 640, C = S / 2, R = 262;
-  const n = items.length, at = i => (i / n) * Math.PI * 2 - Math.PI / 2;
-  let ticks = '';
-  for (let i = 0; i < 120; i++) {
-    const a = (i / 120) * Math.PI * 2, long = i % 10 === 0, r1 = 304, r2 = long ? 290 : 297;
-    ticks += `<line x1="${(C + r1 * Math.cos(a)).toFixed(1)}" y1="${(C + r1 * Math.sin(a)).toFixed(1)}" x2="${(C + r2 * Math.cos(a)).toFixed(1)}" y2="${(C + r2 * Math.sin(a)).toFixed(1)}"${long ? ' class="tk-l"' : ''}/>`;
-  }
-  const marks = items.map((d, i) => {
-    const a = at(i), x = C + R * Math.cos(a), y = C + R * Math.sin(a), g = 30;
-    return `<a class="dm${d.live ? ' live' : ''}" href="${d.href}" style="--i:${i}"><title>${esc(d.name)}</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="31"/><use href="${SPRITE}#${artId(d.art)}" x="${(x - g / 2).toFixed(1)}" y="${(y - g / 2).toFixed(1)}" width="${g}" height="${g}"/></a>`;
-  }).join('');
-  const liveIdx = Math.max(0, items.findIndex(d => d.live));
-  const la = at(liveIdx), hx = C + (R - 44) * Math.cos(la), hy = C + (R - 44) * Math.sin(la);
-  let idx = '';
-  for (let i = 0; i < n; i++) { const a = at(i) + Math.PI / n, r1 = 206, r2 = 214; idx += `<line x1="${(C + r1 * Math.cos(a)).toFixed(1)}" y1="${(C + r1 * Math.sin(a)).toFixed(1)}" x2="${(C + r2 * Math.cos(a)).toFixed(1)}" y2="${(C + r2 * Math.sin(a)).toFixed(1)}"/>`; }
-  return `<svg class="dial" viewBox="0 0 ${S} ${S}" role="group" aria-label="${esc(center.label)}">
-  <defs><radialGradient id="dg" cx=".5" cy=".42" r=".6"><stop offset="0" stop-color="#C5A46D" stop-opacity=".16"/><stop offset=".6" stop-color="#C5A46D" stop-opacity=".03"/><stop offset="1" stop-color="#C5A46D" stop-opacity="0"/></radialGradient></defs>
-  <circle cx="${C}" cy="${C}" r="316" fill="url(#dg)"/>
-  <g class="dial-bezel">${ticks}</g>
-  <circle class="dr" cx="${C}" cy="${C}" r="316"/><circle class="dr dr-2" cx="${C}" cy="${C}" r="${R}"/><circle class="dr" cx="${C}" cy="${C}" r="220"/><circle class="dr dr-3" cx="${C}" cy="${C}" r="150"/>
-  <g class="dial-idx">${idx}</g>
-  <line class="hand" x1="${C}" y1="${C}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}"/>
-  <g class="sweep"><line x1="${C}" y1="${C + 36}" x2="${C}" y2="${C - 196}"/><circle cx="${C}" cy="${C - 196}" r="2.5"/></g>
-  <circle class="pivot" cx="${C}" cy="${C}" r="5"/>
-  <g class="dial-c"><use href="${SPRITE}#logo" x="${C - 26}" y="${C - 96}" width="52" height="52"/>
-  <text x="${C}" y="${C + 70}" text-anchor="middle" class="dial-word">ERKAK</text>
-  <text x="${C}" y="${C + 98}" text-anchor="middle" class="dial-sub">${esc(center.sub)}</text></g>
-  ${marks}
-</svg>`;
-}
-
-// ── Эхолот (раздел рыбалки) ─────────────────────────────────────────────
-export function sonar(){
-  const seg = dx => `M${dx},384Q${dx + 60},356 ${dx + 120},372T${dx + 240},348T${dx + 360},376T${dx + 500},384`;
-  const arcs = [[70,150,1],[130,214,0],[210,122,0],[300,252,0],[346,182,1],[420,292,0],[462,142,0]];
-  const arc = (x, y, big) => `<path d="M${x - (big ? 14 : 9)},${y}q${big ? 14 : 9},-${big ? 11 : 7} ${big ? 28 : 18},0" stroke="${big ? '#DCC08E' : '#ECE5D8'}" stroke-opacity="${big ? 1 : .55}" stroke-width="${big ? 2.6 : 1.8}" fill="none" stroke-linecap="round" class="${big ? 'blip' : ''}"/>`;
-  const layer = dx => `<path d="${seg(dx)}L${dx + 500},520L${dx},520Z" fill="url(#sb)"/><path d="${seg(dx)}" stroke="#C5A46D" stroke-width="1.6" fill="none"/>${arcs.map(([x, y, b]) => arc(x + dx, y, b)).join('')}`;
-  const noise = Array.from({ length:60 }, (_, i) => `<circle cx="${(i * 97) % 1000}" cy="${60 + (i * 53) % 280}" r="${i % 3 ? .7 : 1.1}" fill="#ECE5D8" opacity="${.08 + (i % 5) / 20}"/>`).join('');
-  let scale = ''; for (let m = 0; m <= 80; m += 20) { const y = 70 + m * 3.9; scale += `<line x1="0" x2="500" y1="${y}" y2="${y}" stroke="#2A2722" stroke-dasharray="1 7"/><text x="488" y="${y - 6}" text-anchor="end">${m} m</text>`; }
-  return `<svg viewBox="0 0 500 510" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-  <defs><linearGradient id="sb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C5A46D" stop-opacity=".55"/><stop offset=".35" stop-color="#9A7B45" stop-opacity=".22"/><stop offset="1" stop-color="#0B0B0B" stop-opacity="0"/></linearGradient></defs>
-  <g font-family="Manrope,sans-serif" font-size="10" letter-spacing="1.5" fill="#6E675C">${scale}</g>
-  <line x1="0" x2="500" y1="70" y2="70" stroke="#C5A46D" stroke-opacity=".4"/>
-  <g class="scan">${layer(0)}${layer(500)}${noise}</g>
-  <line x1="470" x2="470" y1="70" y2="510" stroke="#C5A46D" stroke-opacity=".18"/>
-</svg>`;
-}
 
 // ── Схема Андаманского моря ─────────────────────────────────────────────
 export function andamanMap(spots, names, I){
@@ -177,13 +119,13 @@ export function andamanMap(spots, names, I){
   const [cx, cy] = P(7.82, 98.36);
   const lbl = (lat, lon, s) => { const [x, y] = P(lat, lon); return `<text x="${x}" y="${y}">${iso(s)}</text>`; };
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(I.t('fishing.map.aria'))}">
-  <defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="7" stroke="#1E1C18" stroke-width="2"/></pattern></defs>
-  <rect width="${W}" height="${H}" fill="#0E0E0D"/>
+  <defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line y2="7" stroke="#E7E2D8" stroke-width="2"/></pattern></defs>
+  <rect width="${W}" height="${H}" fill="#EAF4F8"/>
   <g class="grid">${grid}</g>
-  <path d="${poly(main)}" fill="#161512" stroke="rgba(197,164,109,.35)" stroke-width="1"/>
+  <path d="${poly(main)}" fill="#FBFAF7" stroke="#C9D3DC" stroke-width="1"/>
   <path d="${poly(main)}" fill="url(#hatch)" opacity=".6"/>
-  <path d="${poly(phuket)}" fill="#1B1915" stroke="rgba(197,164,109,.5)" stroke-width="1"/>
-  ${isl.map(p => `<path d="${poly(p)}" fill="#1B1915" stroke="rgba(197,164,109,.45)"/>`).join('')}
+  <path d="${poly(phuket)}" fill="#F3F1EC" stroke="#B9C4CE" stroke-width="1"/>
+  ${isl.map(p => `<path d="${poly(p)}" fill="#F3F1EC" stroke="#B9C4CE"/>`).join('')}
   <g class="geo">${lbl(8.0, 98.1, I.t('fishing.map.phuket'))}${lbl(8.5, 98.62, I.t('fishing.map.thailand'))}${lbl(7.1, 97.6, I.t('fishing.map.sea'))}</g>
   <g class="pier"><circle cx="${cx}" cy="${cy}" r="3.5"/><text x="${cx - 10}" y="${+cy + 4}" text-anchor="end">${iso(I.t('fishing.map.pier'))}</text></g>
   ${pins}

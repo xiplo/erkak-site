@@ -2,7 +2,7 @@
 export const meta = {
   code:'uz', name:'Oʻzbekcha', locale:'uz-Latn-UZ', htmlLang:'uz', hreflang:'uz', ogLocale:'uz_UZ', dir:'ltr',
   currency:'UZS', messengers:['telegram', 'whatsapp'],
-  preload:['cormorant-garamond-latin-normal-400', 'manrope-latin-normal-400']
+  preload:['golos-text-latin-normal-400']
 };
 
 export const units = {

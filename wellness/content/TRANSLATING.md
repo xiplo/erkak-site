@@ -91,11 +91,11 @@ The site must never promise what the business doesn't do.
 
 | code | name | locale | htmlLang | hreflang | ogLocale | dir | currency | messengers | preload |
 |---|---|---|---|---|---|---|---|---|---|
-| en | English | en-US | en | en | en_US | ltr | USD | whatsapp, telegram | cormorant-garamond-latin-normal-400, manrope-latin-normal-400 |
-| de | Deutsch | de-DE | de | de | de_DE | ltr | EUR | whatsapp, telegram | cormorant-garamond-latin-normal-400, manrope-latin-normal-400 |
-| ar | العربية | ar-u-nu-latn | ar | ar | ar_AE | rtl | USD | whatsapp, telegram | noto-naskh-arabic-arabic-normal-400, ibm-plex-sans-arabic-arabic-normal-400 |
+| en | English | en-US | en | en | en_US | ltr | USD | whatsapp, telegram | golos-text-latin-normal-400 |
+| de | Deutsch | de-DE | de | de | de_DE | ltr | EUR | whatsapp, telegram | golos-text-latin-normal-400 |
+| ar | العربية | ar-u-nu-latn | ar | ar | ar_AE | rtl | USD | whatsapp, telegram | ibm-plex-sans-arabic-arabic-normal-400 |
 | zh | 简体中文 | zh-CN | zh-Hans | zh-Hans | zh_CN | ltr | CNY | whatsapp, telegram | *(empty array: Chinese uses system fonts)* |
-| uz | Oʻzbekcha | uz-Latn-UZ | uz | uz | uz_UZ | ltr | UZS | telegram, whatsapp | cormorant-garamond-latin-normal-400, manrope-latin-normal-400 |
+| uz | Oʻzbekcha | uz-Latn-UZ | uz | uz | uz_UZ | ltr | UZS | telegram, whatsapp | golos-text-latin-normal-400 |
 
 ## Plural forms (`units`, `nouns`)
 

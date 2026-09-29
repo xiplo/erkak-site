@@ -2,7 +2,7 @@
 export const meta = {
   code:'ar', name:'العربية', locale:'ar-u-nu-latn', htmlLang:'ar', hreflang:'ar', ogLocale:'ar_AE', dir:'rtl',
   currency:'USD', messengers:['whatsapp', 'telegram'],
-  preload:['noto-naskh-arabic-arabic-normal-400', 'ibm-plex-sans-arabic-arabic-normal-400']
+  preload:['ibm-plex-sans-arabic-arabic-normal-400']
 };
 
 // Arabic plural categories: zero, one, two, few (3–10), many (11–99), other (100+).

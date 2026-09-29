@@ -39,12 +39,6 @@ export function inline(s){
   return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
 }
 
-export function roman(n){
-  const m = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]; let r = '';
-  for (const [v, s] of m) while (n >= v) { r += s; n -= v; }
-  return r;
-}
-
 // Мета-описание без обрыва на полуслове: режем по концу предложения, иначе по слову с «…».
 // Для китайского (без пробелов) считаем по символам и режем по «。».
 export function clip(s, max = 160){

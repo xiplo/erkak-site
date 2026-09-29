@@ -2,7 +2,7 @@
 export const meta = {
   code:'en', name:'English', locale:'en-US', htmlLang:'en', hreflang:'en', ogLocale:'en_US', dir:'ltr',
   currency:'USD', messengers:['whatsapp', 'telegram'],
-  preload:['cormorant-garamond-latin-normal-400', 'manrope-latin-normal-400']
+  preload:['golos-text-latin-normal-400']
 };
 
 export const units = {
