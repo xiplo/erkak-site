@@ -45,3 +45,24 @@ export function png({ w, h, px }){
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level:9 })), chunk('IEND', Buffer.alloc(0))]);
 }
 export const blurUri = (hash, w = 32, h = 20) => 'data:image/png;base64,' + png(decode(hash, w, h)).toString('base64');
+
+// Кодирование (для своих фото): пиксели RGB(A) → BlurHash, 4 × 3 компоненты
+const e83 = (v, n) => { let s = ''; for (let i = 1; i <= n; i++) s += CH[Math.floor(v / Math.pow(83, n - i)) % 83]; return s; };
+export function encode(px, w, h, nx = 4, ny = 3, ch = 4){
+  const f = [];
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    let r = 0, g = 0, b = 0; const norm = (i === 0 && j === 0) ? 1 : 2;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const basis = norm * Math.cos(Math.PI * i * x / w) * Math.cos(Math.PI * j * y / h), o = (y * w + x) * ch;
+      r += basis * toLin(px[o]); g += basis * toLin(px[o + 1]); b += basis * toLin(px[o + 2]);
+    }
+    const k = 1 / (w * h); f.push([r * k, g * k, b * k]);
+  }
+  const [dc, ...ac] = f;
+  let hash = e83((nx - 1) + (ny - 1) * 9, 1), maxV = 1;
+  if (ac.length) { const m = Math.max(...ac.flat().map(Math.abs)); const q = Math.max(0, Math.min(82, Math.floor(m * 166 - 0.5))); maxV = (q + 1) / 166; hash += e83(q, 1); } else hash += e83(0, 1);
+  hash += e83((toSrgb(dc[0]) << 16) + (toSrgb(dc[1]) << 8) + toSrgb(dc[2]), 4);
+  const qa = v => Math.max(0, Math.min(18, Math.floor(signPow(v / maxV, 0.5) * 9 + 9.5)));
+  for (const c of ac) hash += e83(qa(c[0]) * 361 + qa(c[1]) * 19 + qa(c[2]), 2);
+  return hash;
+}

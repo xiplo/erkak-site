@@ -28,7 +28,8 @@ const LOGO = fill => `<svg viewBox="0 0 32 32"><path fill="${fill}" fill-rule="e
 // Фото направления на весь кадр, затемнение, белый заголовок. Картинку берём из сети,
 // а если CDN недоступен — рисуем размытую подложку из BlurHash того же кадра.
 async function bg(key){
-  const p = PHOTOS[key];
+  const p = PHOTOS[key], local = path.join(IMG, 'photos', key.replace(/\//g, '-') + '-1200.webp');
+  if (fs.existsSync(local)) return `data:image/webp;base64,${fs.readFileSync(local).toString('base64')}`;
   try {
     const res = await fetch(`${p.src}?fm=jpg&fit=crop&w=1200&h=630&q=80`);
     if (res.ok) return `data:image/jpeg;base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`;

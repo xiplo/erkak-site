@@ -5,7 +5,7 @@
   var $ = function(s, r){ return (r || document).querySelector(s); }, $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var grid = $('#catalog'); if (!grid) return;
   var cards = $$('.card', grid), tabs = $$('.tabs [data-d]'), full = !!$('#f-q');
-  var st = { d:'', goal:'', reg:'', month:'', budget:'', hot:false, q:'', limit:full ? 12 : 999 };
+  var st = { d:'', goal:'', reg:'', month:'', budget:'', hot:false, q:'', limit:full ? (innerWidth < 760 ? 6 : 9) : 999 };
   var p = new URLSearchParams(location.search);
   ['d', 'goal', 'reg', 'month'].forEach(function(k){ if (p.get(k)) st[k] = p.get(k); });
   var fill = function(s, v){ return String(s || '').replace(/\{(\w+)\}/g, function(m, k){ return v[k] != null ? v[k] : m; }); };
@@ -28,12 +28,12 @@
     var set = function(id, v){ var el = $(id); if (el) { if (el.type === 'checkbox') el.checked = v; else el.value = v; } };
     set('#f-goal', st.goal); set('#f-reg', st.reg); set('#f-month', st.month); set('#f-budget', st.budget); set('#f-hot', st.hot);
   }
-  var set = function(k, v){ st[k] = v; st.limit = full ? 12 : 999; apply(); };
+  var set = function(k, v){ st[k] = v; st.limit = full ? (innerWidth < 760 ? 6 : 9) : 999; apply(); };
   tabs.forEach(function(b){ b.addEventListener('click', function(){ set('d', b.getAttribute('data-d')); }); });
   [['#f-goal', 'goal'], ['#f-reg', 'reg'], ['#f-month', 'month'], ['#f-budget', 'budget']].forEach(function(x){ var el = $(x[0]); el && el.addEventListener('change', function(){ set(x[1], el.value); window.ERK_track && window.ERK_track('filter', { k:x[1], v:el.value }); }); });
   var hot = $('#f-hot'); hot && hot.addEventListener('change', function(){ set('hot', hot.checked); });
   var q = $('#f-q'), t; q && q.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(function(){ set('q', q.value); }, 140); });
-  var more = $('#more'); more && more.addEventListener('click', function(){ st.limit += 12; apply(); });
+  var more = $('#more'); more && more.addEventListener('click', function(){ st.limit += 9; apply(); });
   $$('[data-goal]').forEach(function(b){ b.addEventListener('click', function(){ st.d = ''; set('goal', b.getAttribute('data-goal')); var top = $('#top'); top && top.scrollIntoView({ behavior:'smooth' }); }); });
   apply();
 })();

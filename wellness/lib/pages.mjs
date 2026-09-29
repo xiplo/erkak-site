@@ -74,7 +74,6 @@ export function hub(C){
       <div class="fld"><label for="f-budget">${esc(H.top.budget)}</label><select id="f-budget"><option value="">${esc(H.top.anyBudget)}</option>${budgetOpts}</select>${icon('chevron')}</div>
       <label class="hot-t"><input type="checkbox" id="f-hot">${esc(H.top.hot)}</label>
     </div>
-    <div class="tabs" role="group" aria-label="${esc(H.top.dirs)}"><button type="button" aria-pressed="true" data-d="">${esc(H.top.all)}</button>${C.dirs.map(d => `<button type="button" aria-pressed="false" data-d="${d.id}">${esc(d.name)}</button>`).join('')}</div>
     <p class="count" id="count" aria-live="polite">${esc(I.t('hub.count', { n:C.items.length, m:C.items.length }))}</p>
     <div class="grid" id="catalog">${C.items.map(p => card(C, p)).join('')}</div>
     <div class="more"><button class="btn btn-line" type="button" id="more">${esc(H.top.more)}<span class="ar" aria-hidden="true"></span></button></div>
@@ -127,7 +126,7 @@ export function hub(C){
     <div style="margin-block-start:36px">${btn(H.places.all, C.path('dests'), 'btn-line')}</div>
     <div style="margin-block-start:clamp(80px,9vw,140px)">
       ${sh(C, 9, H.guides.kicker, T(C, H.guides.title), '')}
-      <div class="gcards">${C.guides.slice(0, 3).map(g => gcard(C, g)).join('')}</div>
+      <div class="gcards strip">${C.guides.slice(0, 3).map(g => gcard(C, g)).join('')}</div>
       <div style="margin-block-start:36px">${btn(H.guides.all, C.path('guides'), 'btn-line')}</div>
     </div>
   </div>
@@ -291,7 +290,7 @@ export function fishing(C){
 
 <section class="sec" aria-labelledby="h-pain"><div class="wrap">
   ${sh(C, 1, F.pains.kicker, T(C, F.pains.title), '')}
-  <div class="pains">${F.pains.items.map(([h, p, f], i) => `<article class="pain rv" style="--d:${i % 3}"><h3>${T(C, h)}</h3><p>${T(C, p)}</p><p class="fix">${T(C, f)}</p></article>`).join('')}</div>
+  <div class="pains">${F.pains.items.slice(0, 4).map(([h, p, f], i) => `<article class="pain rv" style="--d:${i % 3}"><h3>${T(C, h)}</h3><p>${T(C, p)}</p><p class="fix">${T(C, f)}</p></article>`).join('')}</div>
 </div></section>
 
 <section class="sec soft" id="who" aria-labelledby="h-who"><div class="wrap">
@@ -308,7 +307,7 @@ export function fishing(C){
 
 <section class="sec" id="concierge" aria-labelledby="h-cg"><div class="wrap">
   ${sh(C, 5, F.concierge.kicker, T(C, F.concierge.title), F.concierge.lede)}
-  <div class="cgrid">${F.concierge.items.map(([ic, h, p], i) => `<div class="citem rv" style="--d:${i % 4}">${icon(ic)}<strong>${T(C, h)}</strong><span>${T(C, p)}</span></div>`).join('')}</div>
+  <div class="cgrid">${F.concierge.items.slice(0, 4).map(([ic, h, p], i) => `<div class="citem rv" style="--d:${i % 4}">${icon(ic)}<strong>${T(C, h)}</strong><span>${T(C, p)}</span></div>`).join('')}</div>
   <div class="split sigweek" style="margin-block-start:clamp(40px,5vw,72px)">
     <div class="rv">${kicker(F.concierge.sigKicker)}<h3 class="h3" style="margin-block:10px 16px">${T(C, F.concierge.sigTitle)}</h3>${ticks(C, F.concierge.sigPoints)}</div>
     <div class="rv" style="--d:2;display:grid;gap:22px;align-content:start">${price(C, C.item['signature-week'].price, 'THB', C.item['signature-week'].perLabel)}<p class="small">${T(C, F.concierge.fee)}</p><div class="btns">${btn(F.concierge.sigCta, C.item['signature-week'].href, 'btn-primary')}${btn(I.t('cta.ask'), '#pick', 'btn-line', 'data-seg="vip"')}</div></div>
@@ -332,10 +331,8 @@ export function fishing(C){
   <div class="grid two" style="margin-block-start:56px">${F.cal.notes.map(([h, p]) => `<div class="rv"><h3 class="h3" style="margin-block-end:14px">${T(C, h)}</h3><p style="color:var(--ink-2)">${T(C, p)}</p></div>`).join('')}</div>
 </div></section>
 
-<section class="sec soft" aria-labelledby="h-flow"><div class="wrap">
-  ${sh(C, 8, F.flow.kicker, T(C, F.flow.title), '')}
-  ${stepsHtml(C, F.flow.steps)}
-  <div style="margin-block-start:clamp(64px,7vw,110px)">${sh(C, 9, F.guar.kicker, T(C, F.guar.title), '')}
+<section class="sec soft"><div class="wrap">
+  <div>${sh(C, 9, F.guar.kicker, T(C, F.guar.title), '')}
   <div class="steps">${F.guar.items.map(([b, h, p], i) => `<div class="step rv" style="--d:${i}"><b class="big">${esc(b)}</b><h3>${T(C, h)}</h3><p>${T(C, p)}</p></div>`).join('')}</div>
   ${paysHtml(C)}</div>
 </div></section>

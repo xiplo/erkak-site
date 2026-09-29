@@ -252,7 +252,7 @@ em,i{font-style:normal}
 .row .price{text-align:end}
 .row .price .pr{font-size:16px}
 .row .price small{display:none}
-@media(max-width:480px){.row{grid-template-columns:auto minmax(0,1fr)}.row .price{grid-column:2;text-align:start}}
+@media(max-width:480px){.row{gap:12px;padding:12px}.row .price .pr-alt{display:none}.row .price .pr{font-size:15px}.row div > span{font-size:12.5px}}
 
 /* ── Каталог ────────────────────────────────────────────────── */
 .tools{display:grid;grid-template-columns:minmax(0,2fr) repeat(4,minmax(0,1fr)) auto;gap:8px;margin-block-end:14px}
@@ -651,3 +651,11 @@ em,i{font-style:normal}
   .step b.big{grid-column:1/-1;grid-row:auto}
 }
 .article>*{min-inline-size:0}
+/* Мобильная версия: длинные ряды карточек листаются вбок, списки подвала — только ключевые */
+@media(max-width:760px){
+  .routes,.club,.gcards.strip{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:84vw;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:calc(var(--gut) * -1);padding-inline:var(--gut);scroll-padding-inline:var(--gut);scrollbar-width:none;align-items:stretch}
+  .routes::-webkit-scrollbar,.club::-webkit-scrollbar,.gcards.strip::-webkit-scrollbar{display:none}
+  .routes > *,.club > *,.gcards.strip > *{scroll-snap-align:start}
+  .foot-cols > div:nth-child(2),.foot-cols > div:nth-child(3){display:none}
+  .foot-cols{gap:28px}
+}

@@ -4,11 +4,11 @@ export default {
   metaDesc:'Trophäenangeln auf Phuket, in Khao Lak und Bangkok: Segelfisch, Marlin, GT, Thun, Mekong-Riesenwels. Private Boote, lizenzierter Guide, Concierge. Ab 4.900 THB.',
   chip:'Saison eröffnet · Andamanensee',
   title:'Trophäenangeln in Thailand. *Legal. Privat. Alles aus einer Hand.*',
-  lede:'Segelfisch, Marlin, Giant Trevally und Thunfisch aus der Andamanensee. Private Boote, Gerät auf Stella-Niveau, ein lizenzierter Guide und ein Concierge, der alles regelt – vom Transfer bis zum Abendessen aus dem eigenen Fang.',
+  lede:'Segelfisch, Marlin, GT und Thunfisch in der Andamanensee. Private Boote, ein lizenzierter Guide und ein Concierge, der alles regelt.',
   proof:[['0','Angeltouren in Nationalparks'],['≤ 6','Angler pro Gruppe'],['30 %','Anzahlung'],['24/7','Concierge erreichbar']],
   sonar:{ aria:'Echolot: Fisch in etwa 40 Metern Tiefe', depth:'Tiefe', water:'Wasser', speed:'Tempo', point:'Position', tagTitle:'Ziel auf 38 m – sieht nach GT aus', tagText:'Racha Noi · morgens · Flut. Der Popper kommt dran.' },
   subnav:[['Touren','tours'],['Für wen','who'],['Concierge','concierge'],['Karte','map'],['Saison','season'],['Fragen','faq']],
-  pains:{ kicker:'Warum Angelausflüge enttäuschen', title:'Sechs Wege, einen Tag auf dem Meer zu verlieren. *Wir haben jeden ausgeschlossen.*', items:[
+  pains:{ kicker:'Warum Angelausflüge enttäuschen', title:'Vier Wege, einen Tag auf dem Meer zu verlieren. *Wir haben jeden ausgeschlossen.*', items:[
     ['Ausflug mit 40 Personen','Ein alter Kahn, Gedränge, eine Schnur am Stock – und zwanzig Minuten Angeln zwischen Imbiss und Schnorcheln.','Private Boote und Kleingruppen mit höchstens sechs Anglern. Die Zeit gehört dem Angeln.'],
     ['Bußgeld für Angeln im Nationalpark','Angeln an den Similan-Inseln und bei Phi Phi wird bis heute verkauft, obwohl es gesetzlich verboten ist: bis zu 500.000 THB Bußgeld und strafrechtliche Folgen.','Nur erlaubte Spots: Schelf, FADs, Racha-Inseln. Lizenzierter Veranstalter und lizenzierter thailändischer Guide an Bord.'],
     ['Der Kapitän versteht nicht, was Sie wollen','Gesten, Übersetzungs-App und eine Ausfahrt dorthin, „wo man immer hinfährt“ – statt zu Ihrem Fisch.','Ein Concierge für alles, erreichbar vor, während und nach der Ausfahrt. Das Briefing mit dem Kapitän bereiten wir vorab vor.'],
@@ -33,7 +33,7 @@ export default {
       quote:'„Ich will eine Woche Spitzenangeln in Asien – ohne einen einzigen Anruf und ohne Wartezeiten.“',
       points:['Persönlicher Concierge rund um die Uhr, vor und während der Reise','Die besten Boote zu Spitzenterminen – eine Saison im Voraus reserviert','Privatkoch, Foto und Drohne, Privatsphäre','Helikopter, Wasserflugzeug, Familienprogramm – auf Anfrage'], picks:['signature-week','bigame-day','overnight-shelf'] }
   ],
-  toursBlock:{ kicker:'Touren und Preise', title:'Vom ersten Biss bis zur *Marlin-Expedition*', lede:'Unsere Preise sind transparent und umfassen Boot, Gerät, Transfer, Verpflegung, Versicherung und einen lizenzierten Guide. Den Endpreis halten wir in der Bestätigung fest – ohne Aufpreise am Pier.',
+  toursBlock:{ kicker:'Touren und Preise', title:'Vom ersten Biss bis zur *Marlin-Expedition*', lede:'Im Preis: Boot, Gerät, Transfer, Verpflegung, Versicherung und lizenzierter Guide. Keine Aufpreise am Pier.',
     filters:[['all','Alle'],['sea','Meer'],['fresh','Süßwasser'],['group','Gruppen'],['vip','VIP']] },
   ladder:{ kicker:'Fünf Stufen', title:'Fangen Sie klein an – *oder gleich mit der Trophäe*', lede:'Die meisten Gäste starten mit „Erster Biss“ oder „Familientag“ und kommen ein Jahr später für den Segelfisch zurück.',
     steps:[['I · Kostenlos','Ratgeber und Beißkalender','0 THB','Legale Spots, Saisons und Packliste – wir senden alles per Messenger.',8],
@@ -41,7 +41,7 @@ export default {
       ['III · Privat','Familientag · Pro Day','24.000–38.000','Das Boot gehört Ihnen: vom ruhigen Tag mit Kindern bis zum GT-Popping.',45],
       ['IV · Trophäe','Big Game · Nacht auf dem Schelf','89.000+','Sportfischerboot, Koch, Segelfisch und Marlin. Ihre beste Chance auf eine Trophäe.',72],
       ['V · Signature','Turnier · Signature Week','390.000+','Concierge, Villa, Flotte und Film. Alles ist geregelt, bevor Sie landen.',100]] },
-  concierge:{ kicker:'Concierge-Service', title:'Sie angeln. *Alles andere ist unsere Aufgabe.*', lede:'Ein fester Ansprechpartner verantwortet Ihren gesamten Angelurlaub – von der Wahl des Datums bis zur Trophäe an der Wand.',
+  concierge:{ kicker:'Concierge-Service', title:'Sie angeln. *Alles andere ist unsere Aufgabe.*', lede:'Ein fester Ansprechpartner betreut die ganze Reise – von der Terminwahl bis zur Trophäe.',
     items:[['boat','Boot und Kapitän für Ihr Ziel','Wir vergleichen die Flotte nach Tempo, Gerät und Bewertungen. Spitzentermine reservieren wir frühzeitig.'],['rod','Premium-Gerät','Stella, Saltiga, frische Schnüre. Oder wir bereiten Ihr eigenes Gerät vor.'],['car','Business-Class-Transfers','Abholung am Flughafen, Wagen zum Pier, Fahrer für alle Tage.'],['home','Villa am Meer','Nahe Chalong oder in Khao Lak – damit Sie länger schlafen können.'],['chef','Koch und Menü aus dem Fang','Sashimi an Bord, Abendessen aus Ihrem Fang in der Villa.'],['cam','Foto, Drohne, Film','Kameramann an Bord und Clip innerhalb von 48 Stunden.'],['shield','Versicherung und Dokumente','Geprüfte Boote, Vertrag, Firmenrechnung.'],['star','Programm für die Familie','Spa, Inseln und Natur, während Sie auf dem Meer sind.']],
     sigKicker:'Signature Week · 7 Tage', sigTitle:'Eine Woche Spitzenangeln in Thailand – *ohne einen einzigen Anruf*', sigPoints:['Big Game auf dem Sportfischerboot und eine Nacht auf dem Schelf','Dschungel von Khao Sok und die Rekordseen bei Bangkok','Villa, Koch, Fahrer, Foto und Film','Persönlicher Concierge rund um die Uhr und die besten Boote zur Hochsaison'],
     fee:'Concierge zu jeder Tour – ab 15.000 THB pro Tag. Clubkarte für Überwinterer: fünf Ausfahrten pro Saison mit 15 % Rabatt und Vorrang bei den Terminen.', sigCta:'Wochenprogramm ansehen' },

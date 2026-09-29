@@ -4,11 +4,11 @@ export default {
   metaDesc:'Puket, Khao Lak va Bangkokda trofey baliq ovi: yelkanbaliq, marlin, GT. Xususiy qayiq, litsenziyali gid, oʻzbek va rus tillarida konsyerj. Narxi 4 900 THB dan.',
   chip:'Mavsum ochiq · Andaman dengizi',
   title:'Tailandda trofey baliq ovi. *Qonuniy, oʻz tilingizda, hammasi tayyor.*',
-  lede:'Andaman dengizida yelkanbaliq, marlin, gigant karanks va tunets. Xususiy qayiqlar, Stella darajasidagi anjomlar, litsenziyali gid va hamma narsani hal qiladigan konsyerj — transferdan tortib oʻljadan tayyorlangan kechki ovqatgacha.',
+  lede:'Andaman dengizida yelkanbaliq, marlin, GT va tunets. Xususiy qayiqlar, litsenziyali gid va hamma narsani hal qiladigan konsyerj.',
   proof:[['0','milliy bogʻlarda baliq ovi'],['≤ 6','baliqchi bir guruhda'],['30%','oldindan toʻlov'],['24/7','konsyerj aloqada']],
   sonar:{ aria:'Exolot: taxminan 40 metr chuqurlikda baliq', depth:'Chuqurlik', water:'Suv', speed:'Tezlik', point:'Nuqta', tagTitle:'38 m chuqurlikda nishon — GT boʻlsa kerak', tagText:'Racha Noi · tong · suv koʻtarilmoqda. Popper qoʻyamiz.' },
   subnav:[['Turlar','tours'],['Kimlar uchun','who'],['Konsyerj','concierge'],['Xarita','map'],['Mavsum','season'],['Savollar','faq']],
-  pains:{ kicker:'Nega baliq ovi koʻngilni qoldiradi', title:'Okeanda bir kunni boy berishning olti yoʻli. *Har birini toʻsdik.*', items:[
+  pains:{ kicker:'Nega baliq ovi koʻngilni qoldiradi', title:'Okeanda bir kunni boy berishning toʻrt yoʻli. *Har birini toʻsdik.*', items:[
     ['40 kishilik ekskursiya','Katta sayr kemasi, olomon, tayoqqa oʻralgan qarmoq ipi va tamaddi bilan snorkeling oraligʻida suv yonida atigi yigirma daqiqa.','Xususiy qayiqlar va oltita baliqchigacha boʻlgan mini-guruhlar. Vaqt — baliq oviga.'],
     ['Milliy bogʻda baliq ovi uchun jarima','Similan va Phi Phi orollarida baliq ovini hanuz sotishadi, garchi u qonun bilan taqiqlangan boʻlsa ham: 500 000 THB gacha jarima va jinoiy javobgarlik.','Faqat ruxsat etilgan nuqtalar: shelf, FAD, Racha orollari. Litsenziyali operator va bortda tailandlik gid.'],
     ['Kapitan nima istashingizni tushunmaydi','Imo-ishoralar, telefondagi tarjimon va sizning baligʻingiz oʻrniga «odatdagi joyga» chiqish.','Oʻzbek va rus tillarida gaplashadigan konsyerj chiqishdan oldin, chiqish paytida va undan keyin aloqada. Kapitan bilan brifingni oldindan tayyorlaymiz.'],
@@ -33,7 +33,7 @@ export default {
       quote:'«Osiyodagi eng yaxshi baliq ovi haftasini birorta qoʻngʻiroqsiz va kutishsiz oʻtkazmoqchiman».',
       points:['Safardan oldin va safar davomida 24/7 shaxsiy konsyerj','Eng gavjum sanalarda eng yaxshi qayiqlar — bir mavsum oldin bron','Shef-oshpaz, foto va dron, maxfiylik','Vertolyot, gidrosamolyot, oilaviy dastur — soʻrov boʻyicha'], picks:['signature-week','bigame-day','overnight-shelf'] }
   ],
-  toursBlock:{ kicker:'Turlar va narxlar', title:'Birinchi ilinishdan *marlin ekspeditsiyasigacha*', lede:'Narxlar ochiq: qayiq, anjomlar, transfer, ovqat, sugʻurta va litsenziyali gid kiritilgan. Yakuniy summani tasdiqnomada qayd etamiz — pirsda qoʻshimcha toʻlovlarsiz.',
+  toursBlock:{ kicker:'Turlar va narxlar', title:'Birinchi ilinishdan *marlin ekspeditsiyasigacha*', lede:'Narxga qayiq, anjomlar, transfer, ovqat, sugʻurta va litsenziyali gid kiradi. Pirsda qoʻshimcha toʻlovlarsiz.',
     filters:[['all','Barchasi'],['sea','Dengiz'],['fresh','Chuchuk suv'],['group','Kompaniyalar'],['vip','VIP']] },
   ladder:{ kicker:'Besh daraja', title:'Kichikdan boshlang — *yoki darhol trofeydan*', lede:'Aksariyat mehmonlar «Ilk oʻlja» yoki «Oilaviy kun»dan boshlaydi, bir yildan soʻng esa yelkanbaliq uchun qaytib keladi.',
     steps:[['I · Bepul','Qoʻllanma va baliq ovi kalendari','0 THB','Qonuniy nuqtalar, mavsumlar va oʻzingiz bilan nima olish kerakligi — messenjerga yuboramiz.',8],
@@ -41,7 +41,7 @@ export default {
       ['III · Xususiy','Oilaviy kun · Pro Day','24 000–38 000','Qayiq faqat sizniki: bolalar bilan sokin kundan GT uchun poppinggacha.',45],
       ['IV · Trofey','Big Game · Shelfda tun','89 000+','Sportfisher, shef-oshpaz, yelkanbaliq va marlin. Trofey uchun asosiy imkoniyat.',72],
       ['V · Signature','Turnir · Signature Week','390 000+','Konsyerj, villa, flot va film. Siz uchib kelguningizcha hammasi hal qilingan boʻladi.',100]] },
-  concierge:{ kicker:'Konsyerj xizmati', title:'Siz baliq ovlaysiz. *Qolgani — bizning ishimiz.*', lede:'Oʻz tilingizda gaplashadigan bitta inson butun baliq ovi ta’tilingiz uchun javob beradi — sana tanlashdan tortib devordagi trofeygacha.',
+  concierge:{ kicker:'Konsyerj xizmati', title:'Siz baliq ovlaysiz. *Qolgani — bizning ishimiz.*', lede:'Oʻz tilingizda gaplashadigan bitta inson butun safar uchun javob beradi — sana tanlashdan trofeygacha.',
     items:[['boat','Maqsadga mos qayiq va kapitan','Flotni tezlik, anjomlar va sharhlar boʻyicha solishtiramiz. Gavjum sanalarni oldindan bron qilamiz.'],['rod','Premium darajadagi anjomlar','Stella, Saltiga, yangi iplar. Yoki oʻzingiznikini tayyorlab beramiz.'],['car','Biznes-klass transferlar','Aeroportda kutib olish, pirsgacha avtomobil, butun safar davomida haydovchi.'],['home','Dengiz boʻyidagi villa','Chalong yaqinida yoki Khao Lakda — koʻproq uxlash uchun.'],['chef','Shef-oshpaz va oʻljadan menyu','Bortda sashimi, villada trofeydan kechki ovqat.'],['cam','Foto, dron, film','Bortda operator va 48 soatda tayyor rolik.'],['shield','Sugʻurta va hujjatlar','Tekshirilgan qayiqlar, shartnoma, kompaniya uchun hisob-faktura.'],['star','Oila uchun dastur','Siz okeandaligingizda — spa, orollar va tabiat.']],
     sigKicker:'Signature Week · 7 kun', sigTitle:'Tailanddagi eng yaxshi baliq ovi haftasi — *birorta qoʻngʻiroqsiz*', sigPoints:['Sportfisherda Big Game va shelfda tun','Khao Sok tropik oʻrmonlari va Bangkokning rekordli koʻllari','Villa, shef-oshpaz, haydovchi, foto va film','24/7 shaxsiy konsyerj va mavsum choʻqqisida eng yaxshi qayiqlar'],
     fee:'Istalgan turga konsyerj — kuniga 15 000 THB dan. Qishni Tailandda oʻtkazadiganlar uchun klub kartasi: mavsumda besh marta chiqish 15% chegirma bilan va sanalarni tanlashda ustuvorlik.', sigCta:'Hafta dasturi' },

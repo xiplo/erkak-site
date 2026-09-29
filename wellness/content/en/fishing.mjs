@@ -4,11 +4,11 @@ export default {
   metaDesc:'Fishing in Phuket, Khao Lak and Bangkok: sailfish, marlin, GT, tuna, Mekong catfish. Private boats, licensed guide, English-speaking concierge. From 4,900 THB.',
   chip:'Season open · Andaman Sea',
   title:'Trophy fishing in Thailand. *Legal, in plain English, fully arranged.*',
-  lede:'Sailfish, marlin, giant trevally and tuna in the Andaman Sea. Private boats, Stella-grade tackle, a licensed guide and a concierge who takes care of everything, from transfers to a dinner cooked from your catch.',
+  lede:'Sailfish, marlin, GT and tuna in the Andaman Sea. Private boats, a licensed guide and an English-speaking concierge.',
   proof:[['0','fishing trips in national parks'],['≤ 6','anglers per group'],['30%','deposit'],['24/7','concierge on call']],
   sonar:{ aria:'Fish finder: fish at a depth of about 40 meters', depth:'Depth', water:'Water', speed:'Speed', point:'Position', tagTitle:'Target at 38 m — looks like a GT', tagText:'Racha Noi · morning · rising tide. Tying on a popper.' },
   subnav:[['Tours','tours'],['Who it’s for','who'],['Concierge','concierge'],['Map','map'],['Season','season'],['FAQ','faq']],
-  pains:{ kicker:'Why fishing trips disappoint', title:'Six ways to lose a day at sea. *We’ve ruled out every one.*', items:[
+  pains:{ kicker:'Why fishing trips disappoint', title:'Four ways to lose a day at sea. *We’ve ruled out every one.*', items:[
     ['A tour boat with 40 people','An old launch, a crowd, a handline wrapped around a stick, and twenty minutes of fishing squeezed between snacks and snorkeling.','Private boats and small groups of up to six anglers. The time goes to fishing.'],
     ['A fine for fishing in a national park','Fishing trips to the Similans and Phi Phi are still being sold, even though fishing there is illegal: fines of up to 500,000 THB and criminal liability.','Permitted waters only: the shelf, FADs, the Racha islands. A licensed operator and a licensed Thai guide on board.'],
     ['A captain who doesn’t get what you want','Hand signals, a translation app, and a trip to “the usual spot” instead of the fish you came for.','An English-speaking concierge on call before, during and after the trip. We brief the captain in advance.'],
@@ -33,7 +33,7 @@ export default {
       quote:'“I want a week of the best fishing in Asia without a single phone call or any waiting around.”',
       points:['A personal concierge 24/7 before and during the trip','The best boats on peak dates, booked a season ahead','A private chef, photo and drone, privacy','Helicopter, seaplane, family program on request'], picks:['signature-week','bigame-day','overnight-shelf'] }
   ],
-  toursBlock:{ kicker:'Tours and prices', title:'From your first bite to a *marlin expedition*', lede:'Prices are published and include the boat, tackle, transfers, meals, insurance and a licensed guide. The total is fixed in your confirmation, with no extra charges at the pier.',
+  toursBlock:{ kicker:'Tours and prices', title:'From your first bite to a *marlin expedition*', lede:'Prices include the boat, tackle, transfers, meals, insurance and a licensed guide. No extra charges at the pier.',
     filters:[['all','All'],['sea','Sea'],['fresh','Freshwater'],['group','Groups'],['vip','VIP']] },
   ladder:{ kicker:'Five levels', title:'Start small, *or go straight for a trophy*', lede:'Most guests start with First Strike or Family Day and come back a year later for a sailfish.',
     steps:[['I · Free','Guide and bite calendar','0 THB','Legal spots, seasons and what to pack, sent to you on WhatsApp or Telegram.',8],
@@ -41,7 +41,7 @@ export default {
       ['III · Private','Family Day · Pro Day','24,000–38,000','The boat is yours alone: from a calm day with the kids to GT popping.',45],
       ['IV · Trophy','Big Game · Night on the Shelf','89,000+','Sportfisher, chef, sailfish and marlin. Your best shot at a trophy.',72],
       ['V · Signature','Tournament · Signature Week','390,000+','Concierge, villa, fleet and film. Everything settled before you land.',100]] },
-  concierge:{ kicker:'Concierge service', title:'You fish. *We handle the rest.*', lede:'One English-speaking person runs your whole fishing trip, from choosing the date to the trophy on your wall.',
+  concierge:{ kicker:'Concierge service', title:'You fish. *We handle the rest.*', lede:'One English-speaking person runs the whole trip, from choosing the date to the trophy.',
     items:[['boat','The right boat and captain for your target','We compare boats on speed, tackle and reviews, and book peak dates well ahead.'],['rod','Premium tackle','Stella, Saltiga, fresh braid. Or we’ll get your own gear ready.'],['car','Business-class transfers','Airport pickup, a car to the pier, a driver for every day of your stay.'],['home','A villa by the sea','Near Chalong or in Khao Lak, so you can sleep a little longer.'],['chef','A chef and a menu from your catch','Sashimi on board, dinner from your trophy at the villa.'],['cam','Photo, drone, film','A camera operator on board and an edited video within 48 hours.'],['shield','Insurance and paperwork','Vetted boats, a contract, a company invoice.'],['star','A program for the family','Spa, islands and nature while you’re out at sea.']],
     sigKicker:'Signature Week · 7 days', sigTitle:'A week of Thailand’s best fishing *without a single phone call*', sigPoints:['Big Game on a sportfisher and a night on the shelf','The Khao Sok jungle and Bangkok’s record-fish lakes','Villa, chef, driver, photos and film','A personal concierge 24/7 and the best boats in peak season'],
     fee:'A concierge can be added to any tour, from 15,000 THB per day. A club card for those who winter in Thailand: five trips per season at 15% off, with priority on dates.', sigCta:'See the week’s program' },

@@ -3,12 +3,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PHOTOS } from '../content/photos.mjs';
+import { PHOTOS as BASE } from '../content/photos.mjs';
 import { blurUri } from './blurhash.mjs';
 
 export const WIDTHS = [480, 800, 1200, 1800];
 const DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src/img/photos');
 const LOCAL = new Set(fs.existsSync(DIR) ? fs.readdirSync(DIR) : []);
+// Свои кадры (tools/photos.mjs из photos-src/): их размер и BlurHash важнее данных Unsplash
+const OWN_META = path.join(DIR, '..', '..', '..', 'content/photos-local.json');
+const OWN = fs.existsSync(OWN_META) ? JSON.parse(fs.readFileSync(OWN_META, 'utf8')) : {};
+const PHOTOS = Object.fromEntries(Object.entries(BASE).map(([k, p]) => [k, OWN[k] ? { ...p, ...OWN[k] } : p]));
 export const fileName = (key, w) => `${key.replace(/\//g, '-')}-${w}.webp`;
 const blur = new Map();
 
