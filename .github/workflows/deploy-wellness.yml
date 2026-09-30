@@ -1,57 +1,91 @@
-# ERKAK · выкладка экосистемы (wellness/) на erkak.com с машин GitHub.
+# ERKAK · экосистема (wellness/) на erkak.com с машин GitHub.
+# На сервере есть и другие проекты, поэтому сама по себе эта схема ничего не выкладывает:
+#   • пуш в ветку с изменениями в wellness/ — сборка, проверки и отчёт о сервере (./deploy.sh wellness-check, только чтение);
+#   • выкладка — только по явной команде: тег deploy-wellness-<что угодно> на нужный коммит
+#       git tag deploy-wellness-2026-10-01 && git push origin deploy-wellness-2026-10-01
+#     или Actions → Deploy ERKAK → Run workflow → mode: deploy (когда файл окажется в main).
+# Выкладка сначала повторяет проверку и останавливается, если что-то на сервере выглядит не так;
+# при ошибке после начала всё возвращается как было (подробно — в deploy.sh, раздел wellness).
+#
 # Секреты — в GitHub: Settings → Secrets and variables → Actions → New repository secret.
-#   VPS_SSH_KEY            приватный SSH-ключ сервера (обязательно для выкладки; без него — только сборка и проверки)
+#   VPS_SSH_KEY            приватный SSH-ключ сервера (без него — только сборка и проверки)
 #   VPS_HOST, VPS_USER     по умолчанию 62.238.59.42 и root
 #   TELEGRAM_BOT_TOKEN, LEADS_TG_CHAT          заявки в Telegram-группу
 #   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET   предоплата картой
-# Запуск: при каждом пуше в эту ветку с изменениями в wellness/ или вручную (Actions → Deploy ERKAK → Run workflow).
+# Выкладка идёт в окружение erkak.com: в Settings → Environments можно включить подтверждение перед каждой выкладкой.
 name: Deploy ERKAK
 on:
-  workflow_dispatch:
   push:
     branches: [claude/thailand-fishing-tours-vjkxkt]
+    tags: ['deploy-wellness-*']
     paths: ['wellness/**', 'deploy.sh', '.github/workflows/deploy-wellness.yml']
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'check — только проверить сервер; deploy — выложить'
+        type: choice
+        options: [check, deploy]
+        default: check
 concurrency:
   group: deploy-wellness
   cancel-in-progress: false
 permissions:
   contents: read
 jobs:
-  deploy:
+  check:
+    if: github.ref_type == 'branch' && (github.event_name == 'push' || inputs.mode == 'check')
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Секреты на месте?
-        id: s
-        env:
-          KEY: ${{ secrets.VPS_SSH_KEY }}
-        run: |
-          if [ -z "$KEY" ]; then
-            echo "::warning::Нет секрета VPS_SSH_KEY — только сборка и проверки, без выкладки"
-            echo "ok=0" >> "$GITHUB_OUTPUT"
-          else
-            echo "ok=1" >> "$GITHUB_OUTPUT"
-          fi
       - name: Сборка и проверки
         working-directory: wellness
         run: STRICT=1 node build.mjs && node tools/check-i18n.mjs && node tools/check.mjs
       - name: SSH-ключ
-        if: steps.s.outputs.ok == '1'
+        id: key
         env:
           KEY: ${{ secrets.VPS_SSH_KEY }}
         run: |
+          if [ -z "$KEY" ]; then echo "::notice::Нет секрета VPS_SSH_KEY — сервер не проверяется"; echo "ok=0" >> "$GITHUB_OUTPUT"; exit 0; fi
           install -m 700 -d ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/erkak_key && chmod 600 ~/.ssh/erkak_key
           printf 'Host *\n  IdentityFile ~/.ssh/erkak_key\n  IdentitiesOnly yes\n  ServerAliveInterval 30\n' > ~/.ssh/config
-      - name: Выкладка на erkak.com
-        if: steps.s.outputs.ok == '1'
+          echo "ok=1" >> "$GITHUB_OUTPUT"
+      - name: Проверка сервера (только чтение)
+        if: steps.key.outputs.ok == '1'
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
+          # Лог публичного репозитория виден всем: без списка портов, контейнеров и чужих доменов
+          REPORT: ${{ github.event.repository.private && 'full' || 'short' }}
+        run: ./deploy.sh wellness-check
+
+  deploy:
+    if: github.ref_type == 'tag' || inputs.mode == 'deploy'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: erkak.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: SSH-ключ
+        env:
+          KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then echo "::error::Нет секрета VPS_SSH_KEY"; exit 1; fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/erkak_key && chmod 600 ~/.ssh/erkak_key
+          printf 'Host *\n  IdentityFile ~/.ssh/erkak_key\n  IdentitiesOnly yes\n  ServerAliveInterval 30\n' > ~/.ssh/config
+      - name: Проверка сервера и выкладка
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          REPORT: ${{ github.event.repository.private && 'full' || 'short' }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           LEADS_TG_CHAT: ${{ secrets.LEADS_TG_CHAT }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
