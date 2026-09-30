@@ -154,3 +154,11 @@ export function thaiMap(regions, names, spots, I){
   <g class="dots">${dots}</g><g class="regs">${regs}</g></svg>`;
 }
 
+
+// Кольцо ERKAK Ring: плоская иллюстрация в цветах бренда, знак «Λ» гравировкой на шинке
+export function ringArt(label){
+  return `<svg class="ring-art" viewBox="0 0 400 320" role="img" aria-label="${label}"><defs><clipPath id="ring-hole"><ellipse cx="200" cy="164" rx="124" ry="80"/></clipPath></defs>
+<ellipse class="r-sh" cx="200" cy="292" rx="128" ry="12"/><ellipse class="r-out" cx="200" cy="184" rx="148" ry="100"/><ellipse class="r-top" cx="200" cy="164" rx="148" ry="100"/>
+<ellipse class="r-in" cx="200" cy="164" rx="124" ry="80"/><ellipse class="r-hole" cx="200" cy="182" rx="124" ry="80" clip-path="url(#ring-hole)"/>
+<path class="r-hl" d="M126 77.4A148 100 0 0 1 274 77.4"/><path class="r-mark" transform="translate(188.8 263.4) scale(.7)" d="M7 23.5h4.3L16 14.6l4.7 8.9H25L16 6.8Z"/></svg>`;
+}

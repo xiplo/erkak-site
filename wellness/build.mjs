@@ -32,7 +32,7 @@ const LANGMETA = SITE.langs.map(code => { const m = CONTENT[code].meta; return {
 // ── Маршруты ────────────────────────────────────────────────────────
 const byId = arr => Object.fromEntries(arr.map(x => [x.id, x]));
 const DIRS = byId(DIRECTIONS), PROGS = byId(PROGRAMS), DESTS = byId(DESTINATIONS), GUIDE = byId(GUIDES);
-const RESERVED = new Set(['destinations', 'guides', 'about', 'terms', 'privacy', 'assets', 'pay']);
+const RESERVED = new Set(['destinations', 'guides', 'about', 'terms', 'privacy', 'assets', 'pay', 'ring']);
 for (const d of DIRECTIONS) if (RESERVED.has(d.slug)) throw new Error(`Слаг направления занят: ${d.slug}`);
 export function route(code, key){
   const b = `/${code}/`;
@@ -49,6 +49,7 @@ export function route(code, key){
     case 'guide': return b + 'guides/' + GUIDE[id].slug + '/';
     case 'about': case 'terms': case 'privacy': return b + k + '/';
     case 'paydone': return b + 'pay/done/';
+    case 'ring': return b + 'ring/';
   }
   throw new Error('Неизвестный маршрут ' + key);
 }
@@ -174,6 +175,7 @@ for (const code of LANGS) {
   for (const d of C.dests) if (d.page) add('dest:' + d.id, Pages.dest(C, d));
   add('guides', Pages.guides(C));
   for (const g of C.guides) add('guide:' + g.id, Pages.guide(C, g));
+  add('ring', Pages.ring(C));
   add('about', Pages.about(C));
   add('terms', Pages.legal(C, 'terms'));
   add('privacy', Pages.legal(C, 'privacy'));
@@ -219,6 +221,7 @@ fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify({ name:'
     `- [Home](${SITE.origin}${C.path('hub')}): all disciplines, top-100 catalog, club, concierge quiz`,
     `- [Sport fishing in Thailand](${SITE.origin}${C.path('dir:fishing')}): legal spots map, season calendar, ${C.tours.length} tours with THB prices`,
     ...C.dirs.filter(d => d.id !== 'fishing').map(d => `- [${d.name}](${SITE.origin}${C.path('dir:' + d.id)}): ${String(d.short).replace(/\*/g, '')}`),
+    `- [ERKAK Ring](${SITE.origin}${C.path('ring')}): smart ring for sleep, recovery and readiness, linked to ERKAK programs; pre-registration, not a medical device`,
     ``, `## Guides`, ...C.guides.map(g => `- [${g.title.replace(/\*/g, '')}](${SITE.origin}${C.path('guide:' + g.id)}): ${g.desc.replace(/\*/g, '')}`),
     ``, `## Destinations`, ...C.dests.filter(d => d.page).map(d => `- [${d.name}](${SITE.origin}${C.path('dest:' + d.id)})`),
     ``, `## Company`, `- [About ERKAK and Thailand visa help](${SITE.origin}${C.path('about')})`, `- [Terms](${SITE.origin}${C.path('terms')})`, `- [Privacy](${SITE.origin}${C.path('privacy')})`, ``];

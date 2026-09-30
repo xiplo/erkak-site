@@ -1,6 +1,6 @@
 // ERKAK · страницы. Каждая функция возвращает готовый HTML для одного языка (контекст C).
 import { esc, inline } from './util.mjs';
-import { andamanMap, thaiMap, icon, placeShort } from './art.mjs';
+import { andamanMap, thaiMap, ringArt, icon, placeShort } from './art.mjs';
 import { page, btn, T, sh, price, crumbs, crumbsLd, faq, faqLd, monthsBar, ticks, card, dirTile, placeCard, row, gcard, leadForm, photo } from './site.mjs';
 import { hasPhoto } from './photo.mjs';
 
@@ -110,6 +110,14 @@ export function hub(C){
     ${sh(C, 6, H.club.kicker, T(C, H.club.title), H.club.lede)}
     <div class="club">${H.club.tiers.map((t, i) => `<article class="tier rv${i === 1 ? ' feat' : ''}${i === 2 ? ' black' : ''}" style="--d:${i}"><p class="tier-name">${esc(t.name)}</p><div class="tier-p num">${esc(t.price)}<small>${esc(t.per)}</small></div><ul>${t.points.map(x => `<li>${T(C, x)}</li>`).join('')}</ul>${btn(t.cta, '#pick', i === 1 ? 'btn-primary btn-block' : 'btn-ghost btn-block', `data-club="${['free', 'club', 'black'][i]}"`)}</article>`).join('')}</div>
     <p class="small" style="margin-block-start:26px">${T(C, H.club.note)}</p>
+  </div>
+</section>
+
+<section class="sec" id="ring" aria-labelledby="h-ring">
+  <div class="wrap split ring-teaser">
+    <a class="ring-tile rv" href="${C.path('ring')}" tabindex="-1" aria-hidden="true">${ringArt('')}</a>
+    <div class="rv" style="--d:2"><span class="badge">${esc(C.L.ring.status)}</span><h2 class="h2" style="margin-block:14px 16px">${T(C, C.L.ring.home.title)}</h2><p class="lede">${T(C, C.L.ring.home.lede)}</p>
+      <div class="btns" style="margin-block-start:26px">${btn(C.L.ring.home.cta, C.path('ring'), 'btn-primary')}</div></div>
   </div>
 </section>
 
@@ -572,3 +580,40 @@ ${regions}
   return page(C, { key:'fishmap', title:M.metaTitle, desc:M.metaDesc, body, lds, nav:'fish', scripts:['fishing'], og:'/assets/og/fishing.jpg' });
 }
 
+
+// ════ ERKAK Ring: умное кольцо, предзапись ════════════════════════════
+// Балл «Форма»: кольцо-шкала, неделя столбиками на шкале l0–l3, три метрики. Цифры — образец экрана.
+function formScore(C, S){
+  const r = 56, len = 2 * Math.PI * r, val = 86, week = [[1, 55], [2, 72], [0, 44], [1, 61], [2, 78], [3, 88], [3, 86]];
+  return `<figure class="fs-wrap"><section class="fs" aria-label="${esc(S.label)}: ${val} ${esc(S.of)}">
+  <div class="fs-dial"><svg viewBox="0 0 132 132" aria-hidden="true"><circle class="fs-track" cx="66" cy="66" r="${r}"/><circle class="fs-val" cx="66" cy="66" r="${r}" stroke-dasharray="${(len * val / 100).toFixed(1)} ${len.toFixed(1)}"/></svg><div class="fs-num"><b class="num">${C.I.num(val)}</b><span>${esc(S.of)}</span></div></div>
+  <div class="fs-copy"><span class="fs-state">${esc(S.state)}</span><p>${esc(S.tip)}</p></div>
+  <div class="fs-week" role="img" aria-label="${esc(S.week)}">${week.map(([l, h]) => `<i class="l${l}" style="block-size:${h}%"></i>`).join('')}</div>
+  <div class="fs-days" aria-hidden="true">${S.days.map(d => `<span>${esc(d)}</span>`).join('')}</div>
+  <dl class="fs-metrics"><div><dt>${esc(S.sleep)}</dt><dd>${esc(S.sleepVal)}</dd></div><div><dt>${esc(S.rhr)}</dt><dd class="num">${C.I.num(58)}</dd></div><div><dt>${esc(S.hrv)}</dt><dd>${esc(S.hrvVal)}</dd></div></dl>
+</section><figcaption class="small">${esc(S.sample)}</figcaption></figure>`;
+}
+
+export function ring(C){
+  const I = C.I, R = C.L.ring, S = R.score;
+  const cr = [['ERKAK Ring', C.path('ring')]];
+  const body = `
+<section class="phero"><div class="wrap has-ph"><figure class="phero-ph ring-ph">${ringArt(esc(R.art))}<div class="ring-chip" aria-hidden="true"><b class="num">${C.I.num(86)}</b><span>${esc(S.label)} · ${esc(S.state)}</span></div></figure><div class="phero-copy">
+  ${crumbs(C, cr)}<span class="badge">${esc(R.status)}</span><h1 class="h1">${T(C, R.title)}</h1><p class="lede">${T(C, R.lede)}</p>
+  <div class="btns">${btn(R.cta, '#ring-form', 'btn-primary btn-lg')}${btn(R.ctaHow, '#how', 'btn-ghost btn-lg')}</div>
+  <p class="small">${esc(R.note)}</p>
+</div></div></section>
+<section class="sec soft" id="how"><div class="wrap">${sh(C, 1, '', T(C, R.how.title), R.how.lede)}${stepsHtml(C, R.how.steps)}</div></section>
+<section class="sec"><div class="wrap split">
+  <div class="rv"><h2 class="h2">${T(C, R.metrics.title)}</h2><p class="lede" style="margin-block:16px 28px">${T(C, R.metrics.lede)}</p>
+    <dl class="ring-metrics">${R.metrics.items.map(([h, p]) => `<div><dt>${esc(h)}</dt><dd>${T(C, p)}</dd></div>`).join('')}</dl></div>
+  <div class="rv" style="--d:2">${formScore(C, S)}</div>
+</div></section>
+<section class="sec soft"><div class="wrap split"><div class="rv"><h2 class="h2">${T(C, R.data.title)}</h2></div><div class="rv">${ticks(C, R.data.points)}</div></div></section>
+<section class="sec" id="ring-form"><div class="wrap split">
+  <div class="rv"><h2 class="h2">${T(C, R.form.title)}</h2><p class="lede" style="margin-block-start:16px">${T(C, R.form.lede)}</p></div>
+  <div class="rv">${leadForm(C, { type:'waitlist', id:'ring', title:'ERKAK Ring', fields:['name', 'contact'], submit:R.form.submit })}</div>
+</div></section>
+<section class="sec soft"><div class="wrap">${sh(C, 2, '', esc(I.t('prog.faq')), '')}${faq(C, R.faq)}</div></section>`;
+  return page(C, { key:'ring', title:R.metaTitle, desc:R.metaDesc, body, lds:[crumbsLd(C, cr), faqLd(R.faq)] });
+}
