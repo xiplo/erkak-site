@@ -8,7 +8,7 @@ export const SITE = {
   contacts: { telegram:'erkak_world', whatsapp:'66000000000', wechat:'', email:'care@erkak.com', phone:'' },
   // Юрданные показываются только заполненными.
   legal: { operator:'', tat:'', insurance:'' },
-  analytics: { metrika:'', ga4:'' },
+  analytics: { metrika:'', ga4:'G-83Z5HYT9SB' },
   // Оплата: stripe:true показывает кнопку предоплаты картой на страницах туров (сервер должен иметь STRIPE_SECRET_KEY,
   // иначе кнопка честно сообщит, что оплата недоступна, и отправит обычную заявку). deposit — доля предоплаты.
   payments: { stripe:true, deposit:0.3 },
