@@ -106,7 +106,7 @@ function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [], noinde
   let title = rawTitle.length > (cjk ? 36 : 68) ? rawTitle.replace(/\s*[|｜]\s*ERKAK\s*$/, '') : rawTitle;
   // Всё ещё длинный — отбрасываем последний хвост после запятой или тире (обычно цену), а не режем слово
   const max = cjk ? 40 : 75;
-  while (title.length > max) { const m = /^(.*\S)(?:[,،]\s|，|\s[—–·]\s)(?:(?![,،]\s|，|\s[—–·]\s).)+$/.exec(title); if (!m || m[1].length < 20) break; title = m[1]; }
+  while (title.length > max) { const m = /^(.*\S)(?:[,،]\s|[，、]|\s[—–·]\s)(?:(?![,،]\s|[，、]|\s[—–·]\s).)+$/.exec(title); if (!m || m[1].length < 20) break; title = m[1]; }
   const url = C.SITE.origin + C.path(key);
   const alts = C.langs.map(l => `<link rel="alternate" hreflang="${l.hreflang}" href="${C.SITE.origin + C.pathIn(l.code, key)}">`).join('');
   const xdef = key === 'hub' ? C.SITE.origin + '/' : C.SITE.origin + C.pathIn(C.SITE.defaultLang, key);

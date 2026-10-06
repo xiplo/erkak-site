@@ -194,7 +194,7 @@ for (const code of LANGS) {
 // ── Корень: выбор языка (x-default) и 404 ───────────────────────────
 const rootLinks = LANGMETA.map(l => `<a href="/${l.code}/" hreflang="${l.hreflang}" lang="${l.htmlLang}" dir="${l.dir}"><strong>${esc(l.name)}</strong><span>${esc(CONTENT[l.code].ui.brand.tag)}</span></a>`).join('');
 const rootHead = (title, extra = '') => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${title}</title>
-<meta name="description" content="ERKAK — men's wellness worldwide: Muay Thai, check-ups, retreats, adventure and trophy fishing. ${LANGMETA.map(l => l.name).join(' · ')}.">
+<meta name="description" content="ERKAK — men's wellness worldwide: Muay Thai, check-ups, retreats, adventure and trophy fishing, in ${LANGMETA.length} languages.">
 ${extra}<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><meta name="theme-color" content="#FFFFFF">
 <link rel="preload" href="${fontFile('golos-text-latin-normal-400')}" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="${ASSETS.css}"></head>`;
 const rootBody = inner => `<body><main class="root"><div class="root-in"><svg class="mark" aria-hidden="true"><use href="${spriteUrl}#logo"/></svg><div class="root-word">ERKAK</div>${inner}<nav class="root-langs" aria-label="Language">${rootLinks}</nav></div></main>`;

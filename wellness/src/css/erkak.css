@@ -613,7 +613,7 @@ em,i{font-style:normal}
 /* Арабский и китайский: без трекинга и с более свободной строкой */
 :lang(ar) body,:lang(zh) body,:lang(ja) body,:lang(ko) body,:lang(th) body{line-height:1.75}
 :lang(ko) body,:lang(ko) h1,:lang(ko) h2,:lang(ko) h3{word-break:keep-all}
-:lang(ja) h1,:lang(ja) h2,:lang(ja) h3{line-break:strict}
+:lang(ja) h1,:lang(ja) h2,:lang(ja) h3{line-break:strict;word-break:auto-phrase}
 :lang(zh) .display,:lang(ja) .display{line-height:1.2;letter-spacing:.01em}
 
 /* ── Мобильная версия: меньше рамок, короче прокрутка, всё листается пальцем ── */

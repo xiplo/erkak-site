@@ -44,7 +44,7 @@ export function hub(C){
     <div class="hero-media">
     ${photo('hero', { sizes:'(max-width:1240px) 100vw, 1200px', eager:true })}
     <div class="hero-copy">
-      <h1 class="display">${C.code === 'zh' || C.code === 'ja' ? T(C, H.title).replace(/。(?!<\/em>)/g, '。<br>') : C.code === 'ko' ? T(C, H.title).replace(/\. (?!<\/em>)/g, '.<br>') : T(C, H.title)}</h1>
+      <h1 class="display">${C.code === 'zh' || C.code === 'ja' ? T(C, H.title).replace(/。(?!<\/em>)/g, '。<br>') : C.code === 'ko' ? T(C, H.title).replace(/\. (?!<\/em>)/g, '.<br>') : C.code === 'th' ? T(C, H.title).replace(/ (?![^<>]*>)/g, '<br>') : T(C, H.title)}</h1>
       <p class="lede">${T(C, I.t('hub.lede', { n:C.items.length, d:C.dirs.length }))}</p>
       <div class="btns">${btn(I.t('cta.pick'), '#pick', 'btn-light btn-lg')}${btn(H.ctaAll, '#top', 'btn-glass btn-lg')}</div>
     </div>
