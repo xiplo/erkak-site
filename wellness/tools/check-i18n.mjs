@@ -11,7 +11,13 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const onlyFile = (args.find(a => a.startsWith('--file=')) || '').split('=')[1];
 let langs = args.filter(a => !a.startsWith('--'));
-if (!langs.length) langs = fs.readdirSync(path.join(ROOT, 'content')).filter(d => d !== 'ru' && fs.statSync(path.join(ROOT, 'content', d)).isDirectory());
+// Без аргументов — все готовые языки. Папка без index.mjs — перевод ещё пишется: сборка её пропускает, проверка тоже
+// (чтобы проверить такой перевод, назовите язык явно: node tools/check-i18n.mjs th).
+if (!langs.length) {
+  const dirs = fs.readdirSync(path.join(ROOT, 'content')).filter(d => d !== 'ru' && fs.statSync(path.join(ROOT, 'content', d)).isDirectory());
+  langs = dirs.filter(d => fs.existsSync(path.join(ROOT, 'content', d, 'index.mjs')));
+  for (const d of dirs) if (!langs.includes(d)) console.log(`· ${d}: нет index.mjs — перевод в работе, пропущен`);
+}
 
 const FILES = ['ui', 'catalog', 'fishing', 'site', 'guides'];
 const CYR = /[Ѐ-ӿ]/;
