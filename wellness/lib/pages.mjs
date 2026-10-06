@@ -664,5 +664,5 @@ export function privateConcierge(C){
   const service = { '@context':'https://schema.org', '@type':'Service', name:'ERKAK Private', serviceType:'Personal concierge', description:R.metaDesc, provider:ORG(C),
     areaServed:{ '@type':'Place', name:'Phuket, Thailand' }, inLanguage:C.L.meta.htmlLang,
     offers:P.tiers.map((t, i) => ({ '@type':'Offer', name:`ERKAK Private · ${R.plans.items[i][0]}`, price:t.price, priceCurrency:P.cur, url:C.SITE.origin + C.path('private') + '#plans' })) };
-  return page(C, { key:'private', title:R.metaTitle, desc:R.metaDesc, body, lds:[crumbsLd(C, cr), service, faqLd(R.faq)] });
+  return page(C, { key:'private', title:R.metaTitle, desc:R.metaDesc, body, lds:[crumbsLd(C, cr), service, faqLd(R.faq)], cta:[R.cta, '#private-form'] });
 }

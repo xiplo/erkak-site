@@ -96,8 +96,8 @@
   };
   var consentBar = function(){
     if ($('#consent')) return;
-    var b = document.createElement('div'); b.className = 'consent'; b.id = 'consent'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-live', 'polite');
-    b.innerHTML = '<p>' + esc(U.consentText) + '</p><div class="btns"><button type="button" class="btn btn-primary btn-sm" data-c="yes">' + esc(U.consentOk) + '</button><button type="button" class="btn btn-ghost btn-sm" data-c="no">' + esc(U.consentNo) + '</button></div>';
+    var b = document.createElement('div'); b.className = 'consent'; b.id = 'consent'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-live', 'polite'); b.setAttribute('aria-labelledby', 'consent-t');
+    b.innerHTML = '<p id="consent-t">' + esc(U.consentText) + '</p><div class="btns"><button type="button" class="btn btn-primary btn-sm" data-c="yes">' + esc(U.consentOk) + '</button><button type="button" class="btn btn-ghost btn-sm" data-c="no">' + esc(U.consentNo) + '</button></div>';
     document.body.appendChild(b);
     $$('[data-c]', b).forEach(function(x){ x.addEventListener('click', function(){ var v = x.getAttribute('data-c'); store.set('erk_consent', v); b.remove(); if (v === 'yes') loadAnalytics(); }); });
   };

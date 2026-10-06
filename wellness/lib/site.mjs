@@ -145,12 +145,12 @@ ${lds.map(ld).join('\n')}
 </head>`;
 }
 
-function header(C, key, navSet){
+function header(C, key, navSet, pageCta){
   const I = C.I, items = C.nav.slice(1, 6);
   const active = h => key && C.path(key) === h.split('#')[0] && !h.includes('#') ? ' aria-current="page"' : '';
   const langs = C.langs.map(l => `<a href="${C.pathIn(l.code, key)}" hreflang="${l.hreflang}" lang="${l.htmlLang}"${l.code === C.code ? ' aria-current="true"' : ''}>${esc(l.name)}<small>${esc(l.code)}</small></a>`).join('');
   const curs = C.SITE.currencies.map(c => `<button type="button" data-cur="${c}" aria-pressed="${c === C.cur}">${c}<small>${esc(I.money(0, c).replace(/[\d\s.,\u00A0\u202F\u200F]/g, '') || c)}</small></button>`).join('');
-  const cta = navSet === 'fish' ? [I.t('cta.pickTour'), C.path('dir:fishing') + '#pick'] : [I.t('cta.pick'), C.path('hub') + '#pick'];
+  const cta = pageCta || (navSet === 'fish' ? [I.t('cta.pickTour'), C.path('dir:fishing') + '#pick'] : [I.t('cta.pick'), C.path('hub') + '#pick']);
   return `<a class="skip" href="#main">${esc(I.t('a11y.skip'))}</a>
 <header class="hdr" id="hdr"><div class="wrap hdr-in">
   <a class="brand" href="${C.path('hub')}" aria-label="ERKAK — ${esc(I.t('nav.home'))}">${use('logo', 'mark')}<span class="word">ERKAK</span></a>
@@ -207,13 +207,14 @@ function chrome(C){
 // Секция с aria-labelledby="h-…": id получает её первый заголовок h2 (sh() id не знает)
 const labelSections = html => html.replace(/(<section\b[^>]*aria-labelledby="(h-[\w-]+)"[^>]*>)((?:(?!<section\b)[\s\S])*?)<h2\b(?![^>]*\sid=)/g, (m, open, id, mid) => mid.includes(`id="${id}"`) ? m : `${open}${mid}<h2 id="${id}"`);
 
-export function page(C, { key, title, desc, body, lds = [], og, nav = 'eco', scripts = [], mbar, noindex = false }){
+// cta: [текст, ссылка] — главное действие страницы для кнопки в шапке и нижней панели на телефоне
+export function page(C, { key, title, desc, body, lds = [], og, nav = 'eco', scripts = [], mbar, cta, noindex = false }){
   const I = C.I;
   body = labelSections(body);
-  const mb = mbar || (nav === 'fish' ? [I.t('cta.pickTour'), C.path('dir:fishing') + '#pick'] : [I.t('cta.pick'), C.path('hub') + '#pick']);
+  const mb = mbar || cta || (nav === 'fish' ? [I.t('cta.pickTour'), C.path('dir:fishing') + '#pick'] : [I.t('cta.pick'), C.path('hub') + '#pick']);
   return `${head(C, { key, title, desc, og, ld:lds, noindex })}
 <body class="no-js">
-${header(C, key, nav)}
+${header(C, key, nav, cta)}
 <main id="main">
 ${body}
 </main>

@@ -5,7 +5,7 @@ export const SITE = {
   origin: 'https://erkak.com',
   api: '/api/lead',
   // Контакты. Пустое поле скрывает кнопку. Telegram — имя без @ или номер с + (ссылка t.me/+номер), WhatsApp — международный формат без +.
-  contacts: { telegram:'+998990505070', whatsapp:'998990505070', wechat:'', email:'care@erkak.com', phone:'' },
+  contacts: { telegram:'+998990505070', whatsapp:'998990505070', wechat:'', email:'', phone:'' },
   // Юрданные показываются только заполненными.
   legal: { operator:'', tat:'', insurance:'' },
   analytics: { metrika:'', ga4:'G-83Z5HYT9SB' },
