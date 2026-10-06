@@ -100,11 +100,12 @@ export function leadForm(C, { type, id = '', title = '', fields = ['date', 'gues
 
 // ── Каркас страницы ──────────────────────────────────────────────────
 function head(C, { key, title: rawTitle, desc: rawDesc, og, ld: lds = [], noindex = false }){
-  const desc = clip(rawDesc, C.code === 'zh' ? 84 : 158);
+  const cjk = ['zh', 'ja', 'ko'].includes(C.code);
+  const desc = clip(rawDesc, cjk ? 84 : 158);
   // Длинный title: бренд в конце не помещается в выдаче — убираем его, а не обрезаем смысл
-  let title = rawTitle.length > (C.code === 'zh' ? 36 : 68) ? rawTitle.replace(/\s*[|｜]\s*ERKAK\s*$/, '') : rawTitle;
+  let title = rawTitle.length > (cjk ? 36 : 68) ? rawTitle.replace(/\s*[|｜]\s*ERKAK\s*$/, '') : rawTitle;
   // Всё ещё длинный — отбрасываем последний хвост после запятой или тире (обычно цену), а не режем слово
-  const max = C.code === 'zh' ? 40 : 75;
+  const max = cjk ? 40 : 75;
   while (title.length > max) { const m = /^(.*\S)(?:[,،]\s|，|\s[—–·]\s)(?:(?![,،]\s|，|\s[—–·]\s).)+$/.exec(title); if (!m || m[1].length < 20) break; title = m[1]; }
   const url = C.SITE.origin + C.path(key);
   const alts = C.langs.map(l => `<link rel="alternate" hreflang="${l.hreflang}" href="${C.SITE.origin + C.pathIn(l.code, key)}">`).join('');

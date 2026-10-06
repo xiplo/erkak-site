@@ -34,11 +34,14 @@ Numbers, prices, IDs, months, coordinates and slugs live in `content/core.mjs` a
    | DE | „…“ |
    | AR | «…» or “…” |
    | ZH | “…” |
+   | JA | 「…」 |
+   | KO | “…” |
+   | TH | “…” |
    | UZ | «…» or “…” |
 
 8. **No Cyrillic** in non-Russian files; the checker flags it.
 9. **SEO:**
-   - `metaTitle` ≤ 65 characters and `metaDesc` ≤ 160.
+   - `metaTitle` ≤ 65 characters and `metaDesc` ≤ 160 (ZH, JA, KO: ≤ 36 and ≤ 80 — wide characters).
    - Write them as natural search queries in the target language (e.g. EN “Muay Thai camp Phuket”, DE “Muay Thai Camp Phuket”, ZH “普吉岛泰拳训练营”, AR “معسكر مواي تاي في بوكيت”, UZ “Puketda muay tay lageri”).
    - Keep `| ERKAK` at the end where Russian has it.
 
@@ -55,12 +58,15 @@ The site must never promise what the business doesn't do.
     | DE | “Concierge auf Englisch” (optionally “und Russisch”) |
     | AR | “كونسيرج باللغة الإنجليزية” |
     | ZH | “英文礼宾服务” / “英语沟通” |
+    | JA | “英語対応のコンシェルジュ” |
+    | KO | “영어 컨시어지” |
+    | TH | “คอนเซียร์จภาษาอังกฤษ” |
     | UZ | “oʻzbek va rus tillarida” |
 
-  - Never claim German, Arabic or Chinese-speaking staff.
-  - Where Russian says “in your language” as a benefit (fishing hero, pains, concierge), DE, AR and ZH must replace it with another true benefit: “one concierge for everything”, “fully arranged”, “private”.
+  - Never claim German, Arabic, Chinese, Japanese, Korean or Thai-speaking staff.
+  - Where Russian says “in your language” as a benefit (fishing hero, pains, concierge), DE, AR, ZH, JA, KO and TH must replace it with another true benefit: “one concierge for everything”, “fully arranged”, “private”.
 - **Payments.** The Russian text lists “rubles via partner, USDT, foreign bank cards, cash on site, company invoice”. Adapt it:
-  - EN/DE/AR/ZH: international cards · bank transfer / company invoice · USDT · cash (THB/USD) on site. Drop “rubles via partner”.
+  - EN/DE/AR/ZH/JA/KO/TH: international cards · bank transfer / company invoice · USDT · cash (THB/USD) on site. Drop “rubles via partner”.
   - UZ: international Visa/Mastercard cards from Uzbek banks work · USDT · cash · company invoice.
   - FAQ “How to pay from Russia and the CIS?” becomes “How do I pay?” (UZ: “Oʻzbekistondan qanday toʻlash mumkin?”).
 - **Visa.** From 15 Sep 2026 Thailand gives 30 days visa-free to 60 countries. Adapt nationality examples to the audience:
@@ -71,6 +77,9 @@ The site must never promise what the business doesn't do.
   | DE | Germany, Austria and Switzerland, 30 days |
   | AR | GCC citizens, 30 days |
   | ZH | Chinese citizens, 30 days (mutual exemption) |
+  | JA | Japanese citizens, 30 days |
+  | KO | South Korean citizens, 90 days (bilateral agreement) |
+  | TH | Thai residents: no visa for programs in Thailand; for trips abroad, the destination’s rules |
   | UZ | citizens of Uzbekistan need a visa (e-Visa); we help with documents |
 
   The nationality table in the visa guide stays complete. Don't invent new rules.
@@ -95,6 +104,9 @@ The site must never promise what the business doesn't do.
 | de | Deutsch | de-DE | de | de | de_DE | ltr | EUR | whatsapp, telegram | golos-text-latin-normal-400 |
 | ar | العربية | ar-u-nu-latn | ar | ar | ar_AE | rtl | USD | whatsapp, telegram | ibm-plex-sans-arabic-arabic-normal-400 |
 | zh | 简体中文 | zh-CN | zh-Hans | zh-Hans | zh_CN | ltr | CNY | whatsapp, telegram | *(empty array: Chinese uses system fonts)* |
+| ja | 日本語 | ja-JP | ja | ja | ja_JP | ltr | JPY | whatsapp, telegram | *(empty: system fonts)* |
+| ko | 한국어 | ko-KR | ko | ko | ko_KR | ltr | KRW | whatsapp, telegram | *(empty: system fonts)* |
+| th | ไทย | th-TH | th | th | th_TH | ltr | THB | whatsapp, telegram | ibm-plex-sans-thai-thai-normal-400 |
 | uz | Oʻzbekcha | uz-Latn-UZ | uz | uz | uz_UZ | ltr | UZS | telegram, whatsapp | golos-text-latin-normal-400 |
 
 ## Plural forms (`units`, `nouns`)
@@ -104,7 +116,7 @@ Each unit or noun is an object with the plural categories of `new Intl.PluralRul
 | Language | Categories |
 |---|---|
 | EN, DE, UZ | `one`, `other` |
-| ZH | `other` only |
+| ZH, JA, KO, TH | `other` only |
 | AR | `zero`, `one`, `two`, `few`, `many`, `other` |
 
 - `gen` exists only in Russian (genitive for “до 6 рыболовов”, up to 6 anglers). Other languages drop it.

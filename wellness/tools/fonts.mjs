@@ -12,12 +12,14 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = path.join(ROOT, 'src/fonts');
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
 
-// Семейство → запрос CSS2 и нужные подмножества. Китайский — системными шрифтами (см. erkak.css).
+// Семейство → запрос CSS2 и нужные подмножества. Китайский, японский и корейский — системными шрифтами (см. erkak.css).
 const SETS = [
   // Один шрифт на весь сайт: Golos Text — кириллица рисовалась первой, спокойный продуктовый гротеск
   { q:'Golos+Text:wght@400..700', subsets:['latin', 'latin-ext', 'cyrillic'] },
   // Арабский: IBM Plex Sans Arabic — та же логика, гротеск без декора
-  { q:'IBM+Plex+Sans+Arabic:wght@400;600;700', subsets:['arabic'] }
+  { q:'IBM+Plex+Sans+Arabic:wght@400;600;700', subsets:['arabic'] },
+  // Тайский: IBM Plex Sans Thai — того же семейства, что арабский; японский и корейский — системные шрифты
+  { q:'IBM+Plex+Sans+Thai:wght@400;600;700', subsets:['thai'] }
 ];
 
 fs.rmSync(OUT, { recursive:true, force:true });

@@ -14,14 +14,14 @@ export const SITE = {
   payments: { stripe:true, deposit:0.3 },
   verify: { yandex:'', google:'', bing:'' },
   // Единиц валюты за 1 USD. Ориентир для «≈» на сайте; итоговая цена — в подтверждении.
-  rates: { USD:1, THB:33.4, RUB:84.3, EUR:0.87, GBP:0.74, AED:3.67, SAR:3.75, CNY:7.1, KZT:510, UZS:12600, INR:88 },
-  currencies: ['USD','THB','EUR','RUB','AED','SAR','CNY','UZS','KZT','GBP','INR'],
+  rates: { USD:1, THB:33.4, RUB:84.3, EUR:0.87, GBP:0.74, AED:3.67, SAR:3.75, CNY:7.1, JPY:150, KRW:1400, KZT:510, UZS:12600, INR:88 },
+  currencies: ['USD','THB','EUR','RUB','AED','SAR','CNY','JPY','KRW','UZS','KZT','GBP','INR'],
   founded: 2026,
   countries: 21,
   // Ключ IndexNow (Яндекс, Bing): build кладёт файл /<key>.txt, deploy.sh пингует после выкладки
   indexnow: 'e7k4a2r9k5w1m3n8p6q0',
   // Порядок языков в переключателе. Код совпадает с файлом content/<code>.mjs.
-  langs: ['ru','en','de','ar','zh','uz'],
+  langs: ['ru','en','de','ar','zh','ja','ko','th','uz'],
   defaultLang: 'en'
 };
 

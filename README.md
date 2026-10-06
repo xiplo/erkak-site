@@ -8,7 +8,7 @@
 - nginx: `/etc/nginx/sites-available/erkak.com.conf`, `/api/` проксируется на API.
 - Деплой: `./deploy.sh vps` (rsync статики и сервера, перезапуск, nginx, certbot).
 - Зеркало статики без API: `./deploy.sh pages` → GitHub Pages `xiplo/erkak-site`.
-- Экосистема ERKAK (мужской велнес на 6 языках: ru, en, de, ar, zh, uz; 100 программ, раздел рыбалки): `wellness/`. Сборка — `node wellness/build.mjs` в `wellness/public/`, выкладка на erkak.com — `./deploy.sh wellness`. Подробности в `wellness/README.md`, стратегия — `wellness/ECOSYSTEM.md`.
+- Экосистема ERKAK (мужской велнес на 9 языках: ru, en, de, ar, zh, ja, ko, th, uz; 100 программ, раздел рыбалки): `wellness/`. Сборка — `node wellness/build.mjs` в `wellness/public/`, выкладка на erkak.com — `./deploy.sh wellness`. Подробности в `wellness/README.md`, стратегия — `wellness/ECOSYSTEM.md`.
 
 ## Настройка на сервере (`/opt/erkak/.env`)
 ```

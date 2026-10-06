@@ -49,7 +49,7 @@ const q = {
 };
 
 const TYPES = new Set(['quiz','tour','guide','eco','waitlist','plan']);
-const LANGS = new Set(['ru','en','de','ar','zh','uz']);
+const LANGS = new Set(['ru','en','de','ar','zh','ja','ko','th','uz']);
 const STATUSES = ['new','contacted','quoted','deposit','done','lost'];
 const clip = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');

@@ -288,7 +288,7 @@ fi
 REMOTE
   # IndexNow (Bing, Yandex, Seznam…): сообщаем о всех адресах из карт сайта. Отключить: NO_INDEXNOW=1
   [ -n "${NO_INDEXNOW:-}" ] || (cd "$DIR/wellness" && node tools/indexnow.mjs) || echo "! IndexNow не ответил — не критично"
-  echo "Готово: https://${DOMAIN} — экосистема ERKAK на 6 языках. Прежняя версия: /var/www/.${DOMAIN}-prev, резервные копии: /var/backups/erkak-wellness (как вернуть — wellness/README.md, «Деплой»)"
+  echo "Готово: https://${DOMAIN} — экосистема ERKAK на 9 языках. Прежняя версия: /var/www/.${DOMAIN}-prev, резервные копии: /var/backups/erkak-wellness (как вернуть — wellness/README.md, «Деплой»)"
 else
   echo "Использование: ./deploy.sh pages | vps | teaser | wellness-check | wellness"; exit 1
 fi
