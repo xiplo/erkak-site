@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SITE, GOALS, DIRECTIONS, DESTINATIONS, PROGRAMS, TOURS, SPOTS, FISH_REGIONS, SEASON, SEA_STATE, GUIDES, COMBOS } from './content/core.mjs';
+import { SITE, GOALS, DIRECTIONS, DESTINATIONS, PROGRAMS, TOURS, SPOTS, FISH_REGIONS, SEASON, SEA_STATE, GUIDES, COMBOS, PRIVATE } from './content/core.mjs';
 import { makeI18n } from './lib/i18n.mjs';
 import { sprite, setSprite } from './lib/art.mjs';
 import { esc, hash } from './lib/util.mjs';
@@ -32,7 +32,7 @@ const LANGMETA = SITE.langs.map(code => { const m = CONTENT[code].meta; return {
 // ── Маршруты ────────────────────────────────────────────────────────
 const byId = arr => Object.fromEntries(arr.map(x => [x.id, x]));
 const DIRS = byId(DIRECTIONS), PROGS = byId(PROGRAMS), DESTS = byId(DESTINATIONS), GUIDE = byId(GUIDES);
-const RESERVED = new Set(['destinations', 'guides', 'about', 'terms', 'privacy', 'assets', 'pay', 'ring']);
+const RESERVED = new Set(['destinations', 'guides', 'about', 'terms', 'privacy', 'assets', 'pay', 'ring', 'private']);
 for (const d of DIRECTIONS) if (RESERVED.has(d.slug)) throw new Error(`Слаг направления занят: ${d.slug}`);
 export function route(code, key){
   const b = `/${code}/`;
@@ -50,6 +50,7 @@ export function route(code, key){
     case 'about': case 'terms': case 'privacy': return b + k + '/';
     case 'paydone': return b + 'pay/done/';
     case 'ring': return b + 'ring/';
+    case 'private': return b + 'private/';
   }
   throw new Error('Неизвестный маршрут ' + key);
 }
@@ -83,10 +84,12 @@ if (fs.existsSync(IMG)) for (const f of fs.readdirSync(IMG, { recursive:true }))
 }
 
 // ── Контекст языка ──────────────────────────────────────────────────
+// Номер для подписи: +998 99 050 50 70 (Узбекистан), остальные — +код и группы по 3
+const phoneFmt = n => { const d = String(n).replace(/\D/g, ''); return d.startsWith('998') && d.length === 12 ? `+998 ${d.slice(3, 5)} ${d.slice(5, 8)} ${d.slice(8, 10)} ${d.slice(10)}` : '+' + d.replace(/(\d{3})(?=\d)/g, '$1 '); };
 function messengers(L){
   const c = SITE.contacts, M = {
-    telegram: c.telegram && { icon:'tg', label:'Telegram', sub:'@' + c.telegram, href:`https://t.me/${c.telegram}` },
-    whatsapp: c.whatsapp && { icon:'wa', label:'WhatsApp', sub:'+' + c.whatsapp, href:`https://wa.me/${c.whatsapp}` },
+    telegram: c.telegram && { icon:'tg', label:'Telegram', sub:c.telegram.startsWith('+') ? phoneFmt(c.telegram) : '@' + c.telegram, href:`https://t.me/${c.telegram}` },
+    whatsapp: c.whatsapp && { icon:'wa', label:'WhatsApp', sub:phoneFmt(c.whatsapp), href:`https://wa.me/${c.whatsapp}` },
     wechat: c.wechat && { icon:'wechat', label:'WeChat', sub:c.wechat, href:`weixin://dl/chat?${c.wechat}` }
   };
   const order = [...(L.meta.messengers || []), 'telegram', 'whatsapp', 'wechat'];
@@ -95,7 +98,7 @@ function messengers(L){
 
 function makeContext(code){
   const L = CONTENT[code], I = makeI18n(L, SITE);
-  const C = { code, L, I, SITE, langs:LANGMETA, cur:L.meta.currency, goals:GOALS, combos:COMBOS, SEASON, SEA_STATE, SPOTS, FISH_REGIONS };
+  const C = { code, L, I, SITE, langs:LANGMETA, cur:L.meta.currency, goals:GOALS, combos:COMBOS, SEASON, SEA_STATE, SPOTS, FISH_REGIONS, PRIVATE };
   C.path = key => route(code, key);
   C.pathIn = (c, key) => route(c, key);
   C.asset = name => name === 'data' ? ASSETS['data:' + code] : ASSETS[name];
@@ -122,7 +125,7 @@ function makeContext(code){
   C.guides = GUIDES.map(g => ({ ...g, ...need(L.guides, g.id, 'гайда') }));
 
   const F = L.fishing;
-  C.nav = [[I.t('nav.dirs'), C.path('hub') + '#dirs'], [I.t('nav.top'), C.path('hub') + '#top'], [I.t('nav.fishing'), C.path('dir:fishing')], [I.t('nav.places'), C.path('dests')], [I.t('nav.guides'), C.path('guides')], [I.t('nav.club'), C.path('hub') + '#club']];
+  C.nav = [[I.t('nav.dirs'), C.path('hub') + '#dirs'], [I.t('nav.top'), C.path('hub') + '#top'], [I.t('nav.fishing'), C.path('dir:fishing')], [L.private.nav, C.path('private')], [I.t('nav.places'), C.path('dests')], [I.t('nav.guides'), C.path('guides')], [I.t('nav.club'), C.path('hub') + '#club']];
   C.navFish = [[I.t('nav.all'), C.path('hub')], ...F.subnav.slice(0, 5).map(([n, h]) => [n, C.path('dir:fishing') + '#' + h])];
   return C;
 }
@@ -175,6 +178,7 @@ for (const code of LANGS) {
   for (const d of C.dests) if (d.page) add('dest:' + d.id, Pages.dest(C, d));
   add('guides', Pages.guides(C));
   for (const g of C.guides) add('guide:' + g.id, Pages.guide(C, g));
+  add('private', Pages.privateConcierge(C));
   add('ring', Pages.ring(C));
   add('about', Pages.about(C));
   add('terms', Pages.legal(C, 'terms'));
@@ -221,6 +225,7 @@ fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify({ name:'
     `- [Home](${SITE.origin}${C.path('hub')}): all disciplines, top-100 catalog, club, concierge quiz`,
     `- [Sport fishing in Thailand](${SITE.origin}${C.path('dir:fishing')}): legal spots map, season calendar, ${C.tours.length} tours with THB prices`,
     ...C.dirs.filter(d => d.id !== 'fishing').map(d => `- [${d.name}](${SITE.origin}${C.path('dir:' + d.id)}): ${String(d.short).replace(/\*/g, '')}`),
+    `- [ERKAK Private](${SITE.origin}${C.path('private')}): personal concierge on Phuket — airport meet, villas, yachts, fishing, trainers, doctor on call, tables and golf; trip plan within 24 hours`,
     `- [ERKAK Ring](${SITE.origin}${C.path('ring')}): smart ring for sleep, recovery and readiness, linked to ERKAK programs; pre-registration, not a medical device`,
     ``, `## Guides`, ...C.guides.map(g => `- [${g.title.replace(/\*/g, '')}](${SITE.origin}${C.path('guide:' + g.id)}): ${g.desc.replace(/\*/g, '')}`),
     ``, `## Destinations`, ...C.dests.filter(d => d.page).map(d => `- [${d.name}](${SITE.origin}${C.path('dest:' + d.id)})`),

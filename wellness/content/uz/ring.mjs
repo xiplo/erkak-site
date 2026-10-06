@@ -2,7 +2,7 @@
 // Narx, muddat va xususiyatlar yetkazib beruvchi tasdiqlamaguncha yozilmaydi.
 export default {
   metaTitle:'ERKAK Ring — erkak formasi uchun aqlli uzuk | ERKAK',
-  metaDesc:'ERKAK uzugi uyqu, tiklanish va yuklamaga tayyorlikni ko‘rsatadi hamda ma’lumotlarni dasturlar bilan bog‘laydi: safardan oldin boshlang‘ich nuqta, keyin natija raqamlarda. Oldindan yozilish ochiq.',
+  metaDesc:'ERKAK uzugi uyqu, tiklanish va yuklamaga tayyorlikni ko‘rsatadi: safardan oldin boshlang‘ich nuqta, keyin natija raqamlarda. Oldindan yozilish ochiq.',
   title:'ERKAK Ring. *Ko‘rinadigan forma*',
   lede:'Uzuk bugun yuklamaga tayyormisiz yoki yo‘qligini ko‘rsatadi va dastur ish berganini isbotlaydi. Safardan oldin — boshlang‘ich nuqta, keyin — natija raqamlarda.',
   cta:'Oldindan yozilish', ctaHow:'Qanday ishlaydi', status:'Oldindan yozilish',

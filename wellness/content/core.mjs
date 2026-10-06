@@ -4,8 +4,8 @@
 export const SITE = {
   origin: 'https://erkak.com',
   api: '/api/lead',
-  // Контакты. Пустое поле скрывает кнопку. Telegram — без @, WhatsApp — международный формат без +.
-  contacts: { telegram:'erkak_world', whatsapp:'66000000000', wechat:'', email:'care@erkak.com', phone:'' },
+  // Контакты. Пустое поле скрывает кнопку. Telegram — имя без @ или номер с + (ссылка t.me/+номер), WhatsApp — международный формат без +.
+  contacts: { telegram:'+998990505070', whatsapp:'998990505070', wechat:'', email:'care@erkak.com', phone:'' },
   // Юрданные показываются только заполненными.
   legal: { operator:'', tat:'', insurance:'' },
   analytics: { metrika:'', ga4:'G-83Z5HYT9SB' },
@@ -261,3 +261,8 @@ export const COMBOS = [
   { id:'fighter',  items:['mt-month','sauna-ice','mens-health'] },
   { id:'fatherson',items:['father-son-thai','padi-ow','family-half'] }
 ];
+
+// ── ERKAK Private: личный консьерж на Пхукете ───────────────────────
+// Плата за консьержа «от», THB, за поездку. Виллы, яхты и услуги партнёров — отдельно, одним счётом.
+// Черновик: утвердить с владельцем (см. внутреннюю таблицу экономики).
+export const PRIVATE = { cur:'THB', tiers:[ { id:'weekend', price:29000 }, { id:'week', price:59000, feat:true }, { id:'season', price:189000 } ] };

@@ -146,7 +146,7 @@ ${lds.map(ld).join('\n')}
 }
 
 function header(C, key, navSet){
-  const I = C.I, items = C.nav.slice(1, 5);
+  const I = C.I, items = C.nav.slice(1, 6);
   const active = h => key && C.path(key) === h.split('#')[0] && !h.includes('#') ? ' aria-current="page"' : '';
   const langs = C.langs.map(l => `<a href="${C.pathIn(l.code, key)}" hreflang="${l.hreflang}" lang="${l.htmlLang}"${l.code === C.code ? ' aria-current="true"' : ''}>${esc(l.name)}<small>${esc(l.code)}</small></a>`).join('');
   const curs = C.SITE.currencies.map(c => `<button type="button" data-cur="${c}" aria-pressed="${c === C.cur}">${c}<small>${esc(I.money(0, c).replace(/[\d\s.,\u00A0\u202F\u200F]/g, '') || c)}</small></button>`).join('');
@@ -182,7 +182,7 @@ function footer(C, key){
         <div class="foot-langs">${C.langs.map(l => `<a href="${C.pathIn(l.code, key)}" hreflang="${l.hreflang}" lang="${l.htmlLang}"${l.code === C.code ? ' aria-current="true"' : ''}>${esc(l.name)}</a>`).join('')}</div></div>
       <div><h3>${esc(I.t('foot.dirs'))}</h3>${C.dirs.map(d => `<a href="${C.path('dir:' + d.id)}">${esc(d.name)}</a>`).join('')}</div>
       <div><h3>${esc(I.t('foot.places'))}</h3>${C.dests.filter(d => d.page).map(d => `<a href="${C.path('dest:' + d.id)}">${esc(d.name)}</a>`).join('')}<a href="${C.path('dests')}">${esc(I.t('foot.allPlaces'))} →</a></div>
-      <div><h3>ERKAK</h3><a href="${C.path('about')}">${esc(I.t('nav.about'))}</a><a href="${C.path('guides')}">${esc(I.t('nav.guides'))}</a><a href="${C.path('hub')}#club">${esc(I.t('nav.club'))}</a><a href="${C.path('ring')}">ERKAK Ring</a><a href="${C.path('about')}#visa">${esc(I.t('nav.visa'))}</a><a href="${C.path('terms')}">${esc(I.t('nav.terms'))}</a><a href="${C.path('privacy')}">${esc(I.t('nav.privacy'))}</a>
+      <div><h3>ERKAK</h3><a href="${C.path('about')}">${esc(I.t('nav.about'))}</a><a href="${C.path('guides')}">${esc(I.t('nav.guides'))}</a><a href="${C.path('hub')}#club">${esc(I.t('nav.club'))}</a><a href="${C.path('private')}">ERKAK Private</a><a href="${C.path('ring')}">ERKAK Ring</a><a href="${C.path('about')}#visa">${esc(I.t('nav.visa'))}</a><a href="${C.path('terms')}">${esc(I.t('nav.terms'))}</a><a href="${C.path('privacy')}">${esc(I.t('nav.privacy'))}</a>
         <h3 style="margin-block-start:34px">${esc(I.t('foot.contact'))}</h3>${m.map(x => `<a href="${x.href}" target="_blank" rel="noopener">${esc(x.label)}</a>`).join('')}${S.contacts.email ? `<a href="mailto:${S.contacts.email}">${esc(S.contacts.email)}</a>` : ''}${S.contacts.phone ? `<a href="tel:${S.contacts.phone.replace(/\s/g, '')}">${esc(S.contacts.phone)}</a>` : ''}</div>
     </div>
     <div class="foot-legal"><span>© ${new Date().getFullYear()} ERKAK${legal ? ' · ' + legal : ''}${S.analytics.ga4 || S.analytics.metrika ? ` · <button type="button" class="foot-btn" data-consent-reset>${esc(C.L.client.consentLink)}</button>` : ''}</span><span>${esc(I.t('foot.note'))}</span></div>

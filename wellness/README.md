@@ -201,7 +201,7 @@ GA4 и Яндекс Метрика загружаются только посл�
   1. Сгенерируйте свои кадры по `content/PHOTO-PROMPTS.md`: одной командой `./wellness/photos.sh` (бесплатно через Pollinations или через Gemini при заданном `GEMINI_API_KEY`) или вручную, положив файлы в `photos-src/` с именем слота (`hero.jpg`, `dir-fishing.png`…).
   2. Выполните `node tools/photos.mjs`. Скрипт нарежет свои кадры, а остальные скачает с Unsplash, чтобы всё раздавалось с erkak.com. Это важно для GDPR (немецкая версия) и для Китая.
   3. Выполните `node tools/og.mjs`: картинки для соцсетей перерисуются с настоящими фото.
-- **Контакты в `content/core.mjs` → `SITE.contacts`.** Telegram `erkak_world` и WhatsApp `66000000000` — заглушки. WeChat пустой, поэтому нигде не показывается.
+- **Контакты в `content/core.mjs` → `SITE.contacts`.** WhatsApp и Telegram — +998 99 050 50 70 (Telegram открывается по номеру: `t.me/+998990505070`). Почту `care@erkak.com` заменить на созданный ящик. WeChat пустой, поэтому нигде не показывается.
 - **Реквизиты в `SITE.legal`:**
   - оператор;
   - лицензия TAT;

@@ -58,6 +58,13 @@ export function hub(C){
   </div>
 </section>
 
+<section class="sec-t" aria-labelledby="h-private">
+  <div class="wrap"><a class="private-band rv" href="${C.path('private')}">
+    <div><span class="badge badge-glass">${esc(C.L.private.badge)}</span><h2 class="h2" id="h-private">${T(C, C.L.private.home.title)}</h2><p>${T(C, C.L.private.home.lede)}</p></div>
+    <span class="btn btn-light btn-lg">${esc(C.L.private.home.cta)}${icon('arrow')}</span>
+  </a></div>
+</section>
+
 <section class="sec cv" id="dirs" aria-labelledby="h-dirs">
   <div class="wrap">
     ${sh(C, 3, H.dirs.kicker, T(C, I.t('hub.dirsTitle', { n:C.dirs.length })), H.dirs.lede)}
@@ -616,4 +623,46 @@ export function ring(C){
 </div></section>
 <section class="sec soft"><div class="wrap">${sh(C, 2, '', esc(I.t('prog.faq')), '')}${faq(C, R.faq)}</div></section>`;
   return page(C, { key:'ring', title:R.metaTitle, desc:R.metaDesc, body, lds:[crumbsLd(C, cr), faqLd(R.faq)] });
+}
+
+// ════ ERKAK Private: личный консьерж на Пхукете ═══════════════════════
+const PRIVATE_ICONS = ['car', 'home', 'boat', 'trophy', 'medic', 'chef', 'star', 'users', 'shield'];
+export function privateConcierge(C){
+  const I = C.I, R = C.L.private, P = C.PRIVATE;
+  const cr = [['ERKAK Private', C.path('private')]];
+  const wa = C.SITE.contacts.whatsapp ? `https://wa.me/${C.SITE.contacts.whatsapp}?text=${encodeURIComponent(R.waText)}` : '';
+  const body = `
+<section class="hero hero-private">
+  <div class="wrap">
+    <div class="hero-media">
+    ${photo('dest/phuket', { sizes:'(max-width:1240px) 100vw, 1200px', eager:true })}
+    <div class="hero-copy">
+      <span class="badge badge-glass">${esc(R.badge)}</span>
+      <h1 class="display">${T(C, R.title)}</h1>
+      <p class="lede">${T(C, R.lede)}</p>
+      <div class="btns">${btn(R.cta, '#private-form', 'btn-light btn-lg')}${wa ? btn(R.ctaWa, wa, 'btn-glass btn-lg', 'target="_blank" rel="noopener" data-track="wa_private"') : ''}</div>
+    </div>
+    </div>
+    <dl class="facts private-facts">${R.facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+  </div>
+</section>
+<section class="sec" id="services"><div class="wrap">${sh(C, 1, '', T(C, R.services.title), R.services.lede)}
+  <div class="grid private-services">${R.services.items.map(([h, p], i) => `<article class="gcard rv" style="--d:${i % 3}"><span class="itile">${icon(PRIVATE_ICONS[i] || 'star')}</span><h3>${T(C, h)}</h3><p class="card-s">${T(C, p)}</p></article>`).join('')}</div>
+</div></section>
+<section class="sec soft" id="plans"><div class="wrap">${sh(C, 2, '', T(C, R.plans.title), R.plans.lede)}
+  <div class="club">${P.tiers.map((t, i) => { const [name, dur, points] = R.plans.items[i];
+    return `<article class="tier rv${t.feat ? ' feat' : ''}${i === P.tiers.length - 1 ? ' black' : ''}" style="--d:${i}"><p class="tier-name">${esc(name)} · ${esc(dur)}</p>${price(C, t.price, P.cur, R.plans.per, { cls:'tier-price' })}<ul>${points.map(x => `<li>${T(C, x)}</li>`).join('')}</ul>${btn(R.cta, '#private-form', t.feat ? 'btn-primary btn-block' : 'btn-ghost btn-block', `data-tier="${t.id}"`)}</article>`; }).join('')}</div>
+  <p class="small" style="margin-block-start:22px">${T(C, R.plans.note)}</p>
+</div></section>
+<section class="sec"><div class="wrap">${sh(C, 3, '', T(C, R.how.title), '')}${stepsHtml(C, R.how.steps)}</div></section>
+<section class="sec soft" id="private-form"><div class="wrap split">
+  <div class="rv"><h2 class="h2">${T(C, R.form.title)}</h2><p class="lede" style="margin-block:16px 26px">${T(C, R.form.lede)}</p>
+    <div class="btns">${C.messengers.map(m => btn(m.label, m.icon === 'wa' && wa ? wa : m.href, 'btn-ghost', 'target="_blank" rel="noopener"')).join('')}</div></div>
+  <div class="rv">${leadForm(C, { type:'private', id:'private', title:R.form.title2, fields:['date', 'guests', 'contact'], submit:R.form.submit })}</div>
+</div></section>
+<section class="sec"><div class="wrap">${sh(C, 4, '', esc(I.t('prog.faq')), '')}${faq(C, R.faq)}</div></section>`;
+  const service = { '@context':'https://schema.org', '@type':'Service', name:'ERKAK Private', serviceType:'Personal concierge', description:R.metaDesc, provider:ORG(C),
+    areaServed:{ '@type':'Place', name:'Phuket, Thailand' }, inLanguage:C.L.meta.htmlLang,
+    offers:P.tiers.map((t, i) => ({ '@type':'Offer', name:`ERKAK Private · ${R.plans.items[i][0]}`, price:t.price, priceCurrency:P.cur, url:C.SITE.origin + C.path('private') + '#plans' })) };
+  return page(C, { key:'private', title:R.metaTitle, desc:R.metaDesc, body, lds:[crumbsLd(C, cr), service, faqLd(R.faq)] });
 }

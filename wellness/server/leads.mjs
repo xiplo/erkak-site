@@ -48,7 +48,7 @@ const q = {
   tours: db.prepare(`select tour, count(*) n from leads where created_at > datetime('now','-30 days') group by tour order by n desc`)
 };
 
-const TYPES = new Set(['quiz','tour','guide','eco','waitlist','plan']);
+const TYPES = new Set(['quiz','tour','guide','eco','waitlist','plan','private']);
 const LANGS = new Set(['ru','en','de','ar','zh','ja','ko','th','uz']);
 const STATUSES = ['new','contacted','quoted','deposit','done','lost'];
 const clip = (v, n) => typeof v === 'string' ? v.trim().slice(0, n) : '';
@@ -69,7 +69,7 @@ async function tg(text){
 async function notify(lead, id){
   const u = lead.utm || {};
   const text = [
-    `${({ waitlist:'📝', eco:'🧭', plan:'🗺' })[lead.type] || '🎣'} <b>Заявка #${id}</b> · ${esc(lead.type)} · ${esc((lead.lang || '?').toUpperCase())}`,
+    `${({ waitlist:'📝', eco:'🧭', plan:'🗺', private:'💎' })[lead.type] || '🎣'} <b>Заявка #${id}</b> · ${esc(lead.type)} · ${esc((lead.lang || '?').toUpperCase())}`,
     lead.tourTitle && `Программа: <b>${esc(lead.tourTitle)}</b>`,
     lead.name && `Имя: ${esc(lead.name)}`,
     `Контакт: <code>${esc(lead.contact)}</code>${lead.channel ? ' · ' + esc(lead.channel) : ''}`,

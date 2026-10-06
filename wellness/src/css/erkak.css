@@ -733,3 +733,17 @@ em,i{font-style:normal}
   .ring-metrics div{grid-template-columns:1fr;gap:4px}
   .ring-chip{inset-inline-start:12px;inset-block-end:12px}
 }
+
+/* ── ERKAK Private: личный консьерж на Пхукете ─────────────────── */
+.badge-glass{justify-self:start;background:rgba(255,255,255,.16);color:#fff;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.private-facts{margin-block-start:20px;grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:760px){.private-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.private-services .gcard .itile{margin-block-end:4px}
+.tier-price .pr{font-size:36px;letter-spacing:-.03em}
+.tier.black .price small,.tier.black .pr-alt{color:rgba(255,255,255,.72)}
+.private-band{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:clamp(24px,4vw,44px);border-radius:var(--r-xl);background:var(--brand);color:#fff;transition:background .25s}
+.private-band:hover{background:var(--brand-2)}
+.private-band > div{display:grid;gap:12px;max-width:720px}
+.private-band p{color:rgba(255,255,255,.78);font-size:clamp(15px,1.3vw,18px);line-height:1.55}
+.private-band .btn{flex:none}
+@media(max-width:760px){.private-band{flex-direction:column;align-items:stretch}.private-band .btn{inline-size:100%}}

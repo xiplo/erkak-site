@@ -19,7 +19,7 @@ if (!langs.length) {
   for (const d of dirs) if (!langs.includes(d)) console.log(`· ${d}: нет index.mjs — перевод в работе, пропущен`);
 }
 
-const FILES = ['ui', 'catalog', 'fishing', 'site', 'guides'];
+const FILES = ['ui', 'catalog', 'fishing', 'site', 'guides', 'ring', 'private'];
 const CYR = /[Ѐ-ӿ]/;
 const PH = s => (s.match(/\{\w+\}/g) || []).map(x => x === '{np}' ? '{n}' : x).sort().join(' '); // {np} = {n} + слово «программ» в нужной форме
 const LINKS = s => (s.match(/\]\(([^)]+)\)/g) || []).join(' ');
