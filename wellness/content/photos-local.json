@@ -215,5 +215,47 @@
   "hash": "L$Ep7:t7ofof%%t7oLkCksoef6a|",
   "stamp": 1791018232682.7314,
   "file": "dest-russia.jpg"
+ },
+ "dest/nepal": {
+  "w": 2400,
+  "h": 1792,
+  "hash": "LgBgb@s:Mwj@.TozV?oJ%$WXWAof",
+  "stamp": 1791366745564.9685,
+  "file": "dest-nepal.jpg"
+ },
+ "dest/india": {
+  "w": 2400,
+  "h": 1792,
+  "hash": "LRG+5V9a0L-:~qR*Ioof?vj]xYIp",
+  "stamp": 1791366745572.895,
+  "file": "dest-india.jpg"
+ },
+ "dest/jordan": {
+  "w": 2400,
+  "h": 1792,
+  "hash": "LlJa}@?HWCof~q%MofofxZWVbHay",
+  "stamp": 1791366745580.7576,
+  "file": "dest-jordan.jpg"
+ },
+ "dest/maldives": {
+  "w": 2400,
+  "h": 1792,
+  "hash": "LOC7Z$IpMxof_4IqbHj[M#bH%MWW",
+  "stamp": 1791366745588.952,
+  "file": "dest-maldives.jpg"
+ },
+ "dest/istanbul": {
+  "w": 2400,
+  "h": 1792,
+  "hash": "LZBW=BIVaxj].ARkaej[Oan~aea|",
+  "stamp": 1791366745596.6445,
+  "file": "dest-istanbul.jpg"
+ },
+ "dest/online": {
+  "w": 2400,
+  "h": 1792,
+  "hash": "LQD+*m01kWxa%gM{t6a$V@kCs:R%",
+  "stamp": 1791366745603.878,
+  "file": "dest-online.jpg"
  }
 }

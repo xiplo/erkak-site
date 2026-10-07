@@ -1,6 +1,6 @@
 # Фото для ERKAK: промпты для генерации
 
-31 кадр: первый экран, рыбалка, клуб, 14 направлений и 14 мест. Промпты на английском: Gemini и ChatGPT по-английски рисуют точнее.
+37 кадров: первый экран, рыбалка, клуб, 14 направлений и 20 мест. Промпты на английском: Gemini и ChatGPT по-английски рисуют точнее.
 
 ## Как сгенерировать и вставить
 
@@ -75,3 +75,9 @@ Editorial documentary photograph, natural light, realistic skin and textures, sh
 | `dest-east-africa` | Восточная Африка | Mount Kilimanjaro at sunrise seen across the savannah of Amboseli, acacia trees and a herd of elephants in the foreground. |
 | `dest-europe` | Европа | Alpine lake in the Dolomites at dawn with a wooden rowing boat, jagged peaks reflected in still water. |
 | `dest-east-asia` | Япония и Корея | Traditional Japanese onsen ryokan at dusk, steaming outdoor stone bath surrounded by maple trees in autumn colour, lanterns glowing. |
+| `dest-nepal` | Непал | Trekking trail in the Khumbu valley on a clear morning: a father and his teenage son walk towards a steel suspension bridge over a glacial river, the snow peak of Ama Dablam above. |
+| `dest-india` | Индия (Керала) | Kerala backwaters at sunrise: a traditional wooden houseboat with a woven palm-leaf roof on still water lined with coconut palms, soft mist. |
+| `dest-jordan` | Иордания | Dead Sea shore in Jordan at golden hour: white salt formations at the turquoise water's edge, a man floating on his back in the middle distance, the hazy mountains of the far shore. |
+| `dest-maldives` | Мальдивы | Aerial view of a Maldivian atoll: a wooden dhoni surf-charter boat anchored in a turquoise lagoon beside a reef pass with a clean breaking wave, a small island with palms. |
+| `dest-istanbul` | Стамбул | The Bosphorus at blue hour: a lit ferry crossing calm water, the old-city skyline of domes and minarets on the hill behind. |
+| `dest-online` | Онлайн | A man in his forties at home by a big window with greenery, on a video consultation at a wooden desk, notebook and tea, the laptop screen turned away from the camera. |

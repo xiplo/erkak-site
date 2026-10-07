@@ -34,4 +34,11 @@ export const PHOTOS = {
   'dest/phuket': { src:'https://images.unsplash.com/photo-1481988535861-271139e06469', w:4164, h:2716, hash:'LKA,8-1Q$fn}XospWBWB58=XNaR+', by:"v2osk", page:'https://unsplash.com/photos/JE01L3hB0GQ' }, // sunset under beach · Thailand
   'dest/russia': { src:'https://images.unsplash.com/photo-1547994770-e5d8509b114d', w:7083, h:4727, hash:'LHCZqz-qObkY~VVr9FIowa%NIpbc', by:"Ekaterina Sazonova", page:'https://unsplash.com/photos/CMhxw3lgZ7M' }, // a large body of water covered in ice under a cloudy sky · lake Baikal, Russia
   'dest/samui': { src:'https://images.unsplash.com/photo-1446822800434-3873731dc998', w:5616, h:3744, hash:'LbHy?y%gaKWX2{xCn%of?cMxV@ae', by:"Anthony DELANOIX", page:'https://unsplash.com/photos/bRGBzGh6YFI' }, // boats on shore during daytime · Ko Samui, Thailand
+  // Свои кадры без CDN-запаса: файл — src/img/photos/<ключ>-<ширина>.webp, размер и BlurHash — content/photos-local.json
+  'dest/nepal': { src:'', w:2400, h:1792, hash:'', by:'ERKAK', page:'' }, // Khumbu valley trek, Ama Dablam
+  'dest/india': { src:'', w:2400, h:1792, hash:'', by:'ERKAK', page:'' }, // Kerala backwaters, houseboat at sunrise
+  'dest/jordan': { src:'', w:2400, h:1792, hash:'', by:'ERKAK', page:'' }, // Dead Sea shore, salt and a man floating
+  'dest/maldives': { src:'', w:2400, h:1792, hash:'', by:'ERKAK', page:'' }, // atoll lagoon, surf charter dhoni by a reef pass
+  'dest/istanbul': { src:'', w:2400, h:1792, hash:'', by:'ERKAK', page:'' }, // Bosphorus at blue hour, ferry and old-city skyline
+  'dest/online': { src:'', w:2400, h:1792, hash:'', by:'ERKAK', page:'' }, // man at home on a video consultation
 };
