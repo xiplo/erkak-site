@@ -32,11 +32,12 @@ elif [ "$MODE" = "vps" ]; then
   SSH="ssh -o StrictHostKeyChecking=no $VPS"
   echo "[vps] статика → /var/www/${DOMAIN}, API → /opt/erkak, nginx, systemd, TLS"
   $SSH "mkdir -p /var/www/${DOMAIN} /opt/erkak/data"
-  rsync -az --delete --exclude 'img/*.png' --exclude '.git' --exclude 'server' --exclude 'deploy.sh' -e "ssh -o StrictHostKeyChecking=no" "$DIR/" "$VPS:/var/www/${DOMAIN}/"
-  rsync -az -e "ssh -o StrictHostKeyChecking=no" "$DIR/server/" "$VPS:/opt/erkak/"
+  # В веб-корень идёт только сайт: README с адресом сервера, служебные файлы и тесты туда не попадают, а уже лежащие там удаляются.
+  rsync -az --delete --delete-excluded --exclude 'img/*.png' --exclude '.git' --exclude '.github' --exclude '.gitignore' --exclude 'README.md' --exclude 'CNAME' --exclude 'server' --exclude 'deploy.sh' -e "ssh -o StrictHostKeyChecking=no" "$DIR/" "$VPS:/var/www/${DOMAIN}/"
+  rsync -az --exclude 'test.mjs' -e "ssh -o StrictHostKeyChecking=no" "$DIR/server/" "$VPS:/opt/erkak/"
   $SSH "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
 set -e
-[ -f /opt/erkak/.env ] || { printf 'SUPPORT_EMAIL=care@erkak.com\n# ERKAK_TG_CHAT=\n# PAYME_MERCHANT=\n# CLICK_SERVICE_ID=\n# CLICK_MERCHANT_ID=\n# STRIPE_LINK=\n' > /opt/erkak/.env; chmod 600 /opt/erkak/.env; }
+[ -f /opt/erkak/.env ] || { printf 'SUPPORT_EMAIL=care@erkak.com\n# ERKAK_TG_CHAT=\n# PAYME_MERCHANT=\n# PAYME_KEY=\n# CLICK_SERVICE_ID=\n# CLICK_MERCHANT_ID=\n# CLICK_SECRET_KEY=\n# STRIPE_SECRET_KEY=\n# STRIPE_WEBHOOK_SECRET=\n' > /opt/erkak/.env; chmod 600 /opt/erkak/.env; }
 cp /opt/erkak/erkak-api.service /etc/systemd/system/erkak-api.service
 systemctl daemon-reload; systemctl enable erkak-api >/dev/null 2>&1 || true; systemctl restart erkak-api
 sleep 1; curl -sf http://127.0.0.1:8795/api/health >/dev/null || { journalctl -u erkak-api -n 20 --no-pager; exit 1; }
@@ -47,6 +48,7 @@ if [ ! -d /etc/letsencrypt/live/${DOMAIN} ]; then
   certbot --nginx -n --agree-tos --register-unsafely-without-email -d ${DOMAIN} -d www.${DOMAIN} --redirect && echo "TLS выпущен" || echo "TLS не выпущен: DNS ещё не указывает на этот сервер. Повторить позже: certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} --redirect"
 fi
 echo "API: $(curl -s http://127.0.0.1:8795/api/health)"
+journalctl -u erkak-api -n 20 --no-pager | grep -F 'подтверждения оплаты приниматься не будут' || true
 REMOTE
   echo "Готово: http(s)://${DOMAIN}   DNS: A ${DOMAIN} → ${VPS_HOST:-62.238.59.42}, CNAME www → ${DOMAIN}"
 elif [ "$MODE" = "teaser" ]; then

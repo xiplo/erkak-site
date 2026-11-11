@@ -1,0 +1,18 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Синтаксис
+        run: node --check server/server.mjs && node --check assets/catalog.js && node --check assets/site.js && bash -n deploy.sh
+      - name: Тесты API
+        run: node --test server/test.mjs
