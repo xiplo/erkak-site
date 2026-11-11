@@ -15,7 +15,7 @@ chown root:root "$APP" "$APP"/server.mjs "$APP"/install.sh "$APP"/erkak-*.servic
 chmod 755 "$APP"; chmod 644 "$APP"/server.mjs "$APP"/erkak-*.service "$APP"/erkak-*.timer
 
 # Настройки ERKAK: создаются один раз, читает их только root (systemd и команды CLI).
-[ -f "$APP/.env" ] || printf 'SUPPORT_EMAIL=care@erkak.com\n# ERKAK_TG_TOKEN=\n# ERKAK_TG_CHAT=\n# PAYME_MERCHANT=\n# PAYME_KEY=\n# CLICK_SERVICE_ID=\n# CLICK_MERCHANT_ID=\n# CLICK_SECRET_KEY=\n# STRIPE_SECRET_KEY=\n# STRIPE_WEBHOOK_SECRET=\n' > "$APP/.env"
+[ -f "$APP/.env" ] || printf 'SUPPORT_EMAIL=care@erkak.com\n# ERKAK_TG_TOKEN=\n# ERKAK_TG_CHAT=\n# PAYME_MERCHANT=\n# PAYME_KEY=\n# CLICK_SERVICE_ID=\n# CLICK_MERCHANT_ID=\n# CLICK_SECRET_KEY=\n# STRIPE_SECRET_KEY=\n# STRIPE_WEBHOOK_SECRET=\n# USDT_TRC20_ADDRESS=\n' > "$APP/.env"
 chown root:root "$APP/.env"; chmod 600 "$APP/.env"
 # Из общих настроек сервера берём только почту и Telegram: остальные секреты соседнего проекта сервису не нужны.
 if [ -f /opt/pactum/.env.production ]; then

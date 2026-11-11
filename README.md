@@ -47,6 +47,9 @@ CLICK_MERCHANT_ID=
 CLICK_SECRET_KEY=   # секретный ключ сервиса Click: проверка подписи
 STRIPE_SECRET_KEY=      # sk_live_…: карты вне Узбекистана, сумма в USD
 STRIPE_WEBHOOK_SECRET=  # whsec_…: проверка подписи вебхука
+USDT_TRC20_ADDRESS=     # публичный адрес своего кошелька в сети TRON: включает оплату USDT
+USDT_ZONES=cis,eu,world # зоны доставки, где предлагается USDT; uz добавляет Узбекистан
+TRON_API_KEY=           # ключ TronGrid, по желанию: без него действуют общие лимиты запросов
 UNPAID_REMIND_HOURS=24  # через сколько часов напомнить об оплате; 0 выключает
 UNPAID_CANCEL_DAYS=3    # через сколько дней отменить неоплаченный заказ; 0 выключает
 CONTROL_DAYS=90         # письмо о контрольном анализе после доставки; 0 выключает
@@ -67,6 +70,17 @@ BACKUP_KEEP=14          # сколько ночных копий базы хра
 | Payme | Endpoint URL: `https://erkak.com/api/pay/payme`, поле счёта: `order_id` | `PAYME_MERCHANT`, `PAYME_KEY` |
 | Click | Prepare URL: `https://erkak.com/api/pay/click/prepare`, Complete URL: `https://erkak.com/api/pay/click/complete` | `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY` |
 | Stripe | Webhook: `https://erkak.com/api/pay/stripe`, события `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
+
+### USDT на собственный кошелёк
+Без посредника и без договора: покупатель переводит USDT в сети TRON (TRC-20) прямо на ваш адрес.
+
+- **Кошелёк создаёте вы сами** в своём приложении (Trust Wallet, TronLink, Ledger). Сид-фразу никому не передаёте и на сервер не кладёте. Серверу нужен только публичный адрес в `USDT_TRC20_ADDRESS`: с сервера вывести деньги нельзя, даже если его взломают.
+- Адрес проверяется при запуске. С опечаткой способ оплаты не включится, в журнале будет предупреждение.
+- У каждого заказа своя сумма: итог в долларах минус 1–99 центов. По сумме сервер узнаёт платёж, сверяясь с блокчейном раз в минуту через TronGrid. Засчитывается только официальный контракт USDT `TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t`.
+- Сумма не совпала (биржа удержала комиссию, перевод по отменённому заказу) — заказ не меняется, в Telegram приходит сообщение со ссылкой на перевод и номером ближайшего заказа. Отметить вручную: кнопка «Оплачен» в боте или `node server.mjs status … paid`.
+- Возврат делается вручную переводом с кошелька, затем `node server.mjs status … refunded`.
+- Разовая сверка: `node server.mjs usdt`.
+- По умолчанию USDT предлагается только для доставки за пределы Узбекистана: по сообщениям НАПП криптоактивы не являются средством платежа в Узбекистане. До включения проверьте с юристом и бухгалтером, как принимать и учитывать такие платежи.
 
 - Payme: сначала касса в песочнице (`PAYME_TEST=true`, тестовый ключ в `PAYME_KEY`), пройти сценарии песочницы, затем боевой ключ и `PAYME_TEST` убрать.
 - Возврат, сделанный в кабинете Payme или Stripe, сам переводит заказ в «Возврат». Отменить оплату отправленного заказа через Payme нельзя.
@@ -111,7 +125,7 @@ node server.mjs jobs                            # прогон автомати�
 
 ## API
 `POST /api/orders` · `POST /api/auth/code` · `POST /api/auth/verify` · `POST /api/auth/order` · `GET /api/me/orders` · `POST /api/me/subs/stop` · `POST /api/auth/logout` · `GET /api/health`.
-Оплата: `POST /api/pay/payme` · `POST /api/pay/click/prepare` · `POST /api/pay/click/complete` · `GET /api/pay/card` · `POST /api/pay/stripe`.
+Оплата: `POST /api/pay/payme` · `POST /api/pay/click/prepare` · `POST /api/pay/click/complete` · `GET /api/pay/card` · `POST /api/pay/stripe` · `GET /api/pay/usdt` · `GET /api/pay/usdt/status`.
 Подписка по ссылке из письма: `GET /api/sub` показывает кнопку, `POST /api/sub` выполняет действие.
 Цены пересчитываются на сервере из `assets/catalog.js`, клиентские суммы не принимаются. Все действия пишутся в таблицу `audit`.
 
@@ -119,7 +133,7 @@ node server.mjs jobs                            # прогон автомати�
 ```bash
 node --test server/test.mjs   # Node 22, без зависимостей
 ```
-Покрыто: заказ, Payme, Click, Stripe, лимиты, команды, бот, автоматика, подписки, копии базы. Те же тесты идут в GitHub Actions на каждый push и перед деплоем кнопкой.
+Покрыто: заказ, Payme, Click, Stripe, USDT, лимиты, команды, бот, автоматика, подписки, копии базы. Те же тесты идут в GitHub Actions на каждый push и перед деплоем кнопкой.
 
 ## Что заменить до запуска
 - Цены, составы и сроки `days` в `assets/catalog.js` — черновик до договора с производством.

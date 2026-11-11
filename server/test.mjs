@@ -15,16 +15,22 @@ import { DatabaseSync } from 'node:sqlite';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'erkak-test-'));
-const PORT = 20000 + (process.pid % 20000), STRIPE_PORT = PORT + 1, SMTP_PORT = PORT + 2, TG_PORT = PORT + 3, TG_CHAT = '-100500';
+const PORT = 20000 + (process.pid % 20000), STRIPE_PORT = PORT + 1, SMTP_PORT = PORT + 2, TG_PORT = PORT + 3, TRON_PORT = PORT + 4, TG_CHAT = '-100500';
+// Настоящий по формату адрес TRON: 0x41 + 20 байт + контрольная сумма, в Base58.
+const tronAddress = () => { const body = Buffer.concat([Buffer.from([0x41]), crypto.randomBytes(20)]), sha = b => crypto.createHash('sha256').update(b).digest();
+  let n = BigInt('0x' + Buffer.concat([body, sha(sha(body)).subarray(0, 4)]).toString('hex')), out = ''; while (n > 0n) { out = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Number(n % 58n)] + out; n /= 58n; } return out; };
+const WALLET = tronAddress(), USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 const BASE = `http://127.0.0.1:${PORT}`;
 const KEYS = { PAYME_MERCHANT: 'merchant123', PAYME_KEY: 'payme-test-key', CLICK_SERVICE_ID: '777', CLICK_MERCHANT_ID: '555', CLICK_SECRET_KEY: 'click-secret',
   STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_API: `http://127.0.0.1:${STRIPE_PORT}` };
 const MAIL = { SMTP_HOST: '127.0.0.1', SMTP_PORT: String(SMTP_PORT), SMTP_FROM: 'shop@shop.test' };
 const ENV = { ...process.env, ...KEYS, ...MAIL, PORT: String(PORT), DATA_DIR: TMP, STATIC_DIR: path.join(HERE, '..'), PUBLIC_ORIGIN: 'https://shop.test', NODE_NO_WARNINGS: '1',
-  ERKAK_TG_TOKEN: 'ops-token', ERKAK_TG_CHAT: TG_CHAT, TELEGRAM_API: `http://127.0.0.1:${TG_PORT}`, DIGEST_HOUR: '0' };
+  ERKAK_TG_TOKEN: 'ops-token', ERKAK_TG_CHAT: TG_CHAT, TELEGRAM_API: `http://127.0.0.1:${TG_PORT}`, DIGEST_HOUR: '0',
+  USDT_TRC20_ADDRESS: WALLET, TRON_API: `http://127.0.0.1:${TRON_PORT}` };
 
-let server, stripeMock, smtpMock, tgMock, db;
-const stripeCalls = [], mails = [], tgCalls = [], tgUpdates = [];
+let server, stripeMock, smtpMock, tgMock, tronMock, db;
+const stripeCalls = [], mails = [], tgCalls = [], tgUpdates = [], tronTransfers = [], tronQueries = [];
+const transfer = (value, over = {}) => { const t = { transaction_id: crypto.randomBytes(32).toString('hex'), token_info: { symbol: 'USDT', address: USDT_CONTRACT, decimals: 6 }, block_timestamp: Date.now() - 120e3, from: tronAddress(), to: WALLET, type: 'Transfer', value: String(value), ...over }; tronTransfers.push(t); return t; };
 let updateId = 1;
 // Команды запускаются асинхронно: заглушки почты и Telegram живут в этом же процессе и должны успевать отвечать.
 const cli = (args, env = ENV, cwd = HERE) => new Promise(res => { const p = spawn(process.execPath, [path.join(HERE, 'server.mjs'), ...args], { env, cwd }); let stdout = '', stderr = '';
@@ -86,15 +92,18 @@ before(async () => {
     if (method === 'getUpdates') { if (!tgUpdates.length) await new Promise(r => setTimeout(r, 40)); result = tgUpdates.splice(0); } else tgCalls.push({ method, body, token: req.url.split('/')[1] });
     res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, result }));
   }); }).listen(TG_PORT, '127.0.0.1');
+  // Заглушка TronGrid: отдаёт накопленные переводы на адрес, новые сверху, как настоящий API.
+  tronMock = http.createServer((req, res) => { const u = new URL(req.url, 'http://x'); tronQueries.push(u);
+    res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ success: true, data: [...tronTransfers].reverse(), meta: { at: Date.now(), page_size: tronTransfers.length } })); }).listen(TRON_PORT, '127.0.0.1');
   server = spawn(process.execPath, [path.join(HERE, 'server.mjs')], { env: ENV, stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise((res, rej) => { server.stdout.once('data', res); server.once('exit', c => rej(new Error('server exited ' + c))); });
   db = new DatabaseSync(path.join(TMP, 'erkak.db'));
 });
-after(() => { server?.kill(); stripeMock?.close(); smtpMock?.close(); tgMock?.closeAllConnections?.(); tgMock?.close(); db?.close(); fs.rmSync(TMP, { recursive: true, force: true }); });
+after(() => { server?.kill(); stripeMock?.close(); smtpMock?.close(); tgMock?.closeAllConnections?.(); tgMock?.close(); tronMock?.close(); db?.close(); fs.rmSync(TMP, { recursive: true, force: true }); });
 
 test('health показывает подключённые способы оплаты', async () => {
   const r = await call('GET', '/api/health');
-  assert.deepEqual(r.data.pay, { payme: true, click: true, card: true });
+  assert.deepEqual(r.data.pay, { payme: true, click: true, card: true, usdt: ['cis', 'eu', 'world'] });
 });
 
 test('заказ: страна не из списка и битый JSON отклоняются', async () => {
@@ -395,4 +404,53 @@ test('копия базы: целая, старые удаляются', async (
   const files = fs.readdirSync(dir).sort(); assert.equal(files.length, 2); assert.equal(files[0], 'erkak-20200102-0000.db');
   const copy = new DatabaseSync(path.join(dir, files[1]));
   assert.equal(copy.prepare('select count(*) n from orders').get().n, db.prepare('select count(*) n from orders').get().n); copy.close();
+});
+
+test('USDT: своя сумма у каждого заказа, сверка по блокчейну, чужие токены и неточные суммы не проходят', async () => {
+  const uz = await call('POST', '/api/orders', { json: { email: 'usdt@example.com', name: 'Т', country: 'Узбекистан', city: 'Г', address: 'А', items: [{ sku: 'zinc', qty: 1 }], pay_method: 'usdt' } });
+  assert.equal(uz.status, 400, 'внутри Узбекистана USDT по умолчанию не предлагается');
+  const a = await newOrder('usdt', { email: 'usdt@example.com', country: 'Германия' }), b = await newOrder('usdt', { email: 'usdt2@example.com', country: 'Германия' });
+  const [ra, rb] = [orderRow(a.number), orderRow(b.number)];
+  for (const r of [ra, rb]) { assert.ok(r.crypto_amount < r.total_usd * 1e6 && r.crypto_amount >= (r.total_usd - 0.99) * 1e6 - 1, 'сумма на 1–99 центов меньше итога'); assert.equal(r.crypto_amount % 10000, 0); }
+  assert.notEqual(ra.crypto_amount, rb.crypto_amount, 'у двух заказов на одну сумму разные суммы к оплате');
+
+  const link = new URL(a.pay_url); assert.equal(link.pathname, '/api/pay/usdt');
+  assert.equal((await call('GET', `/api/pay/usdt?o=${a.number}&k=${'0'.repeat(32)}`)).status, 404);
+  const pay = await call('GET', link.pathname + link.search), shown = (ra.crypto_amount / 1e6).toFixed(2);
+  assert.equal(pay.status, 200); assert.ok(pay.text.includes(WALLET)); assert.ok(pay.text.includes(`${shown} USDT`)); assert.match(pay.text, /TRON \(TRC-20\)/);
+  assert.match((await mailTo('usdt@example.com', new RegExp(`${a.number} принят`))).text, /\/api\/pay\/usdt\?o=/);
+
+  transfer(ra.crypto_amount, { token_info: { symbol: 'USDT', address: tronAddress(), decimals: 6 } }); // поддельный токен с тем же названием
+  transfer(ra.crypto_amount, { to: tronAddress() });                                                    // перевод не нам
+  transfer(ra.crypto_amount, { block_timestamp: Date.now() - 5e3 });                                    // ещё не подтверждён
+  const short = transfer(ra.crypto_amount - 1_000_000);                                                 // биржа удержала комиссию
+  const first = await cli(['usdt']); assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /paid: 0/); assert.match(first.stdout, /unmatched: 1/);
+  assert.equal(orderRow(a.number).status, 'awaiting_payment');
+  const alert = await tgSaw('sendMessage', m => m.text.includes('USDT: пришло') && m.text.includes(short.transaction_id));
+  assert.ok(alert.body.text.includes(`Ближайший ожидающий заказ: ${a.number}`));
+  const q = tronQueries.at(-1); assert.equal(q.pathname, `/v1/accounts/${WALLET}/transactions/trc20`); assert.equal(q.searchParams.get('contract_address'), USDT_CONTRACT);
+
+  const good = transfer(ra.crypto_amount);
+  const second = await cli(['usdt']); assert.match(second.stdout, /paid: 1/); assert.match(second.stdout, /unmatched: 0/, 'о неопознанном переводе сообщаем один раз');
+  assert.equal(orderRow(a.number).status, 'paid'); assert.equal(orderRow(b.number).status, 'awaiting_payment');
+  assert.equal(db.prepare(`select ext_id from payments where provider = 'usdt' and order_number = ?`).get(a.number).ext_id, good.transaction_id);
+  await mailTo('usdt@example.com', new RegExp(`${a.number} — оплачен`));
+  assert.match((await cli(['usdt'])).stdout, /paid: 0/, 'повторная сверка тот же перевод не засчитывает');
+  assert.deepEqual((await call('GET', '/api/pay/usdt/status' + link.search)).data, { status: 'paid' });
+  assert.equal((await call('GET', link.pathname + link.search)).status, 303, 'оплаченный заказ страницу оплаты не показывает');
+
+  // Поздний перевод по отменённому заказу: заказ не оживает, владельцу уходит сообщение с номером.
+  assert.equal((await cli(['status', b.number, 'cancelled'])).status, 0);
+  const late = transfer(rb.crypto_amount);
+  assert.match((await cli(['usdt'])).stdout, /unmatched: 1/);
+  assert.equal(orderRow(b.number).status, 'cancelled');
+  await tgSaw('sendMessage', m => m.text.includes(late.transaction_id) && m.text.includes(`у заказа ${b.number}, он «Отменён»`));
+});
+
+test('USDT: адрес с опечаткой выключает способ оплаты', async () => {
+  const typo = WALLET.slice(0, -1) + (WALLET.at(-1) === 'a' ? 'b' : 'a');
+  const run = await cli(['usdt'], { ...ENV, USDT_TRC20_ADDRESS: typo });
+  assert.equal(run.status, 1); assert.match(run.stderr, /не прошёл проверку/);
+  assert.equal((await cli(['usdt'], { ...ENV, USDT_TRC20_ADDRESS: USDT_CONTRACT })).status, 0, 'настоящий адрес из сети проходит проверку');
 });

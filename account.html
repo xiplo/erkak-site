@@ -44,7 +44,7 @@
 shell('account.html');
 const $ = id => document.getElementById(id);
 const STATUS = { new:'Новый', awaiting_payment:'Ожидает оплаты', paid:'Оплачен', packed:'Собран', shipped:'Отправлен', delivered:'Доставлен', cancelled:'Отменён', refunded:'Возврат' };
-const PAY = { payme:'Payme', click:'Click', card:'Карта', cod:'При получении' };
+const PAY = { payme:'Payme', click:'Click', card:'Карта', cod:'При получении', usdt:'USDT TRC-20' };
 
 async function show(){
   if (!session.get()) { $('login').hidden = false; $('cab').hidden = true; return; }
