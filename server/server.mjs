@@ -5,6 +5,7 @@
 //         node server.mjs payments [n]
 //         node server.mjs backup               копия базы в data/backups (ставится на таймер)
 //         node server.mjs jobs                 разовый прогон автоматики: напоминания, автоотмена, подписки
+//         node server.mjs usdt                 разовая сверка поступлений USDT на кошелёк
 // Оплата: Payme Merchant API, Click SHOP API, Stripe Checkout. Статус «Оплачен» ставится по подтверждению платёжной системы.
 import http from 'node:http';
 import fs from 'node:fs';
@@ -15,7 +16,7 @@ import net from 'node:net';
 import vm from 'node:vm';
 import { DatabaseSync } from 'node:sqlite';
 
-const CLI = ['status', 'orders', 'payments', 'backup', 'jobs'].includes(process.argv[2]) ? process.argv[2] : null;
+const CLI = ['status', 'orders', 'payments', 'backup', 'jobs', 'usdt'].includes(process.argv[2]) ? process.argv[2] : null;
 // Команды запускают руками из /opt/erkak: настройки берём из тех же файлов, что и сервис. Уже заданные переменные не меняются.
 if (CLI) for (const f of ['.env', '.env.shared']) { try { process.loadEnvFile(path.join(process.cwd(), f)); } catch {} }
 const ENV = process.env;
@@ -82,7 +83,7 @@ create table if not exists audit (
   id integer primary key autoincrement, at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   actor text, action text not null, subject text, detail text
 );`);
-for (const col of ['reminded_at', 'delivered_at', 'control_at']) if (!db.prepare(`select 1 from pragma_table_info('orders') where name = ?`).get(col)) db.exec(`alter table orders add column ${col} integer`);
+for (const col of ['reminded_at', 'delivered_at', 'control_at', 'crypto_amount']) if (!db.prepare(`select 1 from pragma_table_info('orders') where name = ?`).get(col)) db.exec(`alter table orders add column ${col} integer`);
 const q = {
   insertOrder: db.prepare(`insert into orders (number,email,name,phone,country,city,address,postcode,items,subtotal_uzs,shipping_uzs,total_uzs,total_usd,currency,pay_method,status,note,pay_url,ip)
     values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
@@ -112,6 +113,12 @@ const q = {
   lastPayments: db.prepare(`select id,provider,order_number,amount,state,reason,create_time,perform_time,cancel_time from payments order by id desc limit ?`),
   metaGet: db.prepare(`select value from meta where key = ?`),
   metaSet: db.prepare(`insert or ignore into meta (key,value) values (?,?)`),
+  setCrypto: db.prepare(`update orders set crypto_amount = ?, pay_url = ? where number = ?`),
+  cryptoTaken: db.prepare(`select 1 from orders where crypto_amount = ? and created_at > ? limit 1`),
+  cryptoAwaiting: db.prepare(`select * from orders where status = 'awaiting_payment' and crypto_amount = ?`),
+  cryptoLast: db.prepare(`select number, status from orders where crypto_amount = ? order by created_at desc limit 1`),
+  cryptoNearest: db.prepare(`select number, crypto_amount from orders where status = 'awaiting_payment' and crypto_amount is not null order by abs(crypto_amount - ?) limit 1`),
+  cryptoOpen: db.prepare(`select count(*) n from orders where status = 'awaiting_payment' and crypto_amount is not null`),
   metaPut: db.prepare(`insert into meta (key,value) values (?,?) on conflict(key) do update set value = excluded.value`),
   payPending: db.prepare(`select 1 from payments where order_number = ? and state = 1 limit 1`),
   setPayUrl: db.prepare(`update orders set pay_url = ? where number = ?`),
@@ -213,6 +220,7 @@ function priceLines(items){
   return out;
 }
 function zoneFor(country){ return CATALOG.zones.find(z => z.countries.includes(country)) || CATALOG.zones[CATALOG.zones.length - 1]; }
+const usdtKey = number => crypto.createHmac('sha256', SECRET).update('usdt:' + number).digest('hex').slice(0, 32);
 const cardKey = number => crypto.createHmac('sha256', SECRET).update('card:' + number).digest('hex').slice(0, 32);
 function payUrl(method, order){
   const tiyin = order.total_uzs * 100, back = `${ORIGIN}/account.html?paid=${order.number}`;
@@ -224,8 +232,8 @@ function payUrl(method, order){
   return null;
 }
 const STATUS_RU = { new:'Новый', awaiting_payment:'Ожидает оплаты', paid:'Оплачен', packed:'Собран', shipped:'Отправлен', delivered:'Доставлен', cancelled:'Отменён', refunded:'Возврат' };
-const PAY_RU = { payme:'Payme', click:'Click', card:'Карта', cod:'При получении' };
-const PROVIDER_RU = { payme:'Payme', click:'Click', stripe:'карта, Stripe' };
+const PAY_RU = { payme:'Payme', click:'Click', card:'Карта', cod:'При получении', usdt:'USDT TRC-20' };
+const PROVIDER_RU = { payme:'Payme', click:'Click', stripe:'карта, Stripe', usdt:'USDT TRC-20' };
 const safeEq = (a, b) => crypto.timingSafeEqual(crypto.createHash('sha256').update(String(a)).digest(), crypto.createHash('sha256').update(String(b)).digest());
 
 // ── Статусы заказа: одна точка для CLI и платёжных систем ────────
@@ -405,6 +413,62 @@ function stripeRefunded(c){
   orderRefunded(q.orderByNumber.get(t.order_number), 'stripe');
 }
 
+// ── USDT в сети TRON на собственный кошелёк ──────────────────────
+// Сервер знает только публичный адрес: ключ и сид-фраза остаются у владельца, с сервера деньги вывести нельзя.
+// Заказ узнаётся по сумме: у каждого своя, на 1–99 центов меньше итога. Поступления сверяются по блокчейну через TronGrid.
+const USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // официальный контракт USDT в сети TRON
+// Адрес TRON: Base58Check, 21 байт с префиксом 0x41 и 4 байта контрольной суммы. Опечатка в адресе — потерянные деньги, поэтому проверяем.
+function tronAddressOk(a){
+  if (!/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(a || '')) return false;
+  let n = 0n; for (const c of a) n = n * 58n + BigInt('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'.indexOf(c));
+  const raw = Buffer.from(n.toString(16).padStart(50, '0'), 'hex'), sha = b => crypto.createHash('sha256').update(b).digest();
+  return raw.length === 25 && raw[0] === 0x41 && sha(sha(raw.subarray(0, 21))).subarray(0, 4).equals(raw.subarray(21));
+}
+const USDT = { address: (ENV.USDT_TRC20_ADDRESS || '').trim(), api: ENV.TRON_API || 'https://api.trongrid.io', zones: (ENV.USDT_ZONES || 'cis,eu,world').split(',').map(z => z.trim()).filter(Boolean) };
+USDT.on = tronAddressOk(USDT.address);
+if (USDT.address && !USDT.on) console.warn('USDT: адрес USDT_TRC20_ADDRESS не прошёл проверку, оплата USDT выключена');
+const usdtText = micro => { const [a, b = ''] = (micro / 1e6).toFixed(6).split('.'); return `${a}.${b.replace(/0+$/, '').padEnd(2, '0')}`; };
+// Свободная сумма: итог минус 1–99 центов; если все заняты — с точностью до тысячных. Суммы не повторяются 30 дней, чтобы поздний платёж по старому заказу не закрыл новый.
+function usdtAmount(totalUsd){
+  const base = totalUsd * 1e6, since = new Date(Date.now() - 30 * DAY).toISOString();
+  for (const step of [10_000, 1_000]) {
+    const max = Math.min(Math.floor((base - 1) / step), step === 10_000 ? 99 : 999), start = crypto.randomInt(0, Math.max(max, 1));
+    for (let i = 0; i < max; i++) { const amount = base - (1 + (start + i) % max) * step; if (!q.cryptoTaken.get(amount, since)) return amount; }
+  }
+  throw new HttpError(400, 'Сейчас не получается выдать сумму для оплаты USDT. Выберите другой способ или попробуйте позже.');
+}
+// Сверка: новые подтверждённые переводы USDT на адрес. Совпала сумма с ожидающим заказом — заказ оплачен; не совпала — сообщение владельцу.
+async function usdtScan(){
+  const out = { seen: 0, paid: 0, unmatched: 0 }; if (!USDT.on) return out;
+  const now = Date.now(), since = +(q.metaGet.get('usdt_since')?.value || now - 3 * DAY);
+  let newest = since, fingerprint = '';
+  for (let pageNo = 0; pageNo < 5; pageNo++) {
+    const url = `${USDT.api}/v1/accounts/${USDT.address}/transactions/trc20?only_confirmed=true&only_to=true&limit=200&contract_address=${USDT_CONTRACT}&min_timestamp=${since - 5 * 60e3}${fingerprint ? '&fingerprint=' + encodeURIComponent(fingerprint) : ''}`;
+    const r = await fetch(url, { headers: ENV.TRON_API_KEY ? { 'TRON-PRO-API-KEY': ENV.TRON_API_KEY } : {}, signal: AbortSignal.timeout(20_000) });
+    if (!r.ok) throw new Error('TronGrid HTTP ' + r.status);
+    const d = await r.json(); if (!Array.isArray(d.data)) throw new Error('TronGrid: неожиданный ответ');
+    for (const t of d.data) {
+      // Фильтры запроса не считаются гарантией: получатель, контракт и тип проверяются здесь. Свежие переводы ждут минуту до необратимости.
+      if (t.type !== 'Transfer' || t.to !== USDT.address || t.token_info?.address !== USDT_CONTRACT || !/^\d{1,15}$/.test(t.value || '') || !/^[0-9a-f]{64}$/i.test(t.transaction_id || '')) continue;
+      if (!(t.block_timestamp <= now - 60e3)) continue;
+      newest = Math.max(newest, t.block_timestamp); out.seen++;
+      if (q.payGet.get('usdt', t.transaction_id)) continue;
+      const value = +t.value, o = q.cryptoAwaiting.get(value);
+      q.payInsert.run('usdt', t.transaction_id, o?.number || '', value, o ? 2 : 0, t.block_timestamp, String(t.from || '') || null, now, o ? now : 0);
+      if (o) { audit('usdt', 'pay.perform', o.number, { tx: t.transaction_id, from: t.from }); orderPaid(o, 'usdt'); out.paid++; continue; }
+      const late = q.cryptoLast.get(value), near = q.cryptoNearest.get(value);
+      audit('usdt', 'pay.unmatched', late?.number || null, { tx: t.transaction_id, value, from: t.from });
+      tg(`⚠️ USDT: пришло <b>${usdtText(value)}</b> от ${esc(t.from)}, заказ не найден.\n` +
+        (late ? `Такая сумма была у заказа ${late.number}, он «${STATUS_RU[late.status]}».` : near ? `Ближайший ожидающий заказ: ${near.number} на ${usdtText(near.crypto_amount)}. Возможно, биржа удержала комиссию из суммы.` : 'Ожидающих оплаты USDT заказов нет.') +
+        `\nПеревод: https://tronscan.org/#/transaction/${t.transaction_id}\nЕсли это оплата заказа, отметьте его вручную.`);
+      out.unmatched++;
+    }
+    fingerprint = d.meta?.fingerprint || ''; if (!fingerprint) break;
+  }
+  if (newest > since) q.metaPut.run('usdt_since', String(newest));
+  return out;
+}
+
 // ── Заказы в Telegram: карточка, кнопки статусов, трек-номер ответом ──
 const NEXT = { new:['paid', 'packed', 'cancelled'], awaiting_payment:['paid', 'cancelled'], paid:['packed', 'shipped', 'cancelled'], packed:['shipped', 'cancelled'], shipped:['delivered'] };
 const BTN = { paid:'💳 Оплачен', packed:'📦 Собран', shipped:'🚚 Отправлен', delivered:'✅ Доставлен', cancelled:'✖ Отменить' };
@@ -559,10 +623,11 @@ function placeOrder(b, ip, source = 'site'){
   if (!isEmail(email)) bad('Укажите почту.');
   for (const k of ['name', 'country', 'city', 'address']) if (!str(k)) bad('Заполните имя, страну, город и адрес.');
   if (!Array.isArray(b.items) || !b.items.length) bad('Корзина пуста.');
-  const method = ['payme', 'click', 'card', 'cod'].includes(b.pay_method) ? b.pay_method : 'card';
+  const method = ['payme', 'click', 'card', 'cod', 'usdt'].includes(b.pay_method) ? b.pay_method : 'card';
   if (!CATALOG.zones.some(z => z.countries.includes(str('country')))) bad('Выберите страну из списка.');
   const zone = zoneFor(str('country'));
-  if (method !== 'card' && zone.id !== 'uz') bad('Для доставки за пределы Узбекистана доступна только оплата картой.');
+  if (method === 'usdt' && !(USDT.on && USDT.zones.includes(zone.id))) bad('Оплата USDT для этой страны недоступна. Выберите другой способ.');
+  if (!['card', 'usdt'].includes(method) && zone.id !== 'uz') bad('Для доставки за пределы Узбекистана доступна только оплата картой.');
   let items; try { items = priceLines(b.items); } catch (e) { bad(e.message); }
   const subtotal_uzs = items.reduce((a, l) => a + l.price_uzs * l.qty, 0), subtotal_usd = items.reduce((a, l) => a + l.price_usd * l.qty, 0);
   const free = zone.freeFrom && subtotal_uzs >= zone.freeFrom, shipping_uzs = free ? 0 : zone.uzs, shipping_usd = free ? 0 : zone.usd;
@@ -570,7 +635,9 @@ function placeOrder(b, ip, source = 'site'){
     items, subtotal_uzs, shipping_uzs, total_uzs: subtotal_uzs + shipping_uzs, total_usd: subtotal_usd + shipping_usd, currency: b.currency === 'USD' ? 'USD' : 'UZS',
     pay_method: method, status: method === 'cod' ? 'new' : 'awaiting_payment', note: str('note', 1000) || null };
   order.pay_url = payUrl(method, order);
+  if (method === 'usdt') { order.crypto_amount = usdtAmount(order.total_usd); order.pay_url = `${ORIGIN}/api/pay/usdt?o=${order.number}&k=${usdtKey(order.number)}`; }
   q.insertOrder.run(order.number, order.email, order.name, order.phone, order.country, order.city, order.address, order.postcode, JSON.stringify(items), order.subtotal_uzs, order.shipping_uzs, order.total_uzs, order.total_usd, order.currency, order.pay_method, order.status, order.note, order.pay_url, ip);
+  if (order.crypto_amount) q.setCrypto.run(order.crypto_amount, order.pay_url, order.number);
   audit(email, 'order.create', order.number, { total: order.total_uzs, method, zone: zone.id, source });
   const lines = items.map(l => `${l.name}${l.subscription ? ' (подписка)' : ''} × ${l.qty} — ${money(l.price_uzs * l.qty)}`);
   const how = order.pay_url ? `Оплатить: ${order.pay_url}` : ({ payme:'Ссылка на оплату Payme придёт отдельным письмом в течение рабочего дня.', click:'Ссылка на оплату Click придёт отдельным письмом в течение рабочего дня.', card:'Защищённая ссылка на оплату картой придёт отдельным письмом в течение рабочего дня. Сумма в долларах по курсу на день заказа.', cod:'Курьер свяжется для согласования времени. Оплата при получении.' }[method]);
@@ -584,7 +651,7 @@ function placeOrder(b, ip, source = 'site'){
 
 const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok:true, products: CATALOG.products.length,
-    pay: { payme: !!(ENV.PAYME_MERCHANT && ENV.PAYME_KEY), click: !!(ENV.CLICK_SERVICE_ID && ENV.CLICK_SECRET_KEY), card: !!(ENV.STRIPE_SECRET_KEY && ENV.STRIPE_WEBHOOK_SECRET) } }),
+    pay: { payme: !!(ENV.PAYME_MERCHANT && ENV.PAYME_KEY), click: !!(ENV.CLICK_SERVICE_ID && ENV.CLICK_SECRET_KEY), card: !!(ENV.STRIPE_SECRET_KEY && ENV.STRIPE_WEBHOOK_SECRET), usdt: USDT.on ? USDT.zones : false } }),
 
   'POST /api/orders': async (req, res) => {
     const ip = ipOf(req); if (limited('order:' + ip, 10, 3600e3)) return json(res, 429, { error:'Слишком много заказов с этого адреса. Попробуйте позже.' });
@@ -681,6 +748,27 @@ const routes = {
   'POST /api/pay/click/prepare': async (req, res) => json(res, 200, clickHandle(await formBody(req))),
   'POST /api/pay/click/complete': async (req, res) => json(res, 200, clickHandle(await formBody(req))),
 
+  // USDT: страница с адресом кошелька и точной суммой. Сама проверяет, пришла ли оплата.
+  'GET /api/pay/usdt': async (req, res, url) => {
+    const number = String(url.searchParams.get('o') || '').toUpperCase(), o = safeEq(url.searchParams.get('k') || '', usdtKey(number)) ? q.orderByNumber.get(number) : null;
+    if (!o || !o.crypto_amount) return page(res, 404, 'Ссылка не подошла', '<p>Ссылка устарела или скопирована не полностью. Откройте её из письма о заказе или из кабинета.</p>');
+    if (o.status !== 'awaiting_payment') { res.writeHead(303, { location: `${ORIGIN}/account.html?paid=${number}`, 'cache-control':'no-store' }); return res.end(); }
+    if (!USDT.on) return page(res, 503, 'Оплата USDT временно недоступна', `<p>Напишите на <a href="mailto:${SUPPORT}">${SUPPORT}</a> и укажите номер заказа ${esc(number)}.</p>`);
+    const amount = usdtText(o.crypto_amount), row = (label, value, id) => `<p style="margin:0 0 4px;color:#5A6862;font-size:14px">${label}</p><p style="margin:0 0 18px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b ${id ? `id="${id}"` : ''} style="font:600 18px/1.4 Menlo,Consolas,monospace;word-break:break-all">${esc(value)}</b>${id ? `<button type="button" data-copy="${id}" style="font:600 14px Arial,sans-serif;cursor:pointer;padding:8px 14px;border-radius:999px;border:1px solid #0E6E5A;background:#fff;color:#0E6E5A">Скопировать</button>` : ''}</p>`;
+    page(res, 200, `Оплата заказа ${number}`, `${row('Сеть', 'TRON (TRC-20)')}${row('Адрес', USDT.address, 'addr')}${row('Сумма, USDT', amount, 'sum')}
+<p style="font-size:15px;border-left:4px solid #C98A1B;padding:2px 0 2px 14px">Отправьте ровно <b>${amount} USDT</b> в сети TRON (TRC-20). По сумме мы узнаём ваш платёж, поэтому получатель должен получить её целиком: комиссию кошелёк или биржа берёт сверху. Другая сеть или другая монета до нас не дойдут.</p>
+<p id="state" style="font-size:15px;color:#5A6862">Ждём перевод. Страница обновится сама, обычно через 1–3 минуты после отправки.</p>
+<script>
+document.querySelectorAll('[data-copy]').forEach(function(b){ b.onclick = function(){ navigator.clipboard.writeText(document.getElementById(b.dataset.copy).textContent).then(function(){ b.textContent = 'Скопировано'; setTimeout(function(){ b.textContent = 'Скопировать'; }, 1500); }); }; });
+setInterval(function(){ fetch('/api/pay/usdt/status' + location.search).then(function(r){ return r.json(); }).then(function(d){ if (d.status && d.status !== 'awaiting_payment') location.href = '/account.html?paid=${number}'; }).catch(function(){}); }, 15000);
+</script>`);
+  },
+  'GET /api/pay/usdt/status': async (req, res, url) => {
+    const number = String(url.searchParams.get('o') || '').toUpperCase(), o = safeEq(url.searchParams.get('k') || '', usdtKey(number)) ? q.orderByNumber.get(number) : null;
+    if (!o) return json(res, 404, { error:'Не найдено' });
+    json(res, 200, { status: o.status });
+  },
+
   // Карта: открывает свежую сессию Stripe Checkout на сумму заказа и перенаправляет на неё
   'GET /api/pay/card': async (req, res, url) => {
     const number = String(url.searchParams.get('o') || '').toUpperCase();
@@ -727,6 +815,13 @@ if (!CLI) {
   const tick = () => { try { runJobs(); } catch (e) { audit('system', 'error', 'jobs', { error: e.message }); } };
   setTimeout(tick, 30_000).unref(); setInterval(tick, 600_000).unref();
   if (TG.ops) tgPoll();
+  // USDT: раз в минуту, пока есть ожидающие заказы; иначе раз в 10 минут, чтобы заметить поздний перевод.
+  let usdtAt = 0, usdtBusy = false;
+  if (USDT.on) setInterval(async () => {
+    if (usdtBusy || (!q.cryptoOpen.get().n && Date.now() - usdtAt < 600e3)) return;
+    usdtBusy = true; usdtAt = Date.now();
+    try { await usdtScan(); } catch (e) { audit('system', 'error', 'usdt', { error: e.message }); } finally { usdtBusy = false; }
+  }, 60_000).unref();
 }
 
 // ── CLI ──────────────────────────────────────────────────────────
@@ -751,6 +846,9 @@ if (CLI === 'status') {
   const old = CFG.backupKeep > 0 ? fs.readdirSync(dir).filter(f => /^erkak-\d{8}-\d{4}\.db$/.test(f)).sort().slice(0, -CFG.backupKeep) : [];
   for (const f of old) fs.rmSync(path.join(dir, f));
   console.log(`Копия: ${file} · заказов: ${n} · удалено старых копий: ${old.length}`); process.exit(0);
+} else if (CLI === 'usdt') {
+  if (!USDT.on) { console.error(USDT.address ? 'Адрес USDT_TRC20_ADDRESS не прошёл проверку.' : 'USDT_TRC20_ADDRESS не задан.'); process.exit(1); }
+  usdtScan().then(r => { console.log(r); finish(0); }, e => { console.error('usdt:', e.message); process.exit(1); });
 } else if (CLI === 'jobs') {
   console.log(runJobs()); finish(0);
 }

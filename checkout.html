@@ -32,6 +32,7 @@
       <label data-zone="uz"><input type="radio" name="pay" value="payme" checked><span><span class="t">Payme</span><br><span class="d">Карты Uzcard и Humo, оплата в приложении</span></span><span class="tag">UZ</span></label>
       <label data-zone="uz"><input type="radio" name="pay" value="click"><span><span class="t">Click</span><br><span class="d">Uzcard, Humo, Visa через Click</span></span><span class="tag">UZ</span></label>
       <label><input type="radio" name="pay" value="card"><span><span class="t">Visa / Mastercard</span><br><span class="d">Любая страна, защищённая ссылка на оплату</span></span><span class="tag">USD</span></label>
+      <label data-pay="usdt" hidden><input type="radio" name="pay" value="usdt"><span><span class="t">USDT (TRC-20)</span><br><span class="d">Перевод с кошелька или биржи в сети TRON, без банка</span></span><span class="tag">USDT</span></label>
       <label data-zone="uz"><input type="radio" name="pay" value="cod"><span><span class="t">При получении</span><br><span class="d">Наличными или картой курьеру, только Узбекистан</span></span><span class="tag">UZ</span></label>
     </div>
     <div class="field"><label for="note">Комментарий к заказу</label><textarea id="note" name="note" rows="2" placeholder="Например: звонить за час, оставить у консьержа"></textarea></div>
@@ -73,6 +74,9 @@ countrySel.innerHTML = ZONES.map(z => `<optgroup label="${z.name}">${z.countries
 try { const c = localStorage.getItem('erkak.country'); if (c) countrySel.value = c; } catch {}
 
 function zone(){ return zoneFor(countrySel.value); }
+// USDT показывается только если сервер его принимает и только для разрешённых зон доставки.
+let usdtZones = [];
+api('/health').then(h => { usdtZones = Array.isArray(h.pay && h.pay.usdt) ? h.pay.usdt : []; paint(); }).catch(() => {});
 function shipping(sub){ const z = zone(); if (z.freeFrom && sub.uzs >= z.freeFrom) return { uzs:0, usd:0, free:true }; return { uzs:z.uzs, usd:z.usd }; }
 
 function paint(){
@@ -93,8 +97,10 @@ function paint(){
   $('tGrand').textContent = money(sub.uzs + sh.uzs, sub.usd + sh.usd);
   $('zoneInfo').innerHTML = `<b>${z.name}</b>: ${z.carrier}, ${z.days}. Доставка ${sh.free ? 'бесплатно' : money(z.uzs, z.usd)}${z.freeFrom ? `, бесплатно от ${money(z.freeFrom)}` : ''}.${z.id !== 'uz' ? ' Таможенные документы и инвойс готовим мы. Пошлины, если страна их взимает, оплачивает получатель.' : ''}`;
   document.querySelectorAll('#pay label[data-zone="uz"]').forEach(l => l.hidden = z.id !== 'uz');
-  if (z.id !== 'uz') document.querySelector('input[name="pay"][value="card"]').checked = true;
-  else if (!document.querySelector('input[name="pay"]:checked') || document.querySelector('input[name="pay"]:checked').closest('label').hidden) document.querySelector('input[name="pay"][value="payme"]').checked = true;
+  document.querySelector('#pay label[data-pay="usdt"]').hidden = !usdtZones.includes(z.id);
+  // Выбранный способ сохраняется, пока он доступен для страны; иначе ставится способ по умолчанию.
+  const picked = document.querySelector('input[name="pay"]:checked');
+  if (!picked || picked.closest('label').hidden) document.querySelector(`input[name="pay"][value="${z.id === 'uz' ? 'payme' : 'card'}"]`).checked = true;
 }
 countrySel.onchange = () => { try { localStorage.setItem('erkak.country', countrySel.value); } catch {} paint(); };
 document.addEventListener('erkak:cart', paint); document.addEventListener('erkak:cur', paint);
