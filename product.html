@@ -38,7 +38,7 @@ function paint(){
         <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);flex-wrap:wrap"><span class="price">${old}<span id="price"></span></span><span class="small muted">${p.form}</span></div>
         <div class="sub-choice" role="radiogroup" aria-label="Способ покупки">
           <label><input type="radio" name="mode" value="once" checked><span><span class="t">Разовая покупка</span><br><span class="d">Одна отправка, без продления</span></span><span class="num small" id="pOnce"></span></label>
-          <label><input type="radio" name="mode" value="sub"><span><span class="t">Подписка, −15%</span><br><span class="d">Отправка раз в ${p.form.includes('120') ? '60' : p.sku === 'stack90' ? '90' : p.form.includes('60') ? '60' : '90'} дней, отмена в один шаг</span></span><span class="num small" id="pSub"></span></label>
+          <label><input type="radio" name="mode" value="sub"><span><span class="t">Подписка, −15%</span><br><span class="d">Раз в ${p.days} дней, перед отправкой спросим. Отмена в один шаг</span></span><span class="num small" id="pSub"></span></label>
         </div>
         <button class="btn btn-primary btn-lg btn-block" id="buy">В корзину</button>
         <p class="small muted">Отправка в день оплаты. Узбекистан 1–3 дня, по миру 5–18 дней. Нейтральная упаковка. Возврат 30 дней.</p>

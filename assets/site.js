@@ -12,6 +12,9 @@ const CONFIG = {
   supportEmail: 'care@erkak.com',
 };
 
+// Экранирование всего, что пришло от пользователя или с сервера, перед вставкой в разметку.
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
 // ── Каталог (assets/catalog.js) ───────────────────────────────
 const PRODUCTS = CATALOG.products;
 const bySku = s => PRODUCTS.find(p => p.sku === s);

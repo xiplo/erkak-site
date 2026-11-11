@@ -126,7 +126,7 @@ $('form').addEventListener('submit', async e => {
     document.querySelector('.checkout').hidden = true; document.querySelector('.page-head').hidden = true;
     $('doneTitle').textContent = `Заказ ${data.number} принят`;
     const how = { payme:'Ссылка на оплату Payme придёт на почту в течение рабочего дня.', click:'Ссылка на оплату Click придёт на почту в течение рабочего дня.', card:'Защищённая ссылка на оплату картой придёт на почту в течение рабочего дня. Сумма в долларах по курсу на день заказа.', cod:'Курьер свяжется для согласования времени. Оплата наличными или картой при получении.' }[method];
-    $('doneBody').innerHTML = `<p>${how}</p><p>Сумма: <b class="num">${money(data.total_uzs)}</b>. Подтверждение отправлено на <b>${data.email}</b>. Отслеживать заказ можно в кабинете: вход по этой же почте, без пароля.</p>`;
+    $('doneBody').innerHTML = `<p>${how}</p><p>Сумма: <b class="num">${money(data.total_uzs)}</b>. Подтверждение отправлено на <b>${esc(data.email)}</b>. Отслеживать заказ можно в кабинете: вход по этой же почте, без пароля.</p>`;
     $('done').hidden = false; window.scrollTo({ top:0 });
   } catch (ex) {
     err.textContent = (ex.message && !/^HTTP/.test(ex.message) && !/fetch/i.test(ex.message) ? ex.message + ' ' : 'Не удалось сохранить заказ. Проверьте соединение и попробуйте ещё раз. ') + 'Если не помогает, напишите на ' + CONFIG.supportEmail + '.'; err.hidden = false;

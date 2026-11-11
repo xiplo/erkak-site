@@ -335,7 +335,7 @@ footer .logo .tag{color:rgba(230,239,234,.55)}
 footer .copy-line{color:rgba(230,239,234,.5);font-size:var(--t-xs)}
 
 /* ── Внутренние страницы ──────────────────────────────────────── */
-.page-head{padding:clamp(32px,5vw,56px) 0 var(--s8);display:grid;gap:var(--s3)}
+.page-head{padding-block:clamp(32px,5vw,56px) var(--s8);display:grid;gap:var(--s3)}
 .prose{display:grid;gap:var(--s4);max-width:72ch}
 .prose h2{font-size:var(--t-lg);margin-top:var(--s4)}
 .prose h3{font-size:var(--t-md)}

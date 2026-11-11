@@ -1,0 +1,15 @@
+[Unit]
+Description=ERKAK: копия базы заказов
+
+[Service]
+Type=oneshot
+User=erkak
+Group=erkak
+WorkingDirectory=/opt/erkak
+Environment=DATA_DIR=/opt/erkak/data STATIC_DIR=/var/www/erkak.com NODE_NO_WARNINGS=1
+ExecStart=/usr/bin/node /opt/erkak/server.mjs backup
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/erkak/data
+ProtectHome=true
+PrivateTmp=true

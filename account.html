@@ -33,6 +33,7 @@
       <button class="btn btn-secondary" id="logout" type="button">Выйти</button>
     </div>
   </div>
+  <div id="subs"></div>
   <div class="orders" id="orders"></div>
 </div></section>
 </main>
@@ -50,19 +51,29 @@ async function show(){
   let data;
   try { data = await api('/me/orders'); } catch (e) { session.set(''); $('login').hidden = false; $('cab').hidden = true; return; }
   $('login').hidden = true; $('cab').hidden = false; $('who').textContent = data.email;
+  // Вернулись со страницы оплаты, а подтверждение от платёжной системы ещё в пути: перечитываем заказы.
+  const back = data.orders.find(o => o.number === PAID);
+  if (back && back.status === 'awaiting_payment' && polls++ < 8) setTimeout(show, 4000);
+  $('subs').innerHTML = (data.subs || []).map(s => `<div class="panel" style="margin-bottom:var(--s6);display:flex;justify-content:space-between;gap:var(--s3);flex-wrap:wrap;align-items:center">
+    <div><b>Подписка: ${esc(s.title)}</b><br><span class="small muted">Письмо о следующей отправке придёт ${new Date(s.next_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long' })}. Без вашего подтверждения ничего не отправим и не спишем.</span></div>
+    <button class="btn btn-secondary" type="button" data-stop="${+s.id}">Остановить</button></div>`).join('');
+  $('subs').querySelectorAll('[data-stop]').forEach(b => b.onclick = async () => { b.disabled = true; try { await api('/me/subs/stop', { id: +b.dataset.stop }); toast('Подписка остановлена'); show(); } catch (ex) { b.disabled = false; toast(ex.message); } });
   if (!data.orders.length) { $('orders').innerHTML = `<div class="empty"><p>Заказов на эту почту пока нет.</p><a class="btn btn-primary" href="catalog.html">В каталог</a></div>`; return; }
   $('orders').innerHTML = data.orders.map(o => `<article class="order">
-    <div class="h"><b class="num">${o.number}</b><span class="status ${o.status}">${STATUS[o.status] || o.status}</span><span class="small muted">${new Date(o.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' })}</span></div>
-    <ul>${o.items.map(i => `<li><span>${i.name}${i.subscription ? ' · подписка' : ''} × ${i.qty}</span><span class="num">${money(i.price_uzs * i.qty, i.price_usd * i.qty)}</span></li>`).join('')}</ul>
-    <div class="h small"><span>${PAY[o.pay_method] || o.pay_method} · ${o.country}${o.city ? ', ' + o.city : ''}</span><span>Итого <b class="num">${money(o.total_uzs, o.total_usd)}</b></span></div>
-    ${o.tracking ? `<div class="small">Трек-номер: <b class="num">${o.tracking}</b></div>` : ''}
-    ${o.status === 'awaiting_payment' ? (o.pay_url ? `<div><a class="btn btn-primary" href="${o.pay_url}">Оплатить ${money(o.total_uzs, o.total_usd)}</a></div>` : `<div class="alert">Ссылка на оплату придёт на почту в течение рабочего дня. Если письма нет, напишите на <a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a> с номером заказа.</div>`) : ''}
-    ${o.items.some(i => i.subscription) && !['cancelled','refunded'].includes(o.status) ? `<div class="small muted">Подписка: чтобы остановить, ответьте «стоп» на письмо о следующей отправке или напишите нам. Отмена в один шаг.</div>` : ''}
+    <div class="h"><b class="num">${esc(o.number)}</b><span class="status ${esc(o.status)}">${STATUS[o.status] || esc(o.status)}</span><span class="small muted">${new Date(o.created_at).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' })}</span></div>
+    <ul>${o.items.map(i => `<li><span>${esc(i.name)}${i.subscription ? ' · подписка' : ''} × ${i.qty}</span><span class="num">${money(i.price_uzs * i.qty, i.price_usd * i.qty)}</span></li>`).join('')}</ul>
+    <div class="h small"><span>${PAY[o.pay_method] || esc(o.pay_method)} · ${esc(o.country)}${o.city ? ', ' + esc(o.city) : ''}</span><span>Итого <b class="num">${money(o.total_uzs, o.total_usd)}</b></span></div>
+    ${o.tracking ? `<div class="small">Трек-номер: <b class="num">${esc(o.tracking)}</b></div>` : ''}
+    ${o.status === 'awaiting_payment' ? (o.pay_url ? `<div><a class="btn btn-primary" href="${esc(o.pay_url)}">Оплатить ${money(o.total_uzs, o.total_usd)}</a></div>` : `<div class="alert">Ссылка на оплату придёт на почту в течение рабочего дня. Если письма нет, напишите на <a href="mailto:${CONFIG.supportEmail}">${CONFIG.supportEmail}</a> с номером заказа.</div>`) : ''}
   </article>`).join('');
 }
 
 const msg = $('loginMsg');
 function say(text, ok){ msg.textContent = text; msg.className = 'alert ' + (ok ? 'ok' : 'bad'); msg.hidden = false; }
+// Возврат со страницы оплаты: ?paid=EK-…
+const PAID = (/^EK-\d{6}-\d{4}$/.exec(new URLSearchParams(location.search).get('paid') || '') || [''])[0];
+let polls = 0;
+if (PAID && !session.get()) { say(`Спасибо. Оплата заказа ${PAID} обрабатывается, подтверждение придёт на почту. Чтобы видеть статус, войдите по почте или по номеру заказа.`, true); $('onum').value = PAID; $('byOrder').open = true; }
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault(); const email = $('lemail').value.trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return say('Введите почту.', false);
