@@ -3,6 +3,8 @@
 // CLI:    node server.mjs status EK-260905-1234 shipped [трек]
 //         node server.mjs orders [n]
 //         node server.mjs payments [n]
+//         node server.mjs backup               копия базы в data/backups (ставится на таймер)
+//         node server.mjs jobs                 разовый прогон автоматики: напоминания, автоотмена, подписки
 // Оплата: Payme Merchant API, Click SHOP API, Stripe Checkout. Статус «Оплачен» ставится по подтверждению платёжной системы.
 import http from 'node:http';
 import fs from 'node:fs';
@@ -13,6 +15,9 @@ import net from 'node:net';
 import vm from 'node:vm';
 import { DatabaseSync } from 'node:sqlite';
 
+const CLI = ['status', 'orders', 'payments', 'backup', 'jobs'].includes(process.argv[2]) ? process.argv[2] : null;
+// Команды запускают руками из /opt/erkak: настройки берём из тех же файлов, что и сервис. Уже заданные переменные не меняются.
+if (CLI) for (const f of ['.env', '.env.shared']) { try { process.loadEnvFile(path.join(process.cwd(), f)); } catch {} }
 const ENV = process.env;
 const PORT = +(ENV.PORT || 8795);
 const DATA_DIR = ENV.DATA_DIR || path.join(process.cwd(), 'data');
@@ -21,6 +26,11 @@ const ORIGIN = ENV.PUBLIC_ORIGIN || 'https://erkak.com';
 const BRAND = 'ERKAK';
 const SUPPORT = ENV.SUPPORT_EMAIL || 'care@erkak.com';
 fs.mkdirSync(DATA_DIR, { recursive: true });
+// Запуск от root (команда на сервере): дальше работаем от владельца папки с базой, чтобы не оставить в ней файлы root.
+if (process.getuid?.() === 0) { const st = fs.statSync(DATA_DIR); if (st.uid !== 0) { process.setgroups([st.gid]); process.setgid(st.gid); process.setuid(st.uid); } }
+const num = (v, d) => (v === undefined || v === '' || !Number.isFinite(+v) ? d : +v);
+const HOUR = 3600e3, DAY = 86400e3;
+const CFG = { digestHour: num(ENV.DIGEST_HOUR, 9), remindHours: num(ENV.UNPAID_REMIND_HOURS, 24), cancelDays: num(ENV.UNPAID_CANCEL_DAYS, 3), controlDays: num(ENV.CONTROL_DAYS, 90), subLeadDays: num(ENV.SUB_LEAD_DAYS, 10), backupKeep: num(ENV.BACKUP_KEEP, 14) };
 
 // ── Каталог: тот же файл, что грузит браузер ─────────────────────
 // В режиме заглушки (deploy.sh teaser) магазин лежит в соседней папке «-shop»: API должен запускаться и тогда.
@@ -62,10 +72,17 @@ create table if not exists payments (
 );
 create index if not exists payments_order on payments(order_number);
 create table if not exists meta (key text primary key, value text not null);
+create table if not exists subscriptions (
+  id integer primary key autoincrement, email text not null, items text not null, days integer not null,
+  status text not null default 'active', next_at integer not null, nudges integer not null default 0,
+  first_order text not null, last_order text not null, created_at integer not null, renewed_at integer, stopped_at integer
+);
+create index if not exists subscriptions_email on subscriptions(email);
 create table if not exists audit (
   id integer primary key autoincrement, at text not null default (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   actor text, action text not null, subject text, detail text
 );`);
+for (const col of ['reminded_at', 'delivered_at', 'control_at']) if (!db.prepare(`select 1 from pragma_table_info('orders') where name = ?`).get(col)) db.exec(`alter table orders add column ${col} integer`);
 const q = {
   insertOrder: db.prepare(`insert into orders (number,email,name,phone,country,city,address,postcode,items,subtotal_uzs,shipping_uzs,total_uzs,total_usd,currency,pay_method,status,note,pay_url,ip)
     values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`),
@@ -95,6 +112,25 @@ const q = {
   lastPayments: db.prepare(`select id,provider,order_number,amount,state,reason,create_time,perform_time,cancel_time from payments order by id desc limit ?`),
   metaGet: db.prepare(`select value from meta where key = ?`),
   metaSet: db.prepare(`insert or ignore into meta (key,value) values (?,?)`),
+  metaPut: db.prepare(`insert into meta (key,value) values (?,?) on conflict(key) do update set value = excluded.value`),
+  payPending: db.prepare(`select 1 from payments where order_number = ? and state = 1 limit 1`),
+  setPayUrl: db.prepare(`update orders set pay_url = ? where number = ?`),
+  setReminded: db.prepare(`update orders set reminded_at = ? where number = ?`),
+  setDelivered: db.prepare(`update orders set delivered_at = coalesce(delivered_at, ?) where number = ?`),
+  setControl: db.prepare(`update orders set control_at = ? where number = ?`),
+  unpaidToRemind: db.prepare(`select * from orders where status = 'awaiting_payment' and reminded_at is null and created_at < ?`),
+  unpaidToCancel: db.prepare(`select * from orders where status = 'awaiting_payment' and reminded_at < ? and created_at < ?`),
+  controlDue: db.prepare(`select * from orders where status = 'delivered' and control_at is null and delivered_at < ?`),
+  ordersOpen: db.prepare(`select * from orders where status in ('new','paid','packed','shipped') order by created_at limit 20`),
+  countByStatus: db.prepare(`select status, count(*) n from orders where status in ('new','awaiting_payment','paid','packed') group by status`),
+  subInsert: db.prepare(`insert into subscriptions (email,items,days,next_at,first_order,last_order,created_at) values (?,?,?,?,?,?,?)`),
+  subGet: db.prepare(`select * from subscriptions where id = ?`),
+  subByOrder: db.prepare(`select * from subscriptions where first_order = ? or last_order = ?`),
+  subsByEmail: db.prepare(`select * from subscriptions where email = ? and status = 'active' order by next_at`),
+  subsDue: db.prepare(`select * from subscriptions where status = 'active' and next_at <= ?`),
+  subNudged: db.prepare(`update subscriptions set nudges = nudges + 1, next_at = ? where id = ?`),
+  subRenewed: db.prepare(`update subscriptions set status = 'active', nudges = 0, last_order = ?, next_at = ?, renewed_at = ? where id = ?`),
+  subStatus: db.prepare(`update subscriptions set status = ?, stopped_at = ? where id = ?`),
 };
 // Секрет для подписи ссылок на оплату: создаётся один раз и живёт в базе.
 q.metaSet.run('secret', crypto.randomBytes(32).toString('hex'));
@@ -152,10 +188,16 @@ function mailHtml(title, bodyHtml){
 }
 
 // ── Telegram ─────────────────────────────────────────────────────
-async function tg(text){
-  const token = ENV.TELEGRAM_BOT_TOKEN, chat = ENV.ERKAK_TG_CHAT || ENV.TELEGRAM_NOTIFY_CHAT_ID;
-  if (!token || !chat) return;
-  try { await fetch(`https://api.telegram.org/bot${token}/sendMessage`, { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ chat_id: chat, text, parse_mode:'HTML', disable_web_page_preview:true }) }); } catch {}
+// Свой бот ERKAK_TG_TOKEN даёт кнопки управления заказами; без него уведомления идут через общий бот сервера, без кнопок.
+const TG = { token: ENV.ERKAK_TG_TOKEN || ENV.TELEGRAM_BOT_TOKEN, chat: ENV.ERKAK_TG_CHAT || ENV.TELEGRAM_NOTIFY_CHAT_ID, ops: !!(ENV.ERKAK_TG_TOKEN && ENV.ERKAK_TG_CHAT), api: ENV.TELEGRAM_API || 'https://api.telegram.org' };
+async function tgCall(method, payload){
+  if (!TG.token) return null;
+  try { const r = await fetch(`${TG.api}/bot${TG.token}/${method}`, { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(method === 'getUpdates' ? 65_000 : 15_000) }); return await r.json(); } catch { return null; }
+}
+function tg(text, buttons){
+  if (!TG.chat) return null;
+  const p = tgCall('sendMessage', { chat_id: TG.chat, text, parse_mode:'HTML', disable_web_page_preview:true, ...(buttons?.length && TG.ops ? { reply_markup: { inline_keyboard: buttons } } : {}) });
+  if (CLI) pending.push(p); return p;
 }
 
 // ── Деньги и цены (серверный пересчёт) ───────────────────────────
@@ -195,14 +237,23 @@ const STATUS_TEXT = {
   cancelled: n => `Заказ ${n} отменён. Если это ошибка, ответьте на это письмо.`,
   refunded: n => `Возврат по заказу ${n} оформлен. Деньги вернутся тем же способом в течение 5–10 рабочих дней.`,
 };
+// Все письма идут через send: ошибка пишется в аудит, а команды CLI дожидаются отправки перед выходом.
+const pending = [];
+const plural = (n, one, few, many) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many}`;
+function send(to, subject, text, bodyHtml, ref){
+  const p = sendMail({ to, subject: `${BRAND}: ${subject}`, text, html: mailHtml(subject[0].toUpperCase() + subject.slice(1), bodyHtml || `<p>${esc(text)}</p>`) }).then(() => null, e => { audit('system', 'mail.fail', ref || to, { error: e.message }); return e; });
+  if (CLI) pending.push(p); return p;
+}
+const button = (url, label) => `<p><a href="${esc(url)}" style="display:inline-block;background:#0E6E5A;color:#fff;text-decoration:none;padding:14px 24px;border-radius:999px;font-weight:600">${esc(label)}</a></p>`;
 // Меняет статус, пишет аудит и отправляет письмо клиенту. mail: промис с ошибкой отправки или null.
-function setOrderStatus(number, status, { tracking, actor } = {}){
+function setOrderStatus(number, status, { tracking, actor, text } = {}){
   const o = q.orderByNumber.get(number); if (!o) return null;
   q.setStatus.run(status, tracking || null, number); audit(actor || 'system', 'order.status', number, { status, tracking });
-  const text = STATUS_TEXT[status]?.(number, tracking);
-  const mail = !text ? Promise.resolve(null) : sendMail({ to: o.email, subject: `${BRAND}: заказ ${number} — ${STATUS_RU[status].toLowerCase()}`, text, html: mailHtml(`Заказ ${number}: ${STATUS_RU[status].toLowerCase()}`, `<p>${esc(text)}</p>`) })
-    .then(() => null, e => { audit('system', 'mail.fail', number, { error: e.message }); return e; });
-  return { order: o, mail };
+  if (status === 'delivered') q.setDelivered.run(Date.now(), number);
+  if (status === 'paid' || status === 'delivered') subStart(o);
+  if (status === 'cancelled' || status === 'refunded') { const sub = q.subByOrder.get(number, number); if (sub?.status === 'active' && sub.last_order === number) q.subStatus.run('stopped', Date.now(), sub.id); }
+  text ||= STATUS_TEXT[status]?.(number, tracking);
+  return { order: o, mail: text ? send(o.email, `заказ ${number} — ${STATUS_RU[status].toLowerCase()}`, text, null, number) : Promise.resolve(null) };
 }
 // Оплата подтверждена платёжной системой. Повторный вызов безопасен: срабатывает только из «Ожидает оплаты».
 function orderPaid(o, provider){
@@ -354,7 +405,131 @@ function stripeRefunded(c){
   orderRefunded(q.orderByNumber.get(t.order_number), 'stripe');
 }
 
+// ── Заказы в Telegram: карточка, кнопки статусов, трек-номер ответом ──
+const NEXT = { new:['paid', 'packed', 'cancelled'], awaiting_payment:['paid', 'cancelled'], paid:['packed', 'shipped', 'cancelled'], packed:['shipped', 'cancelled'], shipped:['delivered'] };
+const BTN = { paid:'💳 Оплачен', packed:'📦 Собран', shipped:'🚚 Отправлен', delivered:'✅ Доставлен', cancelled:'✖ Отменить' };
+function orderButtons(number, status){ const next = NEXT[status] || []; return next.length ? [next.map(st => ({ text: BTN[st], callback_data: `st:${number}:${st}` }))] : []; }
+function orderCard(o){
+  const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+  return `🧾 <b>${o.number}</b> · ${STATUS_RU[o.status]} · ${esc(money(o.total_uzs))} · ${PAY_RU[o.pay_method]}\n${esc(o.name)} · ${esc(o.email)}${o.phone ? ' · ' + esc(o.phone) : ''}\n${esc([o.country, o.city, o.address, o.postcode].filter(Boolean).join(', '))}\n` +
+    items.map(l => esc(`${l.name}${l.subscription ? ' (подписка)' : ''} × ${l.qty}`)).join('\n') + (o.tracking ? `\nТрек: ${esc(o.tracking)}` : '') + (o.note ? `\n💬 ${esc(o.note)}` : '');
+}
+async function tgUpdate(u){
+  const cb = u.callback_query, msg = u.message, who = 'tg:' + ((cb || msg)?.from?.username || (cb || msg)?.from?.id || '?');
+  if (cb) {
+    const answer = text => tgCall('answerCallbackQuery', { callback_query_id: cb.id, text });
+    if (String(cb.message?.chat?.id) !== String(TG.chat)) return answer('Нет доступа');
+    const [kind, number, status] = String(cb.data || '').split(':'), o = q.orderByNumber.get(number || '');
+    const redraw = (row, keyboard) => tgCall('editMessageText', { chat_id: TG.chat, message_id: cb.message.message_id, text: orderCard(row), parse_mode:'HTML', disable_web_page_preview:true, reply_markup: { inline_keyboard: keyboard || orderButtons(row.number, row.status) } });
+    if (!o || !['st', 'ok', 'no'].includes(kind)) return answer('Заказ не найден');
+    if (kind === 'no') { await redraw(o); return answer('Заказ не тронут'); }
+    if (!(NEXT[o.status] || []).includes(status)) { await redraw(o); return answer(`Заказ уже «${STATUS_RU[o.status]}»`); }
+    if (kind === 'st' && status === 'cancelled') { await redraw(o, [[{ text:'Да, отменить заказ', callback_data:`ok:${number}:cancelled` }, { text:'Назад', callback_data:`no:${number}:x` }]]); return answer('Подтвердите отмену'); }
+    if (kind === 'st' && status === 'shipped') { await tgCall('sendMessage', { chat_id: TG.chat, text:`Трек-номер для ${number}? Ответьте на это сообщение. Без трека: «-».`, reply_markup: { force_reply: true } }); return answer('Жду трек-номер'); }
+    setOrderStatus(number, status, { actor: who }); await redraw(q.orderByNumber.get(number)); return answer(`${number} → ${STATUS_RU[status]}`);
+  }
+  if (!msg || String(msg.chat?.id) !== String(TG.chat)) return;
+  const text = String(msg.text || '').trim(), show = o => tg(orderCard(o), orderButtons(o.number, o.status));
+  const ask = /^Трек-номер для (EK-\d{6}-\d{4})\?/.exec(msg.reply_to_message?.text || '');
+  if (ask) {
+    const o = q.orderByNumber.get(ask[1]);
+    if (!o || !(NEXT[o.status] || []).includes('shipped')) return tg(`${ask[1]}: ${o ? `статус «${STATUS_RU[o.status]}», отправить нельзя` : 'заказ не найден'}.`);
+    setOrderStatus(o.number, 'shipped', { tracking: text === '-' ? null : text.slice(0, 60), actor: who }); return show(q.orderByNumber.get(o.number));
+  }
+  if (/^\/orders\b/.test(text)) { const list = q.ordersOpen.all(); if (!list.length) return tg('Заказов в работе нет.'); for (const o of list) await show(o); return; }
+  const m = /EK-\d{6}-\d{4}/i.exec(text), found = m && q.orderByNumber.get(m[0].toUpperCase());
+  if (found) return show(found);
+  if (text.startsWith('/')) return tg('/orders — заказы в работе с кнопками статусов.\nНомер заказа (EK-…) — карточка заказа.\n«Отправлен» спросит трек-номер, клиенту уйдёт письмо.');
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function tgPoll(){
+  await tgCall('setMyCommands', { commands: [{ command:'orders', description:'Заказы в работе' }] });
+  for (let offset = 0;;) {
+    const r = await tgCall('getUpdates', { offset, timeout: 50, allowed_updates: ['message', 'callback_query'] });
+    if (!r?.ok || !Array.isArray(r.result)) { await sleep(5000); continue; }
+    for (const u of r.result) { offset = u.update_id + 1; try { await tgUpdate(u); } catch (e) { audit('system', 'error', 'tg', { error: e.message }); } }
+  }
+}
+
+// ── Подписка: письмо перед концом курса, подтверждение и остановка по ссылке ──
+const subKey = id => crypto.createHmac('sha256', SECRET).update('sub:' + id).digest('hex').slice(0, 32);
+const subLink = (sub, a) => `${ORIGIN}/api/sub?s=${sub.id}&k=${subKey(sub.id)}&a=${a}`;
+const subFromLink = (id, key) => { const sub = q.subGet.get(+id || 0); return sub && safeEq(key || '', subKey(sub.id)) ? sub : null; };
+const subNext = days => Date.now() + Math.max(days - CFG.subLeadDays, 7) * DAY;
+const subTitle = sub => JSON.parse(sub.items).map(i => `${BRAND} ${CATALOG.products.find(p => p.sku === i.sku)?.name || i.sku} × ${i.qty}`).join(', ');
+// Подписка появляется, когда заказ с позициями «по подписке» оплачен или доставлен. Срок — по самой короткой банке.
+function subStart(o){
+  const items = JSON.parse(o.items).filter(l => l.subscription); if (!items.length || q.subByOrder.get(o.number, o.number)) return;
+  const days = Math.min(...items.map(l => CATALOG.products.find(p => p.sku === l.sku)?.days || 60));
+  q.subInsert.run(o.email, JSON.stringify(items.map(l => ({ sku: l.sku, qty: l.qty }))), days, subNext(days), o.number, o.number, Date.now());
+  audit(o.email, 'sub.start', o.number, { days });
+}
+function subStop(sub, actor){ if (sub.status === 'stopped') return; q.subStatus.run('stopped', Date.now(), sub.id); audit(actor, 'sub.stop', String(sub.id), null); }
+// Продление: новый заказ на тот же адрес по текущим ценам. Повторное нажатие в течение суток второй заказ не создаёт.
+function subRenew(sub, ip){
+  const last = q.orderByNumber.get(sub.last_order);
+  if (sub.renewed_at && Date.now() - sub.renewed_at < DAY) return last;
+  const order = placeOrder({ email: last.email, name: last.name, phone: last.phone, country: last.country, city: last.city, address: last.address, postcode: last.postcode, currency: last.currency, pay_method: last.pay_method,
+    items: JSON.parse(sub.items).map(i => ({ ...i, subscription: true })) }, ip, 'subscription');
+  q.subRenewed.run(order.number, subNext(sub.days), Date.now(), sub.id); audit(sub.email, 'sub.renew', order.number, { sub: sub.id });
+  return q.orderByNumber.get(order.number);
+}
+
+// ── Автоматика: автоотмена, напоминание об оплате, контрольный анализ, подписки, утренняя сводка ──
+function runJobs(){
+  const now = Date.now(), done = { cancelled: 0, reminded: 0, control: 0, subs: 0, digest: 0 }, canMail = !!ENV.SMTP_HOST, iso = ms => new Date(ms).toISOString();
+  const graceHours = Math.max(Math.round(CFG.cancelDays * 24 - CFG.remindHours), 1);
+  // 1. Автоотмена: только заказы, которым уже напоминали со ссылкой, и только если платёж не в процессе.
+  if (CFG.cancelDays > 0) for (const o of q.unpaidToCancel.all(now - graceHours * HOUR, iso(now - CFG.cancelDays * DAY))) {
+    if (q.payPending.get(o.number)) continue;
+    setOrderStatus(o.number, 'cancelled', { actor: 'auto', text: `Заказ ${o.number} отменён: оплата не поступила. Оформить заново можно в каталоге: ${ORIGIN}/catalog.html. Если вы оплатили, ответьте на это письмо.` });
+    done.cancelled++;
+  }
+  // 2. Напоминание об оплате со ссылкой. Заказам, созданным до подключения оплаты, ссылка выдаётся здесь же.
+  if (canMail && CFG.remindHours > 0) for (const o of q.unpaidToRemind.all(iso(now - CFG.remindHours * HOUR))) {
+    const url = o.pay_url || payUrl(o.pay_method, o); if (!url) continue;
+    if (!o.pay_url) q.setPayUrl.run(url, o.number);
+    q.setReminded.run(now, o.number);
+    const tail = CFG.cancelDays > 0 ? `Если оплата не поступит в течение ${graceHours} ч, заказ отменится автоматически.` : '';
+    send(o.email, `заказ ${o.number} ждёт оплаты`, `Заказ ${o.number} ждёт оплаты: ${money(o.total_uzs)}.\nОплатить: ${url}\n${tail}`, `<p>Заказ ${o.number} ждёт оплаты: <b>${esc(money(o.total_uzs))}</b>.</p>${button(url, `Оплатить ${money(o.total_uzs)}`)}<p style="color:#5A6862;font-size:15px">${tail}</p>`, o.number);
+    done.reminded++;
+  }
+  // 3. Контрольный анализ: письмо через 90 дней после доставки.
+  if (canMail && CFG.controlDays > 0) for (const o of q.controlDue.all(now - CFG.controlDays * DAY)) {
+    q.setControl.run(now, o.number);
+    const metrics = [...new Set(JSON.parse(o.items).map(l => CATALOG.products.find(p => p.sku === l.sku)?.metric).filter(Boolean))].join('; ');
+    send(o.email, 'пора сдать контрольный анализ', `Заказ ${o.number} доставлен ${plural(CFG.controlDays, 'день', 'дня', 'дней')} назад. Самое время сдать контрольный анализ и сравнить цифры с исходными.${metrics ? ` Показатели по вашему заказу: ${metrics}.` : ''} По результату решите с врачом, продолжать ли курс. Каталог: ${ORIGIN}/catalog.html`, null, o.number);
+    done.control++;
+  }
+  // 4. Подписки: письмо с кнопками «Подтвердить» и «Остановить». Два письма без ответа — подписка засыпает.
+  if (canMail) for (const sub of q.subsDue.all(now)) {
+    if (sub.nudges >= 2) { q.subStatus.run('lapsed', now, sub.id); audit('auto', 'sub.lapse', String(sub.id), null); continue; }
+    q.subNudged.run(now + 7 * DAY, sub.id);
+    const off = Math.round(CATALOG.subscriptionDiscount * 100), title = subTitle(sub);
+    send(sub.email, 'пора продлить подписку', `Курс по подписке подходит к концу: ${title}.\nПодтвердить следующую отправку со скидкой ${off}%: ${subLink(sub, 'renew')}\nОстановить подписку: ${subLink(sub, 'stop')}`,
+      `<p>Курс по подписке подходит к концу: <b>${esc(title)}</b>.</p>${button(subLink(sub, 'renew'), `Подтвердить отправку со скидкой ${off}%`)}<p style="color:#5A6862;font-size:15px">Без подтверждения ничего не отправим и не спишем. <a href="${esc(subLink(sub, 'stop'))}" style="color:#0E6E5A">Остановить подписку</a></p>`, 'sub:' + sub.id);
+    done.subs++;
+  }
+  // 5. Утренняя сводка в Telegram: раз в день после 09:00 по Ташкенту и только если есть что делать.
+  const local = new Date(now + 5 * HOUR), day = local.toISOString().slice(0, 10);
+  if (TG.chat && local.getUTCHours() >= CFG.digestHour && q.metaGet.get('digest')?.value !== day) {
+    q.metaPut.run('digest', day);
+    const n = Object.fromEntries(q.countByStatus.all().map(r => [r.status, r.n]));
+    if (n.new || n.paid || n.packed) { tg(`☀️ <b>Заказы на сегодня</b>\nПодтвердить (оплата при получении): ${n.new || 0}\nСобрать (оплачены): ${n.paid || 0}\nОтправить (собраны): ${n.packed || 0}\nЖдут оплаты: ${n.awaiting_payment || 0}${TG.ops ? '\nСписок с кнопками: /orders' : ''}`); done.digest = 1; }
+  }
+  return done;
+}
+
 // ── HTTP ─────────────────────────────────────────────────────────
+// Страница без зависимостей от статики: ошибки оплаты, подтверждение и остановка подписки.
+function page(res, code, title, bodyHtml){
+  res.writeHead(code, { 'content-type':'text/html; charset=utf-8', 'cache-control':'no-store' });
+  res.end(`<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)} — ${BRAND}</title>
+<body style="margin:0;background:#FAF8F3;font:17px/1.6 Arial,sans-serif;color:#14201C"><div style="max-width:560px;margin:10vh auto;padding:0 20px">
+<div style="font:700 20px/1 Arial,sans-serif;letter-spacing:.18em;margin-bottom:24px">${BRAND}</div>
+<div style="background:#fff;border:1px solid #E4E0D6;border-radius:14px;padding:28px"><h1 style="font:700 24px/1.2 Arial,sans-serif;margin:0 0 16px">${esc(title)}</h1>${bodyHtml}</div>
+<p style="font-size:14px;color:#5A6862;margin-top:20px"><a href="${ORIGIN}/account.html" style="color:#0E6E5A">Кабинет и заказы</a> · <a href="mailto:${SUPPORT}" style="color:#0E6E5A">${SUPPORT}</a></p></div></body></html>`);
+}
 const json = (res, code, obj) => { res.writeHead(code, { 'content-type':'application/json; charset=utf-8', 'cache-control':'no-store' }); res.end(JSON.stringify(obj)); };
 class HttpError extends Error { constructor(code, msg){ super(msg); this.code = code; } }
 const raw = req => new Promise((res, rej) => { const parts = []; let n = 0; req.on('data', c => { n += c.length; if (n > 64e3) { rej(new HttpError(413, 'Слишком большой запрос.')); req.destroy(); } else parts.push(c); }); req.on('end', () => res(Buffer.concat(parts))); req.on('error', rej); });
@@ -376,41 +551,45 @@ function orderNumber(){
   throw new Error('нет свободных номеров заказа на сегодня');
 }
 
+// Создаёт заказ: проверка полей, серверный пересчёт цен, письмо покупателю и уведомление в Telegram.
+// Общая точка для сайта и продления подписки. Ошибка в данных — HttpError 400 с текстом для покупателя.
+function placeOrder(b, ip, source = 'site'){
+  const bad = msg => { throw new HttpError(400, msg); };
+  const email = String(b.email || '').trim().toLowerCase(), str = (k, max = 200) => String(b[k] || '').trim().slice(0, max);
+  if (!isEmail(email)) bad('Укажите почту.');
+  for (const k of ['name', 'country', 'city', 'address']) if (!str(k)) bad('Заполните имя, страну, город и адрес.');
+  if (!Array.isArray(b.items) || !b.items.length) bad('Корзина пуста.');
+  const method = ['payme', 'click', 'card', 'cod'].includes(b.pay_method) ? b.pay_method : 'card';
+  if (!CATALOG.zones.some(z => z.countries.includes(str('country')))) bad('Выберите страну из списка.');
+  const zone = zoneFor(str('country'));
+  if (method !== 'card' && zone.id !== 'uz') bad('Для доставки за пределы Узбекистана доступна только оплата картой.');
+  let items; try { items = priceLines(b.items); } catch (e) { bad(e.message); }
+  const subtotal_uzs = items.reduce((a, l) => a + l.price_uzs * l.qty, 0), subtotal_usd = items.reduce((a, l) => a + l.price_usd * l.qty, 0);
+  const free = zone.freeFrom && subtotal_uzs >= zone.freeFrom, shipping_uzs = free ? 0 : zone.uzs, shipping_usd = free ? 0 : zone.usd;
+  const order = { number: orderNumber(), email, name: str('name', 120), phone: str('phone', 40) || null, country: str('country', 80), city: str('city', 120), address: str('address', 400), postcode: str('postcode', 20) || null,
+    items, subtotal_uzs, shipping_uzs, total_uzs: subtotal_uzs + shipping_uzs, total_usd: subtotal_usd + shipping_usd, currency: b.currency === 'USD' ? 'USD' : 'UZS',
+    pay_method: method, status: method === 'cod' ? 'new' : 'awaiting_payment', note: str('note', 1000) || null };
+  order.pay_url = payUrl(method, order);
+  q.insertOrder.run(order.number, order.email, order.name, order.phone, order.country, order.city, order.address, order.postcode, JSON.stringify(items), order.subtotal_uzs, order.shipping_uzs, order.total_uzs, order.total_usd, order.currency, order.pay_method, order.status, order.note, order.pay_url, ip);
+  audit(email, 'order.create', order.number, { total: order.total_uzs, method, zone: zone.id, source });
+  const lines = items.map(l => `${l.name}${l.subscription ? ' (подписка)' : ''} × ${l.qty} — ${money(l.price_uzs * l.qty)}`);
+  const how = order.pay_url ? `Оплатить: ${order.pay_url}` : ({ payme:'Ссылка на оплату Payme придёт отдельным письмом в течение рабочего дня.', click:'Ссылка на оплату Click придёт отдельным письмом в течение рабочего дня.', card:'Защищённая ссылка на оплату картой придёт отдельным письмом в течение рабочего дня. Сумма в долларах по курсу на день заказа.', cod:'Курьер свяжется для согласования времени. Оплата при получении.' }[method]);
+  const text = `Заказ ${order.number} принят.\n\n${lines.join('\n')}\nДоставка: ${free ? 'бесплатно' : money(shipping_uzs)} (${zone.name}, ${zone.days})\nИтого: ${money(order.total_uzs)}\n\n${how}\n\nСтатус заказа: ${ORIGIN}/account.html (вход по этой почте, без пароля).`;
+  send(email, `заказ ${order.number} принят`, text, `<p>${lines.map(esc).join('<br>')}</p><p>Доставка: ${free ? 'бесплатно' : esc(money(shipping_uzs))} · ${esc(zone.name)}, ${esc(zone.days)}<br><b>Итого: ${esc(money(order.total_uzs))}</b></p>` +
+    (order.pay_url ? button(order.pay_url, `Оплатить ${money(order.total_uzs)}`) : `<p>${esc(how)}</p>`) +
+    `<p style="color:#5A6862;font-size:15px">Статус заказа в кабинете: <a href="${ORIGIN}/account.html" style="color:#0E6E5A">${ORIGIN}/account.html</a>, вход по этой почте без пароля.</p>`, order.number);
+  tg((source === 'subscription' ? '🔁 Продление подписки\n' : '') + orderCard(order), orderButtons(order.number, order.status));
+  return order;
+}
+
 const routes = {
   'GET /api/health': async (req, res) => json(res, 200, { ok:true, products: CATALOG.products.length,
     pay: { payme: !!(ENV.PAYME_MERCHANT && ENV.PAYME_KEY), click: !!(ENV.CLICK_SERVICE_ID && ENV.CLICK_SECRET_KEY), card: !!(ENV.STRIPE_SECRET_KEY && ENV.STRIPE_WEBHOOK_SECRET) } }),
 
   'POST /api/orders': async (req, res) => {
     const ip = ipOf(req); if (limited('order:' + ip, 10, 3600e3)) return json(res, 429, { error:'Слишком много заказов с этого адреса. Попробуйте позже.' });
-    const b = await body(req);
-    const email = String(b.email || '').trim().toLowerCase();
-    const str = (k, max = 200) => String(b[k] || '').trim().slice(0, max);
-    if (!isEmail(email)) return json(res, 400, { error:'Укажите почту.' });
-    for (const k of ['name','country','city','address']) if (!str(k)) return json(res, 400, { error:'Заполните имя, страну, город и адрес.' });
-    if (!Array.isArray(b.items) || !b.items.length) return json(res, 400, { error:'Корзина пуста.' });
-    const method = ['payme','click','card','cod'].includes(b.pay_method) ? b.pay_method : 'card';
-    if (!CATALOG.zones.some(z => z.countries.includes(str('country')))) return json(res, 400, { error:'Выберите страну из списка.' });
-    const zone = zoneFor(str('country'));
-    if (method !== 'card' && zone.id !== 'uz') return json(res, 400, { error:'Для доставки за пределы Узбекистана доступна только оплата картой.' });
-    let items; try { items = priceLines(b.items); } catch (e) { return json(res, 400, { error: e.message }); }
-    const subtotal_uzs = items.reduce((a, l) => a + l.price_uzs * l.qty, 0), subtotal_usd = items.reduce((a, l) => a + l.price_usd * l.qty, 0);
-    const free = zone.freeFrom && subtotal_uzs >= zone.freeFrom;
-    const shipping_uzs = free ? 0 : zone.uzs, shipping_usd = free ? 0 : zone.usd;
-    const order = { number: orderNumber(), email, name: str('name', 120), phone: str('phone', 40) || null, country: str('country', 80), city: str('city', 120), address: str('address', 400), postcode: str('postcode', 20) || null,
-      items, subtotal_uzs, shipping_uzs, total_uzs: subtotal_uzs + shipping_uzs, total_usd: subtotal_usd + shipping_usd, currency: b.currency === 'USD' ? 'USD' : 'UZS',
-      pay_method: method, status: method === 'cod' ? 'new' : 'awaiting_payment', note: str('note', 1000) || null };
-    order.pay_url = payUrl(method, order);
-    q.insertOrder.run(order.number, order.email, order.name, order.phone, order.country, order.city, order.address, order.postcode, JSON.stringify(items), order.subtotal_uzs, order.shipping_uzs, order.total_uzs, order.total_usd, order.currency, order.pay_method, order.status, order.note, order.pay_url, ip);
-    audit(email, 'order.create', order.number, { total: order.total_uzs, method, zone: zone.id });
-    const lines = items.map(l => `${l.name}${l.subscription ? ' (подписка)' : ''} × ${l.qty} — ${money(l.price_uzs * l.qty)}`);
-    const how = order.pay_url ? `Оплатить: ${order.pay_url}` : ({ payme:'Ссылка на оплату Payme придёт отдельным письмом в течение рабочего дня.', click:'Ссылка на оплату Click придёт отдельным письмом в течение рабочего дня.', card:'Защищённая ссылка на оплату картой придёт отдельным письмом в течение рабочего дня. Сумма в долларах по курсу на день заказа.', cod:'Курьер свяжется для согласования времени. Оплата при получении.' }[method]);
-    const text = `Заказ ${order.number} принят.\n\n${lines.join('\n')}\nДоставка: ${free ? 'бесплатно' : money(shipping_uzs)} (${zone.name}, ${zone.days})\nИтого: ${money(order.total_uzs)}\n\n${how}\n\nСтатус заказа: ${ORIGIN}/account.html (вход по этой почте, без пароля).`;
-    const html = mailHtml(`Заказ ${order.number} принят`, `<p>${lines.map(esc).join('<br>')}</p><p>Доставка: ${free ? 'бесплатно' : esc(money(shipping_uzs))} · ${esc(zone.name)}, ${esc(zone.days)}<br><b>Итого: ${esc(money(order.total_uzs))}</b></p>` +
-      (order.pay_url ? `<p><a href="${order.pay_url}" style="display:inline-block;background:#0E6E5A;color:#fff;text-decoration:none;padding:14px 24px;border-radius:999px;font-weight:600">Оплатить ${esc(money(order.total_uzs))}</a></p>` : `<p>${esc(how)}</p>`) +
-      `<p style="color:#5A6862;font-size:15px">Статус заказа в кабинете: <a href="${ORIGIN}/account.html" style="color:#0E6E5A">${ORIGIN}/account.html</a>, вход по этой почте без пароля.</p>`);
-    sendMail({ to: email, subject: `${BRAND}: заказ ${order.number} принят`, text, html }).catch(e => audit('system', 'mail.fail', order.number, { error: e.message }));
-    tg(`🧾 <b>Заказ ${order.number}</b> · ${esc(money(order.total_uzs))} · ${PAY_RU[method]}\n${esc(order.name)} · ${esc(email)}${order.phone ? ' · ' + esc(order.phone) : ''}\n${esc(order.country)}, ${esc(order.city)}\n${lines.map(esc).join('\n')}${order.note ? '\n💬 ' + esc(order.note) : ''}`);
-    json(res, 201, { number: order.number, email, total_uzs: order.total_uzs, total_usd: order.total_usd, status: order.status, pay_url: order.pay_url });
+    const order = placeOrder(await body(req), ip);
+    json(res, 201, { number: order.number, email: order.email, total_uzs: order.total_uzs, total_usd: order.total_usd, status: order.status, pay_url: order.pay_url });
   },
 
   'POST /api/auth/code': async (req, res) => {
@@ -456,7 +635,33 @@ const routes = {
   'GET /api/me/orders': async (req, res) => {
     const s = sessionEmail(req); if (!s) return json(res, 401, { error:'Нужно войти.' });
     audit(s.email, 'orders.read', null, null);
-    json(res, 200, { email: s.email, orders: q.ordersByEmail.all(s.email).map(o => ({ ...o, items: JSON.parse(o.items) })) });
+    json(res, 200, { email: s.email,
+      orders: q.ordersByEmail.all(s.email).map(o => ({ ...o, items: JSON.parse(o.items), pay_url: o.status !== 'awaiting_payment' ? null : o.pay_url || payUrl(o.pay_method, { ...o, email: s.email }) })),
+      subs: q.subsByEmail.all(s.email).map(sub => ({ id: sub.id, title: subTitle(sub), next_at: sub.next_at })) });
+  },
+  'POST /api/me/subs/stop': async (req, res) => {
+    const s = sessionEmail(req); if (!s) return json(res, 401, { error:'Нужно войти.' });
+    const sub = q.subGet.get(+(await body(req)).id || 0); if (!sub || sub.email !== s.email) return json(res, 404, { error:'Подписка не найдена.' });
+    subStop(sub, s.email); json(res, 200, { ok:true });
+  },
+
+  // Ссылки из письма о подписке. GET только показывает кнопку: почтовые сканеры открывают ссылки сами, действие — по POST.
+  'GET /api/sub': async (req, res, url) => {
+    const sub = subFromLink(url.searchParams.get('s'), url.searchParams.get('k')), stop = url.searchParams.get('a') === 'stop';
+    if (!sub) return page(res, 404, 'Ссылка не подошла', '<p>Ссылка устарела или скопирована не полностью. Подпиской можно управлять в кабинете.</p>');
+    if (sub.status === 'stopped') return page(res, 200, 'Подписка остановлена', '<p>Напоминаний и отправок по ней больше не будет. Возобновить можно новым заказом с подпиской.</p>');
+    const form = (a, label, primary) => `<form method="post" action="/api/sub" style="margin:0 0 12px"><input type="hidden" name="s" value="${sub.id}"><input type="hidden" name="k" value="${subKey(sub.id)}"><input type="hidden" name="a" value="${a}"><button style="font:600 17px Arial,sans-serif;cursor:pointer;padding:14px 24px;border-radius:999px;border:1px solid #0E6E5A;background:${primary ? '#0E6E5A' : '#fff'};color:${primary ? '#fff' : '#0E6E5A'}">${label}</button></form>`;
+    if (stop) return page(res, 200, 'Остановить подписку?', `<p>${esc(subTitle(sub))}</p>${form('stop', 'Остановить подписку', true)}<p style="font-size:15px;color:#5A6862">Напоминаний и отправок больше не будет. Уже оплаченные заказы приедут как обычно.</p>`);
+    page(res, 200, 'Следующая отправка по подписке', `<p>${esc(subTitle(sub))}</p><p style="font-size:15px;color:#5A6862">Адрес и способ оплаты — как в прошлом заказе, цена со скидкой ${Math.round(CATALOG.subscriptionDiscount * 100)}%.</p>${form('renew', 'Подтвердить отправку', true)}${form('stop', 'Остановить подписку', false)}`);
+  },
+  'POST /api/sub': async (req, res) => {
+    const ip = ipOf(req), b = await formBody(req), sub = subFromLink(b.s, b.k);
+    if (!sub) return page(res, 404, 'Ссылка не подошла', '<p>Ссылка устарела или скопирована не полностью. Подпиской можно управлять в кабинете.</p>');
+    if (limited('sub:' + ip, 20, HOUR)) return page(res, 429, 'Слишком много попыток', '<p>Подождите час и попробуйте ещё раз.</p>');
+    if (b.a === 'stop') { subStop(sub, sub.email); return page(res, 200, 'Подписка остановлена', '<p>Напоминаний и отправок по ней больше не будет. Возобновить можно новым заказом с подпиской.</p>'); }
+    let o; try { o = subRenew(sub, ip); } catch (e) { if (!(e instanceof HttpError)) throw e; return page(res, 400, 'Не получилось оформить', `<p>${esc(e.message)} Напишите на <a href="mailto:${SUPPORT}">${SUPPORT}</a>, оформим вручную.</p>`); }
+    if (o.status === 'awaiting_payment' && o.pay_url) { res.writeHead(303, { location: o.pay_url, 'cache-control':'no-store' }); return res.end(); }
+    page(res, 200, `Заказ ${o.number} оформлен`, `<p>${o.pay_method === 'cod' ? 'Курьер свяжется для согласования времени. Оплата при получении.' : 'Ссылка на оплату придёт на почту в течение рабочего дня.'}</p><p>Подтверждение отправлено на ${esc(o.email)}.</p>`);
   },
 
   // Payme → кабинет Payme Business, «Endpoint URL»: https://erkak.com/api/pay/payme
@@ -487,8 +692,7 @@ const routes = {
     try { const s = await stripe('checkout/sessions', stripeSessionParams(o)); audit(o.email, 'pay.session', number, { session: s.id }); go(s.url); }
     catch (e) {
       audit('system', 'pay.fail', number, { error: e.message });
-      res.writeHead(502, { 'content-type':'text/html; charset=utf-8', 'cache-control':'no-store' });
-      res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${BRAND}</title><body style="font:17px/1.6 Arial,sans-serif;max-width:560px;margin:15vh auto;padding:0 20px;color:#14201C"><p>Не удалось открыть страницу оплаты. Обновите страницу через минуту. Если не помогает, напишите на <a href="mailto:${SUPPORT}">${SUPPORT}</a> и укажите номер заказа ${esc(number)}.</p>`);
+      page(res, 502, 'Не удалось открыть оплату', `<p>Обновите страницу через минуту. Если не помогает, напишите на <a href="mailto:${SUPPORT}">${SUPPORT}</a> и укажите номер заказа ${esc(number)}.</p>`);
     }
   },
 
@@ -507,7 +711,6 @@ const routes = {
 };
 
 // ── Запуск: сервер или команда CLI ───────────────────────────────
-const CLI = ['status', 'orders', 'payments'].includes(process.argv[2]);
 if (!CLI) {
   for (const [name, link, key] of [['Payme', 'PAYME_MERCHANT', 'PAYME_KEY'], ['Click', 'CLICK_SERVICE_ID', 'CLICK_SECRET_KEY'], ['Stripe', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']])
     if (ENV[link] && !ENV[key]) console.warn(`${name}: задан ${link}, но нет ${key} — ссылки на оплату выдаются, а подтверждения оплаты приниматься не будут`);
@@ -521,17 +724,33 @@ if (!CLI) {
       audit('system', 'error', key, { error: e.message }); json(res, 500, { error:'Внутренняя ошибка. Попробуйте ещё раз.' });
     }
   }).listen(PORT, '127.0.0.1', () => console.log(`erkak-api on 127.0.0.1:${PORT}`));
+  const tick = () => { try { runJobs(); } catch (e) { audit('system', 'error', 'jobs', { error: e.message }); } };
+  setTimeout(tick, 30_000).unref(); setInterval(tick, 600_000).unref();
+  if (TG.ops) tgPoll();
 }
 
 // ── CLI ──────────────────────────────────────────────────────────
-if (process.argv[2] === 'status') {
+const finish = async code => { await Promise.allSettled(pending); process.exit(code); };
+if (CLI === 'status') {
   const [, , , number, status, tracking] = process.argv;
   if (!STATUS_RU[status]) { console.error('Статусы: ' + Object.keys(STATUS_RU).join(', ')); process.exit(1); }
   const r = setOrderStatus(number, status, { tracking, actor: 'cli' }); if (!r) { console.error('Нет заказа ' + number); process.exit(1); }
-  r.mail.then(e => { if (e) console.error('mail:', e.message); console.log(`${number} → ${STATUS_RU[status]}${tracking ? ' · ' + tracking : ''}`); process.exit(0); });
-} else if (process.argv[2] === 'orders') {
+  r.mail.then(e => { if (e) console.error('mail:', e.message); console.log(`${number} → ${STATUS_RU[status]}${tracking ? ' · ' + tracking : ''}`); finish(0); });
+} else if (CLI === 'orders') {
   console.table(q.lastOrders.all(+(process.argv[3] || 20))); process.exit(0);
-} else if (process.argv[2] === 'payments') {
+} else if (CLI === 'payments') {
   const at = ms => ms ? new Date(ms).toISOString().slice(0, 16).replace('T', ' ') : '';
   console.table(q.lastPayments.all(+(process.argv[3] || 20)).map(p => ({ ...p, create_time: at(p.create_time), perform_time: at(p.perform_time), cancel_time: at(p.cancel_time) }))); process.exit(0);
+} else if (CLI === 'backup') {
+  // Целостная копия работающей базы; хранится BACKUP_KEEP последних (0 — хранить все).
+  const dir = path.join(DATA_DIR, 'backups'); fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const file = path.join(dir, `erkak-${new Date().toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-')}.db`);
+  fs.rmSync(file, { force: true }); db.exec(`vacuum into '${file.replaceAll("'", "''")}'`); fs.chmodSync(file, 0o600);
+  const copy = new DatabaseSync(file), check = copy.prepare('pragma integrity_check').get().integrity_check, n = copy.prepare('select count(*) n from orders').get().n; copy.close();
+  if (check !== 'ok') { console.error(`Копия повреждена: ${check}`); process.exit(1); }
+  const old = CFG.backupKeep > 0 ? fs.readdirSync(dir).filter(f => /^erkak-\d{8}-\d{4}\.db$/.test(f)).sort().slice(0, -CFG.backupKeep) : [];
+  for (const f of old) fs.rmSync(path.join(dir, f));
+  console.log(`Копия: ${file} · заказов: ${n} · удалено старых копий: ${old.length}`); process.exit(0);
+} else if (CLI === 'jobs') {
+  console.log(runJobs()); finish(0);
 }

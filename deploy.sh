@@ -1,17 +1,35 @@
 #!/bin/bash
-# ERKAK shop — деплой на прод. Два пути, любой из них достаточен.
+# ERKAK shop — деплой на прод.
 #   ./deploy.sh pages   → GitHub Pages: репозиторий xiplo/erkak-site + домен erkak.com
-#   ./deploy.sh vps     → VPS 62.238.59.42: статика в /var/www/erkak.com, API в /opt/erkak (systemd), nginx + certbot
+#   ./deploy.sh vps     → VPS: сайт магазина в /var/www/erkak.com, API в /opt/erkak, nginx + certbot
+#   ./deploy.sh api     → VPS: только API и его сервисы. Сайт и заглушка не меняются
 #   ./deploy.sh teaser  → заглушка apps/teaser вместо магазина (магазин сохраняется в /var/www/erkak.com-shop)
+# Переменные: VPS_HOST, VPS_USER, DOMAIN. ENV_FILE=путь — заменить /opt/erkak/.env этим файлом (ключи оплаты, бот).
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 DOMAIN="${DOMAIN:-erkak.com}"
 MODE="${1:-pages}"
+VPS="${VPS_USER:-root}@${VPS_HOST:-62.238.59.42}"
+# accept-new: незнакомый сервер запоминается, а сменившийся ключ известного сервера останавливает деплой.
+RSH="ssh -o StrictHostKeyChecking=accept-new"
 cd "$DIR"
-ASSET_VERSION="$(date +%Y%m%d%H%M)"
-sed -i "" -E "s#(assets/(site\.css|catalog\.js|site\.js))(\?v=[0-9]+)?#\1?v=${ASSET_VERSION}#g" *.html 2>/dev/null || sed -i -E "s#(assets/(site\.css|catalog\.js|site\.js))(\?v=[0-9]+)?#\1?v=${ASSET_VERSION}#g" *.html
+
+# Новая метка версии у стилей и скриптов, чтобы браузеры не держали старые.
+bump_assets(){
+  local v; v="$(date +%Y%m%d%H%M)"
+  sed -i "" -E "s#(assets/(site\.css|catalog\.js|site\.js))(\?v=[0-9]+)?#\1?v=${v}#g" *.html 2>/dev/null || sed -i -E "s#(assets/(site\.css|catalog\.js|site\.js))(\?v=[0-9]+)?#\1?v=${v}#g" *.html
+}
+# API: прежняя версия сохраняется в .prev, install.sh вернёт её, если новая не поднимется.
+deploy_api(){
+  echo "[api] → $VPS:/opt/erkak"
+  $RSH "$VPS" "mkdir -p /opt/erkak/data /opt/erkak/.prev && cd /opt/erkak && { [ ! -f server.mjs ] || cp -p server.mjs .prev/; } && { [ ! -f /etc/systemd/system/erkak-api.service ] || cp -p /etc/systemd/system/erkak-api.service .prev/; }"
+  rsync -az --exclude 'test.mjs' -e "$RSH" "$DIR/server/" "$VPS:/opt/erkak/"
+  if [ -n "${ENV_FILE:-}" ]; then rsync -az --chmod=F600 -e "$RSH" "$ENV_FILE" "$VPS:/opt/erkak/.env"; echo "[api] /opt/erkak/.env заменён"; fi
+  $RSH "$VPS" "bash /opt/erkak/install.sh"
+}
 
 if [ "$MODE" = "pages" ]; then
+  bump_assets
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || git init -q -b main
   git add -A && git -c user.name=xiplo -c user.email=unlimpint@gmail.com commit -q -m "deploy $(date +%F)" || true
   if ! git remote get-url origin >/dev/null 2>&1; then
@@ -28,35 +46,30 @@ if [ "$MODE" = "pages" ]; then
   echo "DNS для ${DOMAIN}:  A 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153"
   echo "DNS для www:        CNAME xiplo.github.io"
 elif [ "$MODE" = "vps" ]; then
-  VPS="${VPS_USER:-root}@${VPS_HOST:-62.238.59.42}"
-  SSH="ssh -o StrictHostKeyChecking=no $VPS"
-  echo "[vps] статика → /var/www/${DOMAIN}, API → /opt/erkak, nginx, systemd, TLS"
-  $SSH "mkdir -p /var/www/${DOMAIN} /opt/erkak/data"
+  bump_assets
+  echo "[vps] сайт → /var/www/${DOMAIN}, API → /opt/erkak, nginx, TLS"
+  $RSH "$VPS" "mkdir -p /var/www/${DOMAIN}"
   # В веб-корень идёт только сайт: README с адресом сервера, служебные файлы и тесты туда не попадают, а уже лежащие там удаляются.
-  rsync -az --delete --delete-excluded --exclude 'img/*.png' --exclude '.git' --exclude '.github' --exclude '.gitignore' --exclude 'README.md' --exclude 'CNAME' --exclude 'server' --exclude 'deploy.sh' -e "ssh -o StrictHostKeyChecking=no" "$DIR/" "$VPS:/var/www/${DOMAIN}/"
-  rsync -az --exclude 'test.mjs' -e "ssh -o StrictHostKeyChecking=no" "$DIR/server/" "$VPS:/opt/erkak/"
-  $SSH "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
+  rsync -az --delete --delete-excluded --exclude 'img/*.png' --exclude '.git' --exclude '.github' --exclude '.gitignore' --exclude 'README.md' --exclude 'CNAME' --exclude 'server' --exclude 'deploy.sh' -e "$RSH" "$DIR/" "$VPS:/var/www/${DOMAIN}/"
+  deploy_api
+  $RSH "$VPS" "DOMAIN='${DOMAIN}' bash -s" <<'REMOTE'
 set -e
-[ -f /opt/erkak/.env ] || { printf 'SUPPORT_EMAIL=care@erkak.com\n# ERKAK_TG_CHAT=\n# PAYME_MERCHANT=\n# PAYME_KEY=\n# CLICK_SERVICE_ID=\n# CLICK_MERCHANT_ID=\n# CLICK_SECRET_KEY=\n# STRIPE_SECRET_KEY=\n# STRIPE_WEBHOOK_SECRET=\n' > /opt/erkak/.env; chmod 600 /opt/erkak/.env; }
-cp /opt/erkak/erkak-api.service /etc/systemd/system/erkak-api.service
-systemctl daemon-reload; systemctl enable erkak-api >/dev/null 2>&1 || true; systemctl restart erkak-api
-sleep 1; curl -sf http://127.0.0.1:8795/api/health >/dev/null || { journalctl -u erkak-api -n 20 --no-pager; exit 1; }
 [ -f /etc/nginx/sites-available/${DOMAIN}.conf ] || cp /opt/erkak/nginx.erkak.conf /etc/nginx/sites-available/${DOMAIN}.conf
 ln -sf /etc/nginx/sites-available/${DOMAIN}.conf /etc/nginx/sites-enabled/${DOMAIN}.conf
 nginx -t && systemctl reload nginx
 if [ ! -d /etc/letsencrypt/live/${DOMAIN} ]; then
   certbot --nginx -n --agree-tos --register-unsafely-without-email -d ${DOMAIN} -d www.${DOMAIN} --redirect && echo "TLS выпущен" || echo "TLS не выпущен: DNS ещё не указывает на этот сервер. Повторить позже: certbot --nginx -d ${DOMAIN} -d www.${DOMAIN} --redirect"
 fi
-echo "API: $(curl -s http://127.0.0.1:8795/api/health)"
-journalctl -u erkak-api -n 20 --no-pager | grep -F 'подтверждения оплаты приниматься не будут' || true
 REMOTE
   echo "Готово: http(s)://${DOMAIN}   DNS: A ${DOMAIN} → ${VPS_HOST:-62.238.59.42}, CNAME www → ${DOMAIN}"
+elif [ "$MODE" = "api" ]; then
+  deploy_api
+  echo "Готово: API обновлён, сайт не менялся."
 elif [ "$MODE" = "teaser" ]; then
   # Заглушка вместо магазина: магазин уезжает в /var/www/${DOMAIN}-shop, API и nginx не трогаем.
-  VPS="${VPS_USER:-root}@${VPS_HOST:-62.238.59.42}"
-  ssh -o StrictHostKeyChecking=no "$VPS" "set -e; [ -f /var/www/${DOMAIN}/catalog.html ] && { rm -rf /var/www/${DOMAIN}-shop; mv /var/www/${DOMAIN} /var/www/${DOMAIN}-shop; }; mkdir -p /var/www/${DOMAIN}"
-  rsync -az --delete -e "ssh -o StrictHostKeyChecking=no" "$DIR/../teaser/" "$VPS:/var/www/${DOMAIN}/"
+  $RSH "$VPS" "set -e; [ -f /var/www/${DOMAIN}/catalog.html ] && { rm -rf /var/www/${DOMAIN}-shop; mv /var/www/${DOMAIN} /var/www/${DOMAIN}-shop; }; mkdir -p /var/www/${DOMAIN}"
+  rsync -az --delete -e "$RSH" "$DIR/../teaser/" "$VPS:/var/www/${DOMAIN}/"
   echo "Заглушка на https://${DOMAIN}. Вернуть магазин: ./deploy.sh vps"
 else
-  echo "Использование: ./deploy.sh pages | vps | teaser"; exit 1
+  echo "Использование: ./deploy.sh pages | vps | api | teaser"; exit 1
 fi

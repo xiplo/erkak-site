@@ -1,0 +1,45 @@
+name: Deploy
+# Ручной запуск: Actions → Deploy → Run workflow.
+# Секреты репозитория: VPS_SSH_KEY (обязателен), VPS_KNOWN_HOSTS и ERKAK_ENV (по желанию). Подробности в README, раздел «Деплой кнопкой».
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "api — только API, сайт и заглушка не меняются. vps — сайт магазина заменит то, что сейчас на домене, плюс API"
+        type: choice
+        options: [api, vps]
+        default: api
+permissions:
+  contents: read
+concurrency: deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Тесты перед выкладкой
+        run: node --test server/test.mjs
+      - name: Ключ сервера
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          if [ -z "$VPS_SSH_KEY" ]; then echo "::error::Нет секрета VPS_SSH_KEY: Settings → Secrets and variables → Actions"; exit 1; fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          if [ -n "$VPS_KNOWN_HOSTS" ]; then printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts; fi
+      - name: Выкладка
+        env:
+          ERKAK_ENV: ${{ secrets.ERKAK_ENV }}
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          if [ -n "$ERKAK_ENV" ]; then (umask 077; printf '%s\n' "$ERKAK_ENV" > "$RUNNER_TEMP/erkak.env"); export ENV_FILE="$RUNNER_TEMP/erkak.env"; fi
+          ./deploy.sh "$MODE"
+      - name: Убрать ключ
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519 "$RUNNER_TEMP/erkak.env"

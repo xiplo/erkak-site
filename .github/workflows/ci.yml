@@ -13,6 +13,6 @@ jobs:
         with:
           node-version: 22
       - name: Синтаксис
-        run: node --check server/server.mjs && node --check assets/catalog.js && node --check assets/site.js && bash -n deploy.sh
+        run: node --check server/server.mjs && node --check assets/catalog.js && node --check assets/site.js && bash -n deploy.sh && bash -n server/install.sh
       - name: Тесты API
         run: node --test server/test.mjs

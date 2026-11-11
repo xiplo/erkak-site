@@ -1,0 +1,17 @@
+name: Monitor
+# Проверка сайта каждые 30 минут. Включается переменной репозитория MONITOR_URL, например https://erkak.com/api/health.
+# Если API не отвечает, запуск падает и GitHub присылает письмо владельцу репозитория.
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+permissions: {}
+jobs:
+  health:
+    if: vars.MONITOR_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: API отвечает
+        env:
+          MONITOR_URL: ${{ vars.MONITOR_URL }}
+        run: curl -fsS --retry 3 --retry-delay 20 --max-time 20 "$MONITOR_URL" | grep -q '"ok":true'

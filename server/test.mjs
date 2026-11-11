@@ -1,9 +1,11 @@
-// Тесты API: заказ, Payme, Click, Stripe, лимиты, CLI. Запуск: node --test server/test.mjs
-// Поднимает настоящий server.mjs на временной базе; Stripe API заменён локальной заглушкой.
+// Тесты API: заказ, Payme, Click, Stripe, лимиты, CLI, Telegram, автоматика, подписки, копии базы.
+// Запуск: node --test server/test.mjs
+// Поднимает настоящий server.mjs на временной базе; Stripe, Telegram и почтовый сервер заменены локальными заглушками.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import http from 'node:http';
+import net from 'node:net';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,14 +15,27 @@ import { DatabaseSync } from 'node:sqlite';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'erkak-test-'));
-const PORT = 20000 + (process.pid % 20000), STRIPE_PORT = PORT + 1;
+const PORT = 20000 + (process.pid % 20000), STRIPE_PORT = PORT + 1, SMTP_PORT = PORT + 2, TG_PORT = PORT + 3, TG_CHAT = '-100500';
 const BASE = `http://127.0.0.1:${PORT}`;
 const KEYS = { PAYME_MERCHANT: 'merchant123', PAYME_KEY: 'payme-test-key', CLICK_SERVICE_ID: '777', CLICK_MERCHANT_ID: '555', CLICK_SECRET_KEY: 'click-secret',
   STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_API: `http://127.0.0.1:${STRIPE_PORT}` };
-const ENV = { ...process.env, ...KEYS, PORT: String(PORT), DATA_DIR: TMP, STATIC_DIR: path.join(HERE, '..'), PUBLIC_ORIGIN: 'https://shop.test', NODE_NO_WARNINGS: '1', SMTP_HOST: '' };
+const MAIL = { SMTP_HOST: '127.0.0.1', SMTP_PORT: String(SMTP_PORT), SMTP_FROM: 'shop@shop.test' };
+const ENV = { ...process.env, ...KEYS, ...MAIL, PORT: String(PORT), DATA_DIR: TMP, STATIC_DIR: path.join(HERE, '..'), PUBLIC_ORIGIN: 'https://shop.test', NODE_NO_WARNINGS: '1',
+  ERKAK_TG_TOKEN: 'ops-token', ERKAK_TG_CHAT: TG_CHAT, TELEGRAM_API: `http://127.0.0.1:${TG_PORT}`, DIGEST_HOUR: '0' };
 
-let server, stripeMock, db;
-const stripeCalls = [];
+let server, stripeMock, smtpMock, tgMock, db;
+const stripeCalls = [], mails = [], tgCalls = [], tgUpdates = [];
+let updateId = 1;
+// Команды запускаются асинхронно: заглушки почты и Telegram живут в этом же процессе и должны успевать отвечать.
+const cli = (args, env = ENV, cwd = HERE) => new Promise(res => { const p = spawn(process.execPath, [path.join(HERE, 'server.mjs'), ...args], { env, cwd }); let stdout = '', stderr = '';
+  p.stdout.on('data', d => stdout += d); p.stderr.on('data', d => stderr += d); p.on('close', status => res({ status, stdout, stderr })); });
+const until = async (fn, what) => { for (let i = 0; i < 100; i++) { const v = await fn(); if (v) return v; await new Promise(r => setTimeout(r, 30)); } assert.fail('не дождались: ' + what); };
+const mailTo = (to, re) => until(() => mails.find(m => m.to === to && re.test(m.subject)), `письмо ${re} для ${to}`);
+const tgSend = update => tgUpdates.push({ update_id: updateId++, ...update });
+const tgPress = (data, message_id = 1, chat = TG_CHAT) => tgSend({ callback_query: { id: 'cb' + updateId, data, from: { id: 42, username: 'owner' }, message: { message_id, chat: { id: +chat } } } });
+const tgSaw = (method, test) => until(() => tgCalls.find(c => c.method === method && test(c.body)), `Telegram ${method}`);
+const shift = (number, sets) => db.prepare(`update orders set ${Object.keys(sets).map(k => k + ' = ?').join(', ')} where number = ?`).run(...Object.values(sets), number);
+const ago = ms => new Date(Date.now() - ms).toISOString();
 let ipSeq = 0;
 const freshIp = () => `10.0.${ipSeq >> 8}.${ipSeq++ & 255}`;
 
@@ -55,11 +70,27 @@ before(async () => {
     const params = Object.fromEntries(new URLSearchParams(d)); stripeCalls.push({ url: req.url, auth: req.headers.authorization, params });
     const id = 'cs_test_' + stripeCalls.length; res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ id, url: 'https://checkout.stripe.test/' + id }));
   }); }).listen(STRIPE_PORT, '127.0.0.1');
+  // Почтовая заглушка: принимает письмо и разбирает адресата, тему и текстовую часть.
+  smtpMock = net.createServer(sock => { let buf = '', data = null; sock.write('220 test\r\n'); sock.on('error', () => {});
+    sock.on('data', d => { buf += d; for (;;) {
+      if (data !== null) { const end = buf.indexOf('\r\n.\r\n'); if (end < 0) return; const raw = buf.slice(0, end); buf = buf.slice(end + 5); data = null;
+        const b64 = /Content-Type: text\/plain[^]*?\r\n\r\n([^]*?)\r\n\r\n--/.exec(raw)?.[1] || '';
+        mails.push({ to: /^To: <(.*)>$/m.exec(raw)?.[1], subject: Buffer.from(/^Subject: =\?UTF-8\?B\?(.*)\?=$/m.exec(raw)?.[1] || '', 'base64').toString(), text: Buffer.from(b64.replace(/\s/g, ''), 'base64').toString() });
+        sock.write('250 queued\r\n'); continue; }
+      const nl = buf.indexOf('\r\n'); if (nl < 0) return; const line = buf.slice(0, nl); buf = buf.slice(nl + 2);
+      if (/^DATA/i.test(line)) { data = ''; sock.write('354 go\r\n'); } else if (/^QUIT/i.test(line)) { sock.write('221 bye\r\n'); sock.end(); } else sock.write('250 ok\r\n');
+    } }); }).listen(SMTP_PORT, '127.0.0.1');
+  // Заглушка Telegram Bot API: копит вызовы, отдаёт очередь обновлений в getUpdates.
+  tgMock = http.createServer((req, res) => { let d = ''; req.on('data', c => d += c); req.on('end', async () => {
+    const method = req.url.split('/').pop(), body = JSON.parse(d || '{}'); let result = true;
+    if (method === 'getUpdates') { if (!tgUpdates.length) await new Promise(r => setTimeout(r, 40)); result = tgUpdates.splice(0); } else tgCalls.push({ method, body, token: req.url.split('/')[1] });
+    res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, result }));
+  }); }).listen(TG_PORT, '127.0.0.1');
   server = spawn(process.execPath, [path.join(HERE, 'server.mjs')], { env: ENV, stdio: ['ignore', 'pipe', 'inherit'] });
   await new Promise((res, rej) => { server.stdout.once('data', res); server.once('exit', c => rej(new Error('server exited ' + c))); });
   db = new DatabaseSync(path.join(TMP, 'erkak.db'));
 });
-after(() => { server?.kill(); stripeMock?.close(); db?.close(); fs.rmSync(TMP, { recursive: true, force: true }); });
+after(() => { server?.kill(); stripeMock?.close(); smtpMock?.close(); tgMock?.closeAllConnections?.(); tgMock?.close(); db?.close(); fs.rmSync(TMP, { recursive: true, force: true }); });
 
 test('health показывает подключённые способы оплаты', async () => {
   const r = await call('GET', '/api/health');
@@ -123,8 +154,9 @@ test('Payme: отмена до оплаты оставляет заказ отк
   assert.equal((await payme('CreateTransaction', { id: 'pm-b-' + o.number, time, amount, account })).result.state, 1);
   assert.equal((await payme('PerformTransaction', { id: 'pm-b-' + o.number })).result.state, 2);
   // CLI при работающем сервере: статус меняется, процесс завершается штатно
-  const cli = spawnSync(process.execPath, [path.join(HERE, 'server.mjs'), 'status', o.number, 'shipped', 'TRACK123'], { env: ENV, encoding: 'utf8' });
-  assert.equal(cli.status, 0, cli.stderr); assert.match(cli.stdout, /Отправлен · TRACK123/);
+  const run = (await cli(['status', o.number, 'shipped', 'TRACK123']));
+  assert.equal(run.status, 0, run.stderr); assert.match(run.stdout, /Отправлен · TRACK123/);
+  assert.match((await mailTo('buyer@example.com', new RegExp(`${o.number} — отправлен`))).text, /Трек-номер: TRACK123/, 'команда дождалась отправки письма');
   assert.equal(orderRow(o.number).tracking, 'TRACK123');
   assert.equal((await payme('CancelTransaction', { id: 'pm-b-' + o.number, reason: 5 })).error.code, -31007);
   assert.equal(orderRow(o.number).status, 'shipped');
@@ -211,4 +243,156 @@ test('вход по номеру заказа: лимит по почте и п�
   const spoofed = [];
   for (let i = 0; i < 21; i++) spoofed.push((await call('POST', '/api/auth/order', { ip: `1.2.3.${i}, 203.0.113.9`, json: { email: `u${i}@example.com`, number: 'EK-000000-0000' } })).status);
   assert.equal(spoofed.at(-1), 429, 'учитывается адрес, который дописал nginx, а не присланный клиентом');
+});
+
+test('команды читают настройки из .env рядом с собой', async () => {
+  const o = await newOrder('cod', { email: 'envfile@example.com' });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'erkak-cwd-'));
+  fs.writeFileSync(path.join(dir, '.env'), Object.entries(MAIL).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
+  const bare = Object.fromEntries(Object.entries(ENV).filter(([k]) => !(k in MAIL)));
+  const run = (await cli(['status', o.number, 'packed'], bare, dir));
+  assert.equal(run.status, 0, run.stderr); assert.doesNotMatch(run.stderr, /mail:/);
+  await mailTo('envfile@example.com', new RegExp(`${o.number} — собран`));
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('Telegram: кнопки статусов, трек-номер ответом, отмена с подтверждением, чужой чат', async () => {
+  const o = await newOrder('cod', { email: 'tg@example.com' });
+  const card = await tgSaw('sendMessage', b => b.text.includes(o.number) && b.reply_markup);
+  assert.equal(card.token, 'botops-token'); assert.equal(card.body.chat_id, TG_CHAT);
+  assert.deepEqual(card.body.reply_markup.inline_keyboard[0].map(b => b.callback_data), [`st:${o.number}:paid`, `st:${o.number}:packed`, `st:${o.number}:cancelled`]);
+  assert.match(card.body.text, /Улица 1/, 'в карточке есть адрес для сборки');
+
+  tgPress(`st:${o.number}:packed`, 7, '999');
+  await tgSaw('answerCallbackQuery', b => b.text === 'Нет доступа');
+  assert.equal(orderRow(o.number).status, 'new', 'кнопка из чужого чата не работает');
+
+  tgPress(`st:${o.number}:packed`, 7);
+  const edit = await tgSaw('editMessageText', b => b.message_id === 7 && b.text.includes('Собран'));
+  assert.deepEqual(edit.body.reply_markup.inline_keyboard[0].map(b => b.callback_data), [`st:${o.number}:shipped`, `st:${o.number}:cancelled`]);
+  assert.equal(orderRow(o.number).status, 'packed');
+  assert.equal(db.prepare(`select actor from audit where subject = ? and action = 'order.status' order by id desc`).get(o.number).actor, 'tg:owner');
+
+  tgPress(`st:${o.number}:shipped`, 7);
+  const ask = await tgSaw('sendMessage', b => b.text.startsWith(`Трек-номер для ${o.number}?`) && b.reply_markup?.force_reply);
+  assert.equal(orderRow(o.number).status, 'packed', 'до трек-номера статус не меняется');
+  tgSend({ message: { message_id: 8, chat: { id: +TG_CHAT }, from: { id: 42, username: 'owner' }, text: 'RR123456789UZ', reply_to_message: { text: ask.body.text } } });
+  await until(() => orderRow(o.number).status === 'shipped', 'статус «Отправлен»');
+  assert.equal(orderRow(o.number).tracking, 'RR123456789UZ');
+  assert.match((await mailTo('tg@example.com', /отправлен/)).text, /RR123456789UZ/);
+
+  const o2 = await newOrder('cod', { email: 'tg2@example.com' });
+  tgPress(`st:${o2.number}:cancelled`, 9);
+  const confirm = await tgSaw('editMessageText', b => b.message_id === 9 && b.reply_markup.inline_keyboard[0][0].callback_data === `ok:${o2.number}:cancelled`);
+  assert.ok(confirm); assert.equal(orderRow(o2.number).status, 'new', 'первое нажатие только спрашивает');
+  tgPress(`ok:${o2.number}:cancelled`, 9);
+  await until(() => orderRow(o2.number).status === 'cancelled', 'отмена после подтверждения');
+  tgPress(`st:${o2.number}:packed`, 9);
+  await tgSaw('answerCallbackQuery', b => b.text === 'Заказ уже «Отменён»');
+
+  tgSend({ message: { message_id: 10, chat: { id: +TG_CHAT }, from: { id: 42 }, text: '/orders' } });
+  await tgSaw('sendMessage', b => b.text.includes(o.number) && b.text.includes('Отправлен') && b.reply_markup?.inline_keyboard[0][0].callback_data === `st:${o.number}:delivered`);
+});
+
+test('автоматика: напоминание об оплате, автоотмена, контрольный анализ, сводка', async () => {
+  const fresh = await newOrder('payme', { email: 'fresh@example.com' }), late = await newOrder('payme', { email: 'late@example.com' }), busy = await newOrder('payme', { email: 'busy@example.com' });
+  shift(late.number, { created_at: ago(25 * 3600e3) }); shift(busy.number, { created_at: ago(25 * 3600e3) });
+  const first = (await cli(['jobs'])); assert.equal(first.status, 0, first.stderr);
+  assert.match(first.stdout, /reminded: 2/); assert.match(first.stdout, /digest: 1/);
+  const reminder = await mailTo('late@example.com', /ждёт оплаты/);
+  assert.match(reminder.text, /https:\/\/checkout\.paycom\.uz\//); assert.match(reminder.text, /в течение 48 ч/);
+  assert.ok(!mails.some(m => m.to === 'fresh@example.com' && /ждёт оплаты/.test(m.subject)), 'свежему заказу не напоминаем');
+  await tgSaw('sendMessage', b => b.text.includes('Заказы на сегодня'));
+  const second = (await cli(['jobs']));
+  assert.match(second.stdout, /reminded: 0/); assert.match(second.stdout, /cancelled: 0/); assert.match(second.stdout, /digest: 0/, 'сводка раз в день');
+
+  // Прошло трое суток: напоминание было двое суток назад. По заказу busy платёж в процессе — его не трогаем.
+  for (const o of [late, busy]) shift(o.number, { created_at: ago(73 * 3600e3), reminded_at: Date.now() - 49 * 3600e3 });
+  await payme('CreateTransaction', { id: 'pm-busy-' + busy.number, time: Date.now(), amount: busy.total_uzs * 100, account: { order_id: busy.number } });
+  assert.match((await cli(['jobs'])).stdout, /cancelled: 1/);
+  assert.equal(orderRow(late.number).status, 'cancelled'); assert.equal(orderRow(busy.number).status, 'awaiting_payment'); assert.equal(orderRow(fresh.number).status, 'awaiting_payment');
+  assert.match((await mailTo('late@example.com', /отменён/)).text, /оплата не поступила/);
+  assert.equal((await payme('CheckPerformTransaction', { amount: late.total_uzs * 100, account: { order_id: late.number } })).error.code, -31052, 'отменённый заказ оплатить нельзя');
+
+  const cod = await newOrder('cod', { email: 'control@example.com' });
+  assert.equal((await cli(['status', cod.number, 'delivered'])).status, 0);
+  assert.ok(orderRow(cod.number).delivered_at > 0);
+  assert.match((await cli(['jobs'])).stdout, /control: 0/);
+  shift(cod.number, { delivered_at: Date.now() - 91 * 86400e3 });
+  assert.match((await cli(['jobs'])).stdout, /control: 1/);
+  assert.match((await mailTo('control@example.com', /контрольный анализ/)).text, /доставлен 90 дней назад[^]*цинк/);
+  assert.match((await cli(['jobs'])).stdout, /control: 0/);
+});
+
+test('подписка: создаётся после оплаты, письмо с кнопками, продление по POST, остановка', async () => {
+  const email = 'sub@example.com', o = await newOrder('payme', { email }), account = { order_id: o.number };
+  assert.equal(db.prepare('select count(*) n from subscriptions where email = ?').get(email).n, 0, 'до оплаты подписки нет');
+  await payme('CreateTransaction', { id: 'pm-sub-' + o.number, time: Date.now(), amount: o.total_uzs * 100, account });
+  await payme('PerformTransaction', { id: 'pm-sub-' + o.number });
+  const sub = db.prepare('select * from subscriptions where email = ?').get(email);
+  assert.equal(sub.days, 90); assert.deepEqual(JSON.parse(sub.items), [{ sku: 'd3k2', qty: 1 }], 'в подписке только позиции, взятые по подписке');
+  assert.ok(Math.abs(sub.next_at - (Date.now() + 80 * 86400e3)) < 60e3, 'письмо за 10 дней до конца банки');
+
+  const login = await call('POST', '/api/auth/order', { json: { email, number: o.number } }), auth = { authorization: 'Bearer ' + login.data.token };
+  const cab = (await call('GET', '/api/me/orders', { headers: auth })).data;
+  assert.deepEqual(cab.subs, [{ id: sub.id, title: 'ERKAK D3 + K2 × 1', next_at: sub.next_at }]);
+
+  db.prepare('update subscriptions set next_at = ? where id = ?').run(Date.now() - 1000, sub.id);
+  assert.match((await cli(['jobs'])).stdout, /subs: 1/);
+  const letter = await mailTo(email, /продлить подписку/);
+  const [renew, stop] = [/отправку[^\n]*: (https:\/\/shop\.test\S+)/, /Остановить подписку: (https:\/\/shop\.test\S+)/].map(re => new URL(re.exec(letter.text)[1]));
+  assert.match((await cli(['jobs'])).stdout, /subs: 0/, 'следующее письмо не раньше чем через неделю');
+
+  const before = db.prepare('select count(*) n from orders where email = ?').get(email).n;
+  const view = await call('GET', renew.pathname + renew.search);
+  assert.equal(view.status, 200); assert.match(view.text, /Подтвердить отправку/);
+  assert.equal(db.prepare('select count(*) n from orders where email = ?').get(email).n, before, 'открытие ссылки заказ не создаёт');
+  assert.equal((await call('GET', `/api/sub?s=${sub.id}&k=${'0'.repeat(32)}&a=renew`)).status, 404);
+
+  const form = { s: renew.searchParams.get('s'), k: renew.searchParams.get('k'), a: 'renew' };
+  const go = await call('POST', '/api/sub', { form });
+  assert.equal(go.status, 303); assert.match(go.headers.get('location'), /^https:\/\/checkout\.paycom\.uz\//);
+  const renewed = db.prepare('select * from subscriptions where id = ?').get(sub.id), next = orderRow(renewed.last_order);
+  assert.notEqual(next.number, o.number); assert.equal(next.address, 'Улица 1'); assert.equal(next.status, 'awaiting_payment');
+  assert.deepEqual(JSON.parse(next.items).map(l => [l.sku, l.qty, l.subscription]), [['d3k2', 1, true]]);
+  assert.equal(renewed.nudges, 0); assert.ok(renewed.next_at > Date.now() + 79 * 86400e3);
+  await tgSaw('sendMessage', b => b.text.startsWith('🔁 Продление подписки') && b.text.includes(next.number));
+  assert.equal((await call('POST', '/api/sub', { form })).status, 303);
+  assert.equal(db.prepare('select count(*) n from orders where email = ?').get(email).n, before + 1, 'повторное нажатие второй заказ не создаёт');
+
+  await payme('CreateTransaction', { id: 'pm-sub-' + next.number, time: Date.now(), amount: next.total_uzs * 100, account: { order_id: next.number } });
+  await payme('PerformTransaction', { id: 'pm-sub-' + next.number });
+  assert.equal(db.prepare('select count(*) n from subscriptions where email = ?').get(email).n, 1, 'оплата продления не плодит подписки');
+
+  assert.equal((await call('POST', '/api/me/subs/stop', { json: { id: sub.id }, headers: auth })).status, 200);
+  assert.equal(db.prepare('select status from subscriptions where id = ?').get(sub.id).status, 'stopped');
+  assert.deepEqual((await call('GET', '/api/me/orders', { headers: auth })).data.subs, []);
+  assert.match((await call('GET', stop.pathname + stop.search)).text, /Подписка остановлена/);
+  assert.equal((await call('POST', '/api/me/subs/stop', { json: { id: sub.id } })).status, 401);
+});
+
+test('подписка: остановка по ссылке из письма и засыпание без ответа', async () => {
+  const email = 'sub2@example.com', o = await newOrder('cod', { email });
+  assert.equal((await cli(['status', o.number, 'delivered'])).status, 0);
+  const sub = db.prepare('select * from subscriptions where email = ?').get(email);
+  assert.ok(sub, 'при оплате курьеру подписка стартует с доставки');
+  db.prepare('update subscriptions set next_at = ?, nudges = 2 where id = ?').run(Date.now() - 1000, sub.id);
+  (await cli(['jobs']));
+  assert.equal(db.prepare('select status from subscriptions where id = ?').get(sub.id).status, 'lapsed', 'после двух писем без ответа больше не пишем');
+  db.prepare(`update subscriptions set status = 'active', nudges = 0 where id = ?`).run(sub.id);
+  (await cli(['jobs']));
+  const link = new URL(/Остановить подписку: (\S+)/.exec((await mailTo(email, /продлить подписку/)).text)[1]);
+  const done = await call('POST', '/api/sub', { form: { s: link.searchParams.get('s'), k: link.searchParams.get('k'), a: 'stop' } });
+  assert.equal(done.status, 200); assert.match(done.text, /Подписка остановлена/);
+  assert.equal(db.prepare('select status from subscriptions where id = ?').get(sub.id).status, 'stopped');
+});
+
+test('копия базы: целая, старые удаляются', async () => {
+  const dir = path.join(TMP, 'backups'); fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'erkak-20200101-0000.db'), 'old'); fs.writeFileSync(path.join(dir, 'erkak-20200102-0000.db'), 'old');
+  const run = (await cli(['backup'], { ...ENV, BACKUP_KEEP: '2' }));
+  assert.equal(run.status, 0, run.stderr); assert.match(run.stdout, /заказов: \d+ · удалено старых копий: 1/);
+  const files = fs.readdirSync(dir).sort(); assert.equal(files.length, 2); assert.equal(files[0], 'erkak-20200102-0000.db');
+  const copy = new DatabaseSync(path.join(dir, files[1]));
+  assert.equal(copy.prepare('select count(*) n from orders').get().n, db.prepare('select count(*) n from orders').get().n); copy.close();
 });

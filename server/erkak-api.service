@@ -1,18 +1,30 @@
 [Unit]
 Description=ERKAK shop API
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
+# Отдельный пользователь без прав на систему: писать может только в папку с базой.
+User=erkak
+Group=erkak
 WorkingDirectory=/opt/erkak
-# Почта и Telegram: общие настройки сервера (pactum), затем переопределения ERKAK.
-EnvironmentFile=-/opt/pactum/.env.production
+# .env.shared: почта и Telegram, выписанные из общих настроек сервера (обновляет install.sh). .env: настройки ERKAK, они главнее.
+EnvironmentFile=-/opt/erkak/.env.shared
 EnvironmentFile=-/opt/erkak/.env
-Environment=PORT=8795 DATA_DIR=/opt/erkak/data STATIC_DIR=/var/www/erkak.com PUBLIC_ORIGIN=https://erkak.com
+Environment=PORT=8795 DATA_DIR=/opt/erkak/data STATIC_DIR=/var/www/erkak.com PUBLIC_ORIGIN=https://erkak.com NODE_NO_WARNINGS=1
 ExecStart=/usr/bin/node /opt/erkak/server.mjs
 Restart=always
 RestartSec=3
-User=root
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/erkak/data
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
 
 [Install]
 WantedBy=multi-user.target
