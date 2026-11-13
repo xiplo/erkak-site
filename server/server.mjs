@@ -22,8 +22,11 @@ if (CLI) for (const f of ['.env', '.env.shared']) { try { process.loadEnvFile(pa
 const ENV = process.env;
 const PORT = +(ENV.PORT || 8795);
 const DATA_DIR = ENV.DATA_DIR || path.join(process.cwd(), 'data');
-const STATIC_DIR = ENV.STATIC_DIR || '/var/www/erkak.com';
-const ORIGIN = ENV.PUBLIC_ORIGIN || 'https://erkak.com';
+const STATIC_DIR = ENV.STATIC_DIR || '/var/www/erkak.com-shop';
+// Магазин живёт в подпапке основного сайта. ORIGIN — полный адрес магазина для писем и возврата с оплаты,
+// BASE — его путь на домене ('' или '/shop') для ссылок со страниц, которые отдаёт сам API.
+const ORIGIN = (ENV.PUBLIC_ORIGIN || 'https://erkak.com/shop').replace(/\/+$/, '');
+const BASE = new URL(ORIGIN).pathname.replace(/\/+$/, '');
 const BRAND = 'ERKAK';
 const SUPPORT = ENV.SUPPORT_EMAIL || 'care@erkak.com';
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -717,7 +720,7 @@ const routes = {
     const sub = subFromLink(url.searchParams.get('s'), url.searchParams.get('k')), stop = url.searchParams.get('a') === 'stop';
     if (!sub) return page(res, 404, 'Ссылка не подошла', '<p>Ссылка устарела или скопирована не полностью. Подпиской можно управлять в кабинете.</p>');
     if (sub.status === 'stopped') return page(res, 200, 'Подписка остановлена', '<p>Напоминаний и отправок по ней больше не будет. Возобновить можно новым заказом с подпиской.</p>');
-    const form = (a, label, primary) => `<form method="post" action="/api/sub" style="margin:0 0 12px"><input type="hidden" name="s" value="${sub.id}"><input type="hidden" name="k" value="${subKey(sub.id)}"><input type="hidden" name="a" value="${a}"><button style="font:600 17px Arial,sans-serif;cursor:pointer;padding:14px 24px;border-radius:999px;border:1px solid #0E6E5A;background:${primary ? '#0E6E5A' : '#fff'};color:${primary ? '#fff' : '#0E6E5A'}">${label}</button></form>`;
+    const form = (a, label, primary) => `<form method="post" action="${BASE}/api/sub" style="margin:0 0 12px"><input type="hidden" name="s" value="${sub.id}"><input type="hidden" name="k" value="${subKey(sub.id)}"><input type="hidden" name="a" value="${a}"><button style="font:600 17px Arial,sans-serif;cursor:pointer;padding:14px 24px;border-radius:999px;border:1px solid #0E6E5A;background:${primary ? '#0E6E5A' : '#fff'};color:${primary ? '#fff' : '#0E6E5A'}">${label}</button></form>`;
     if (stop) return page(res, 200, 'Остановить подписку?', `<p>${esc(subTitle(sub))}</p>${form('stop', 'Остановить подписку', true)}<p style="font-size:15px;color:#5A6862">Напоминаний и отправок больше не будет. Уже оплаченные заказы приедут как обычно.</p>`);
     page(res, 200, 'Следующая отправка по подписке', `<p>${esc(subTitle(sub))}</p><p style="font-size:15px;color:#5A6862">Адрес и способ оплаты — как в прошлом заказе, цена со скидкой ${Math.round(CATALOG.subscriptionDiscount * 100)}%.</p>${form('renew', 'Подтвердить отправку', true)}${form('stop', 'Остановить подписку', false)}`);
   },
@@ -731,7 +734,7 @@ const routes = {
     page(res, 200, `Заказ ${o.number} оформлен`, `<p>${o.pay_method === 'cod' ? 'Курьер свяжется для согласования времени. Оплата при получении.' : 'Ссылка на оплату придёт на почту в течение рабочего дня.'}</p><p>Подтверждение отправлено на ${esc(o.email)}.</p>`);
   },
 
-  // Payme → кабинет Payme Business, «Endpoint URL»: https://erkak.com/api/pay/payme
+  // Payme → кабинет Payme Business, «Endpoint URL»: https://erkak.com/shop/api/pay/payme
   'POST /api/pay/payme': async (req, res) => {
     let rpc = null;
     const reply = (result, k) => { const [code, ru, uz, en, data] = k ? PM[k] : []; json(res, 200, { jsonrpc:'2.0', id: rpc?.id ?? null, ...(k ? { error: { code, message: { ru, uz, en }, ...(data ? { data } : {}) } } : { result }) }); };
@@ -760,7 +763,7 @@ const routes = {
 <p id="state" style="font-size:15px;color:#5A6862">Ждём перевод. Страница обновится сама, обычно через 1–3 минуты после отправки.</p>
 <script>
 document.querySelectorAll('[data-copy]').forEach(function(b){ b.onclick = function(){ navigator.clipboard.writeText(document.getElementById(b.dataset.copy).textContent).then(function(){ b.textContent = 'Скопировано'; setTimeout(function(){ b.textContent = 'Скопировать'; }, 1500); }); }; });
-setInterval(function(){ fetch('/api/pay/usdt/status' + location.search).then(function(r){ return r.json(); }).then(function(d){ if (d.status && d.status !== 'awaiting_payment') location.href = '/account.html?paid=${number}'; }).catch(function(){}); }, 15000);
+setInterval(function(){ fetch('${BASE}/api/pay/usdt/status' + location.search).then(function(r){ return r.json(); }).then(function(d){ if (d.status && d.status !== 'awaiting_payment') location.href = '${BASE}/account.html?paid=${number}'; }).catch(function(){}); }, 15000);
 </script>`);
   },
   'GET /api/pay/usdt/status': async (req, res, url) => {
@@ -784,7 +787,7 @@ setInterval(function(){ fetch('/api/pay/usdt/status' + location.search).then(fun
     }
   },
 
-  // Stripe → Developers → Webhooks: https://erkak.com/api/pay/stripe, события checkout.session.completed, checkout.session.async_payment_succeeded, charge.refunded
+  // Stripe → Developers → Webhooks: https://erkak.com/shop/api/pay/stripe, события checkout.session.completed, checkout.session.async_payment_succeeded, charge.refunded
   'POST /api/pay/stripe': async (req, res) => {
     const buf = await raw(req), secret = ENV.STRIPE_WEBHOOK_SECRET, sig = String(req.headers['stripe-signature'] || '');
     const t = /(?:^|,)\s*t=(\d+)/.exec(sig)?.[1], v1 = [...sig.matchAll(/(?:^|,)\s*v1=([a-f0-9]+)/g)].map(x => x[1]);

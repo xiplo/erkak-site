@@ -21,10 +21,12 @@ const tronAddress = () => { const body = Buffer.concat([Buffer.from([0x41]), cry
   let n = BigInt('0x' + Buffer.concat([body, sha(sha(body)).subarray(0, 4)]).toString('hex')), out = ''; while (n > 0n) { out = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'[Number(n % 58n)] + out; n /= 58n; } return out; };
 const WALLET = tronAddress(), USDT_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 const BASE = `http://127.0.0.1:${PORT}`;
+// Магазин стоит в подпапке /shop: наружу ссылки идут с этим префиксом, а nginx снимает его перед API.
+const local = u => { assert.ok(u.pathname.startsWith('/shop/'), `ссылка вне магазина: ${u}`); return u.pathname.slice('/shop'.length) + u.search; };
 const KEYS = { PAYME_MERCHANT: 'merchant123', PAYME_KEY: 'payme-test-key', CLICK_SERVICE_ID: '777', CLICK_MERCHANT_ID: '555', CLICK_SECRET_KEY: 'click-secret',
   STRIPE_SECRET_KEY: 'sk_test_x', STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_API: `http://127.0.0.1:${STRIPE_PORT}` };
 const MAIL = { SMTP_HOST: '127.0.0.1', SMTP_PORT: String(SMTP_PORT), SMTP_FROM: 'shop@shop.test' };
-const ENV = { ...process.env, ...KEYS, ...MAIL, PORT: String(PORT), DATA_DIR: TMP, STATIC_DIR: path.join(HERE, '..'), PUBLIC_ORIGIN: 'https://shop.test', NODE_NO_WARNINGS: '1',
+const ENV = { ...process.env, ...KEYS, ...MAIL, PORT: String(PORT), DATA_DIR: TMP, STATIC_DIR: path.join(HERE, '..'), PUBLIC_ORIGIN: 'https://shop.test/shop', NODE_NO_WARNINGS: '1',
   ERKAK_TG_TOKEN: 'ops-token', ERKAK_TG_CHAT: TG_CHAT, TELEGRAM_API: `http://127.0.0.1:${TG_PORT}`, DIGEST_HOUR: '0',
   USDT_TRC20_ADDRESS: WALLET, TRON_API: `http://127.0.0.1:${TRON_PORT}` };
 
@@ -119,7 +121,7 @@ test('заказ: цены считает сервер, ссылка Payme на 
   assert.ok(o.total_uzs > 400000, 'клиентская сумма проигнорирована');
   const decoded = Buffer.from(new URL(o.pay_url).pathname.slice(1), 'base64').toString();
   assert.equal(new URL(o.pay_url).host, 'checkout.paycom.uz');
-  assert.equal(decoded, `m=merchant123;ac.order_id=${o.number};a=${o.total_uzs * 100};c=https://shop.test/account.html?paid=${o.number}`);
+  assert.equal(decoded, `m=merchant123;ac.order_id=${o.number};a=${o.total_uzs * 100};c=https://shop.test/shop/account.html?paid=${o.number}`);
 });
 
 test('Payme: полный цикл оплаты и возврата', async () => {
@@ -210,9 +212,9 @@ test('Click: подпись, сумма, Prepare и Complete', async () => {
 
 test('Stripe: сессия на точную сумму, подпись вебхука, оплата и возврат', async () => {
   const o = await newOrder('card');
-  const link = new URL(o.pay_url); assert.equal(link.origin + link.pathname, 'https://shop.test/api/pay/card');
+  const link = new URL(o.pay_url); assert.equal(link.origin + link.pathname, 'https://shop.test/shop/api/pay/card');
   assert.equal((await call('GET', `/api/pay/card?o=${o.number}&k=${'0'.repeat(32)}`)).status, 404);
-  const go = await call('GET', link.pathname + link.search);
+  const go = await call('GET', local(link));
   assert.equal(go.status, 303); assert.match(go.headers.get('location'), /^https:\/\/checkout\.stripe\.test\/cs_test_/);
   const sent = stripeCalls.at(-1);
   assert.equal(sent.url, '/v1/checkout/sessions'); assert.equal(sent.auth, 'Bearer sk_test_x');
@@ -231,7 +233,7 @@ test('Stripe: сессия на точную сумму, подпись вебх
   assert.equal(orderRow(o.number).status, 'paid');
   assert.equal((await stripeEvent('checkout.session.completed', session)).status, 200);
   assert.equal(db.prepare(`select count(*) n from payments where order_number = ?`).get(o.number).n, 1, 'повтор события не создаёт второй платёж');
-  assert.equal((await call('GET', link.pathname + link.search)).headers.get('location'), 'https://shop.test/account.html', 'оплаченный заказ не открывает новую сессию');
+  assert.equal((await call('GET', local(link))).headers.get('location'), 'https://shop.test/shop/account.html', 'оплаченный заказ не открывает новую сессию');
 
   assert.equal((await stripeEvent('charge.refunded', { id: 'ch_1', payment_intent: session.payment_intent, refunded: false, amount_refunded: 500 })).status, 200);
   assert.equal(orderRow(o.number).status, 'paid', 'частичный возврат не меняет статус');
@@ -353,8 +355,9 @@ test('подписка: создаётся после оплаты, письмо
   assert.match((await cli(['jobs'])).stdout, /subs: 0/, 'следующее письмо не раньше чем через неделю');
 
   const before = db.prepare('select count(*) n from orders where email = ?').get(email).n;
-  const view = await call('GET', renew.pathname + renew.search);
+  const view = await call('GET', local(renew));
   assert.equal(view.status, 200); assert.match(view.text, /Подтвердить отправку/);
+  assert.ok(view.text.includes('action="/shop/api/sub"'), 'форма подписки отправляется внутри магазина, а не в корень домена');
   assert.equal(db.prepare('select count(*) n from orders where email = ?').get(email).n, before, 'открытие ссылки заказ не создаёт');
   assert.equal((await call('GET', `/api/sub?s=${sub.id}&k=${'0'.repeat(32)}&a=renew`)).status, 404);
 
@@ -376,7 +379,7 @@ test('подписка: создаётся после оплаты, письмо
   assert.equal((await call('POST', '/api/me/subs/stop', { json: { id: sub.id }, headers: auth })).status, 200);
   assert.equal(db.prepare('select status from subscriptions where id = ?').get(sub.id).status, 'stopped');
   assert.deepEqual((await call('GET', '/api/me/orders', { headers: auth })).data.subs, []);
-  assert.match((await call('GET', stop.pathname + stop.search)).text, /Подписка остановлена/);
+  assert.match((await call('GET', local(stop))).text, /Подписка остановлена/);
   assert.equal((await call('POST', '/api/me/subs/stop', { json: { id: sub.id } })).status, 401);
 });
 
@@ -414,21 +417,23 @@ test('USDT: своя сумма у каждого заказа, сверка п�
   for (const r of [ra, rb]) { assert.ok(r.crypto_amount < r.total_usd * 1e6 && r.crypto_amount >= (r.total_usd - 0.99) * 1e6 - 1, 'сумма на 1–99 центов меньше итога'); assert.equal(r.crypto_amount % 10000, 0); }
   assert.notEqual(ra.crypto_amount, rb.crypto_amount, 'у двух заказов на одну сумму разные суммы к оплате');
 
-  const link = new URL(a.pay_url); assert.equal(link.pathname, '/api/pay/usdt');
+  const link = new URL(a.pay_url); assert.equal(link.pathname, '/shop/api/pay/usdt');
   assert.equal((await call('GET', `/api/pay/usdt?o=${a.number}&k=${'0'.repeat(32)}`)).status, 404);
-  const pay = await call('GET', link.pathname + link.search), shown = (ra.crypto_amount / 1e6).toFixed(2);
+  const pay = await call('GET', local(link)), shown = (ra.crypto_amount / 1e6).toFixed(2);
   assert.equal(pay.status, 200); assert.ok(pay.text.includes(WALLET)); assert.ok(pay.text.includes(`${shown} USDT`)); assert.match(pay.text, /TRON \(TRC-20\)/);
+  assert.ok(pay.text.includes("fetch('/shop/api/pay/usdt/status'") && pay.text.includes("location.href = '/shop/account.html?paid="), 'страница оплаты ходит в API и кабинет магазина, а не в корень домена');
   assert.match((await mailTo('usdt@example.com', new RegExp(`${a.number} принят`))).text, /\/api\/pay\/usdt\?o=/);
 
   transfer(ra.crypto_amount, { token_info: { symbol: 'USDT', address: tronAddress(), decimals: 6 } }); // поддельный токен с тем же названием
   transfer(ra.crypto_amount, { to: tronAddress() });                                                    // перевод не нам
   transfer(ra.crypto_amount, { block_timestamp: Date.now() - 5e3 });                                    // ещё не подтверждён
-  const short = transfer(ra.crypto_amount - 1_000_000);                                                 // биржа удержала комиссию
+  // Биржа удержала комиссию. Недоплата берётся от меньшей из двух сумм, иначе ближайшим случайно оказывался бы то один заказ, то другой.
+  const low = ra.crypto_amount < rb.crypto_amount ? a : b, short = transfer(Math.min(ra.crypto_amount, rb.crypto_amount) - 1_000_000);
   const first = await cli(['usdt']); assert.equal(first.status, 0, first.stderr);
   assert.match(first.stdout, /paid: 0/); assert.match(first.stdout, /unmatched: 1/);
   assert.equal(orderRow(a.number).status, 'awaiting_payment');
   const alert = await tgSaw('sendMessage', m => m.text.includes('USDT: пришло') && m.text.includes(short.transaction_id));
-  assert.ok(alert.body.text.includes(`Ближайший ожидающий заказ: ${a.number}`));
+  assert.ok(alert.body.text.includes(`Ближайший ожидающий заказ: ${low.number}`));
   const q = tronQueries.at(-1); assert.equal(q.pathname, `/v1/accounts/${WALLET}/transactions/trc20`); assert.equal(q.searchParams.get('contract_address'), USDT_CONTRACT);
 
   const good = transfer(ra.crypto_amount);
@@ -438,7 +443,7 @@ test('USDT: своя сумма у каждого заказа, сверка п�
   await mailTo('usdt@example.com', new RegExp(`${a.number} — оплачен`));
   assert.match((await cli(['usdt'])).stdout, /paid: 0/, 'повторная сверка тот же перевод не засчитывает');
   assert.deepEqual((await call('GET', '/api/pay/usdt/status' + link.search)).data, { status: 'paid' });
-  assert.equal((await call('GET', link.pathname + link.search)).status, 303, 'оплаченный заказ страницу оплаты не показывает');
+  assert.equal((await call('GET', local(link))).status, 303, 'оплаченный заказ страницу оплаты не показывает');
 
   // Поздний перевод по отменённому заказу: заказ не оживает, владельцу уходит сообщение с номером.
   assert.equal((await cli(['status', b.number, 'cancelled'])).status, 0);

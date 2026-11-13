@@ -12,7 +12,7 @@ WorkingDirectory=/opt/erkak
 # .env.shared: почта и Telegram, выписанные из общих настроек сервера (обновляет install.sh). .env: настройки ERKAK, они главнее.
 EnvironmentFile=-/opt/erkak/.env.shared
 EnvironmentFile=-/opt/erkak/.env
-Environment=PORT=8795 DATA_DIR=/opt/erkak/data STATIC_DIR=/var/www/erkak.com PUBLIC_ORIGIN=https://erkak.com NODE_NO_WARNINGS=1
+Environment=PORT=8795 DATA_DIR=/opt/erkak/data STATIC_DIR=/var/www/erkak.com-shop PUBLIC_ORIGIN=https://erkak.com/shop NODE_NO_WARNINGS=1
 ExecStart=/usr/bin/node /opt/erkak/server.mjs
 Restart=always
 RestartSec=3
