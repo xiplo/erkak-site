@@ -4,17 +4,22 @@
 
 ## Прод
 - Сервер `root@62.238.59.42` (Hetzner, nginx на хосте, Node 22).
-- Статика: `/var/www/erkak.com`. API: `/opt/erkak/server.mjs`, systemd `erkak-api`, порт 8795, база SQLite `/opt/erkak/data/erkak.db`.
+- Адрес магазина: **https://erkak.com/shop/**. В корне домена живёт другой сайт (экосистема ERKAK, ветка `claude/thailand-fishing-tours-vjkxkt`), магазин его не трогает.
+- Статика: `/var/www/erkak.com-shop`. API: `/opt/erkak/server.mjs`, systemd `erkak-api`, порт 8795, база SQLite `/opt/erkak/data/erkak.db`.
 - API работает от пользователя `erkak` и может писать только в `/opt/erkak/data`. Пользователя и права создаёт `server/install.sh` при деплое.
-- nginx: `/etc/nginx/sites-available/erkak.com.conf`, `/api/` проксируется на API.
+- nginx: блок `server/nginx.shop-snippet.conf` ставится как `/etc/nginx/snippets/erkak-shop.conf` и подключается в `/etc/nginx/sites-available/erkak.com.conf`. Страницы отдаются по `/shop/`, API по `/shop/api/` (на сервере это те же маршруты `/api/…`).
+- Страницы магазина ссылаются друг на друга и на API относительно своей папки, поэтому сами от адреса не зависят. Адрес знают только `PUBLIC_ORIGIN` в `server/erkak-api.service` (письма, возврат с оплаты), `<base>` в `404.html`, `canonical` и `sitemap.xml`.
+- SSH сервера закрыт для интернета: выкладка идёт только с доверенной машины владельца. С серверов GitHub кнопка Deploy до сервера не достанет, пока доступ для неё не настроен отдельно.
 
 ## Деплой
 ```bash
-./deploy.sh api      # только API и его сервисы; сайт и заглушка не меняются
-./deploy.sh vps      # сайт магазина + API + nginx + certbot
-./deploy.sh teaser   # заглушка вместо магазина
+./deploy.sh shop     # основной: страницы + API + блок nginx, магазин на erkak.com/shop/
+./deploy.sh api      # только API и его сервисы; страницы и nginx не меняются
 ./deploy.sh pages    # зеркало статики без API на GitHub Pages
+./deploy.sh vps      # магазин в корень домена: сотрёт сайт, который там лежит. Без FORCE=1 не запускается
+./deploy.sh teaser   # заглушка в корень домена. Без FORCE=1 не запускается
 ```
+`shop` сначала кладёт страницы (по адресу они ещё не открываются), затем ставит API и только после ответа `/api/health` подключает блок nginx. Если `nginx -t` не проходит или после перезагрузки не отвечает основной сайт, магазин или API, конфиг nginx возвращается как был.
 Перед заменой прежняя версия API сохраняется в `/opt/erkak/.prev`. Если новая не ответила на `/api/health`, `install.sh` возвращает прежнюю и деплой завершается с ошибкой.
 
 ### Деплой кнопкой
@@ -26,7 +31,7 @@ GitHub → Actions → Deploy → Run workflow. Сначала идут тест
 | `ERKAK_ENV` | secret | Полное содержимое `/opt/erkak/.env`. Если задан, каждый деплой **заменяет** файл на сервере целиком |
 | `VPS_KNOWN_HOSTS` | secret | Строка из `ssh-keyscan 62.238.59.42`: деплой остановится, если сервер подменили |
 | `VPS_HOST`, `VPS_USER` | variable | Если сервер или пользователь другие |
-| `MONITOR_URL` | variable | `https://erkak.com/api/health` включает проверку каждые 30 минут; при сбое GitHub пришлёт письмо |
+| `MONITOR_URL` | variable | `https://erkak.com/shop/api/health` включает проверку каждые 30 минут; при сбое GitHub пришлёт письмо |
 
 ## Настройки (`/opt/erkak/.env`)
 ```
@@ -56,7 +61,7 @@ CONTROL_DAYS=90         # письмо о контрольном анализе 
 SUB_LEAD_DAYS=10        # за сколько дней до конца упаковки писать о продлении подписки
 BACKUP_KEEP=14          # сколько ночных копий базы хранить
 ```
-После правок: `systemctl restart erkak-api`. Что подключено, видно в `curl -s https://erkak.com/api/health` → поле `pay`.
+После правок: `systemctl restart erkak-api`. Что подключено, видно в `curl -s https://erkak.com/shop/api/health` → поле `pay`.
 
 Почта и общий Telegram-бот берутся из настроек соседнего проекта: `install.sh` выписывает из `/opt/pactum/.env.production` только `SMTP_*`, `MAIL_FROM`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_NOTIFY_CHAT_ID` в `/opt/erkak/.env.shared`. Значения из `.env` главнее. После смены почты в pactum нужен повторный `./deploy.sh api`.
 
@@ -67,9 +72,9 @@ BACKUP_KEEP=14          # сколько ночных копий базы хра
 
 | Система | Что указать в её кабинете | Переменные |
 |---|---|---|
-| Payme | Endpoint URL: `https://erkak.com/api/pay/payme`, поле счёта: `order_id` | `PAYME_MERCHANT`, `PAYME_KEY` |
-| Click | Prepare URL: `https://erkak.com/api/pay/click/prepare`, Complete URL: `https://erkak.com/api/pay/click/complete` | `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY` |
-| Stripe | Webhook: `https://erkak.com/api/pay/stripe`, события `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
+| Payme | Endpoint URL: `https://erkak.com/shop/api/pay/payme`, поле счёта: `order_id` | `PAYME_MERCHANT`, `PAYME_KEY` |
+| Click | Prepare URL: `https://erkak.com/shop/api/pay/click/prepare`, Complete URL: `https://erkak.com/shop/api/pay/click/complete` | `CLICK_SERVICE_ID`, `CLICK_MERCHANT_ID`, `CLICK_SECRET_KEY` |
+| Stripe | Webhook: `https://erkak.com/shop/api/pay/stripe`, события `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded` | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
 
 ### USDT на собственный кошелёк
 Без посредника и без договора: покупатель переводит USDT в сети TRON (TRC-20) прямо на ваш адрес.

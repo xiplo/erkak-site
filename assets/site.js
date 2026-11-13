@@ -6,7 +6,7 @@ const BRAND = 'ERKAK';
 
 // ── Конфигурация ───────────────────────────────────────────────
 const CONFIG = {
-  api: '/api',
+  api: 'api',   // относительно папки магазина: работает и в корне домена, и в /shop/
   usdRate: CATALOG.usdRate, freeShippingUZS: CATALOG.freeShippingUZS, subscriptionDiscount: CATALOG.subscriptionDiscount,
   telegram: 'https://t.me/erkak_bot',
   supportEmail: 'care@erkak.com',
